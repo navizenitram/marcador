@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MiniBasket · Marcador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #06080a;
+  --surface: #0e1014;
+  --surface2: #161a1f;
+  --border: #1e2228;
+  --green: #00e676;
+  --green-dim: #00e67622;
+  --blue: #29b6f6;
+  --blue-dim: #29b6f622;
+  --amber: #ffca28;
+  --red: #ff5252;
+  --gray: #5a6170;
+  --gray-light: #8a9bb0;
+  --white: #e8edf2;
+  --chart-grid: #1e2228;
+  --chart-tick: #5a6170;
+}
+body.light {
+  --bg: #f0f3f8;
+  --surface: #ffffff;
+  --surface2: #e4e9f2;
+  --border: #ced6e4;
+  --green: #00a854;
+  --green-dim: #00a85420;
+  --blue: #0284c7;
+  --blue-dim: #0284c720;
+  --amber: #d97706;
+  --red: #dc2626;
+  --gray: #8096b4;
+  --gray-light: #4e6280;
+  --white: #192338;
+  --chart-grid: #e2e8f0;
+  --chart-tick: #8096b4;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--white); font-family: 'Rajdhani', sans-serif; }
+button { cursor: pointer; border: none; background: none; font-family: inherit; }
+input { font-family: inherit; }
+
+/* ─── SCREENS ─────────────────────────────────────────────────── */
+.screen { display: none; width: 100%; height: 100dvh; flex-direction: column; overflow: hidden; }
+.screen.active { display: flex; }
+
+/* ─── SETUP ───────────────────────────────────────────────────── */
+#setup {
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 24px 20px;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 60% 40% at 20% 80%, #00e67608 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 20%, #29b6f608 0%, transparent 60%);
+}
+.setup-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.setup-logo-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(28px, 6vw, 52px);
+  font-weight: 900;
+  color: var(--green);
+  letter-spacing: 6px;
+  line-height: 1;
+}
+.setup-logo-sub {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  color: var(--gray-light);
+  text-transform: uppercase;
+}
+.setup-teams {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  max-width: 580px;
+}
+.setup-card {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+.setup-card-accent { width: 36px; height: 4px; border-radius: 2px; }
+.setup-card.local .setup-card-accent { background: var(--green); }
+.setup-card.visit .setup-card-accent { background: var(--blue); }
+.setup-card label { font-size: 10px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--gray); }
+.setup-card input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--white);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.setup-card.local input:focus { border-color: var(--green); box-shadow: 0 0 0 3px #00e67618; }
+.setup-card.visit input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px #29b6f618; }
+.setup-config {
+  width: 100%;
+  max-width: 580px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.setup-config-label { font-size: 13px; font-weight: 600; color: var(--gray-light); letter-spacing: 1px; }
+.q-selector { display: flex; gap: 6px; }
+.q-btn {
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--gray-light);
+  transition: all 0.15s;
+}
+.q-btn.active { background: var(--amber); color: #000; border-color: var(--amber); }
+.btn-start {
+  background: var(--green);
+  color: #04180e;
+  border-radius: 50px;
+  padding: 15px 48px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  transition: transform 0.12s, opacity 0.12s;
+}
+.btn-start:active { transform: scale(0.96); opacity: 0.9; }
+
+/* Theme toggle */
+.theme-toggle {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--gray-light);
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+  z-index: 10;
+}
+.theme-toggle:active { background: var(--border); }
+
+/* ── Landscape layout for setup (iPhone landscape, small tablets) ── */
+@media (max-height: 520px) and (orientation: landscape) {
+  #setup {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+  .setup-logo { flex-shrink: 0; gap: 4px; }
+  .setup-logo-title { font-size: 22px; letter-spacing: 4px; }
+  .setup-logo-sub { font-size: 9px; letter-spacing: 2px; }
+  .setup-teams { max-width: 380px; gap: 10px; }
+  .setup-card { padding: 12px 12px; gap: 8px; border-radius: 12px; }
+  .setup-card input { font-size: 16px; padding: 7px 10px; }
+  .setup-config { max-width: 380px; padding: 10px 14px; }
+  .setup-config-label { font-size: 11px; }
+  .btn-start { padding: 11px 32px; font-size: 13px; }
+}
+
+/* ─── SCOREBOARD ──────────────────────────────────────────────── */
+#scoreboard { background: var(--bg); }
+
+.sb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 8px;
+}
+.quarter-nav { display: flex; align-items: center; gap: 8px; }
+.nav-btn {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--white);
+  font-size: 18px;
+  line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, opacity 0.15s;
+}
+.nav-btn:disabled { opacity: 0.25; }
+.nav-btn:not(:disabled):active { background: var(--border); }
+.q-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0px;
+}
+.q-display-main {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--amber);
+  letter-spacing: 1px;
+}
+.q-display-sub { font-size: 10px; color: var(--gray); letter-spacing: 1px; }
+.header-actions { display: flex; gap: 6px; }
+.header-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--gray-light);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  transition: background 0.15s, color 0.15s;
+}
+.header-btn:active { background: var(--border); }
+.header-btn.accent { color: var(--amber); border-color: #ffca2830; }
+
+/* ─── MAIN PANELS ─────────────────────────────────────────────── */
+.sb-main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+.team-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 8px 8px;
+  gap: 6px;
+  overflow: hidden;
+  position: relative;
+}
+.team-panel.local { border-right: 1px solid var(--border); }
+
+.team-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  width: 100%;
+}
+.team-color-bar { width: 32px; height: 3px; border-radius: 2px; }
+.team-panel.local .team-color-bar { background: var(--green); }
+.team-panel.visit .team-color-bar { background: var(--blue); }
+.team-name-display {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: clamp(13px, 3.2vw, 20px);
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-align: center;
+  width: 100%;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.2;
+  padding: 0 4px;
+}
+
+/* Score area */
+.score-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 0;
+  padding-top: 8px;
+}
+.q-score-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; color: var(--gray); text-transform: uppercase; }
+.q-score {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(60px, 16vw, 110px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -2px;
+  transition: transform 0.08s;
+  flex-shrink: 0;
+}
+.team-panel.local .q-score { color: var(--green); }
+.team-panel.visit .q-score { color: var(--blue); }
+.q-score.pop { animation: scorePop 0.18s ease-out; }
+@keyframes scorePop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.divider { width: 28px; height: 1px; background: var(--border); flex-shrink: 0; }
+.total-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; color: var(--gray); text-transform: uppercase; }
+.total-score {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(22px, 5.5vw, 40px);
+  font-weight: 700;
+  color: var(--amber);
+  line-height: 1;
+}
+
+/* Score buttons */
+.score-btns {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.score-btn {
+  flex: 1;
+  max-width: 64px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--surface2);
+  color: var(--white);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.1s, background 0.1s;
+  user-select: none;
+}
+.score-btn:active { transform: scale(0.88); }
+.team-panel.local .score-btn:not(.undo):active { background: var(--green-dim); border-color: var(--green); }
+.team-panel.visit .score-btn:not(.undo):active { background: var(--blue-dim); border-color: var(--blue); }
+.score-btn.undo { border-color: #ff525240; color: var(--red); font-size: 18px; max-width: 48px; opacity: 0.6; }
+.score-btn.undo:active { opacity: 1; background: #ff525215; }
+
+/* Fouls */
+.fouls-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.fouls-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; color: var(--gray); text-transform: uppercase; }
+.fouls-dots { display: flex; gap: 5px; }
+.foul-dot {
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid var(--red);
+  background: transparent;
+  transition: background 0.15s;
+}
+.foul-dot.on { background: var(--red); }
+.fouls-ctrl { display: flex; gap: 8px; }
+.foul-ctrl-btn {
+  width: 30px; height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--gray-light);
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
+.foul-ctrl-btn:active { background: #ff525218; color: var(--red); }
+
+/* ─── HISTORY BAR ─────────────────────────────────────────────── */
+.sb-history {
+  flex-shrink: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 6px 10px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.sb-history::-webkit-scrollbar { display: none; }
+.history-row { display: flex; gap: 5px; align-items: center; min-width: max-content; }
+.h-quarter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  min-width: 52px;
+}
+.h-quarter.active { border-color: var(--amber); }
+.h-q-label { font-size: 9px; color: var(--gray); letter-spacing: 1px; font-weight: 700; }
+.h-scores { display: flex; align-items: center; gap: 4px; }
+.h-sa { font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 700; color: var(--green); }
+.h-sb { font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 700; color: var(--blue); }
+.h-sep { font-size: 9px; color: var(--gray); }
+.h-win-dot { width: 5px; height: 5px; border-radius: 50%; margin: 0 auto; }
+
+/* ─── STATS SCREEN ────────────────────────────────────────────── */
+#stats { background: var(--bg); overflow-y: auto; }
+.stats-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.stats-back {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--gray-light);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.stats-back:active { background: var(--border); }
+.stats-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--amber);
+  letter-spacing: 2px;
+}
+.stats-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+/* Final score */
+.final-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+.final-team { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.final-team-name { font-size: 11px; letter-spacing: 2px; color: var(--gray-light); text-transform: uppercase; }
+.final-total {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(40px, 10vw, 64px);
+  font-weight: 900;
+  line-height: 1;
+}
+.final-total.a { color: var(--green); }
+.final-total.b { color: var(--blue); }
+.final-vs { font-family: 'Orbitron', sans-serif; font-size: 18px; color: var(--gray); }
+
+/* Stat section card */
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.stat-card-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gray);
+  margin-bottom: 14px;
+}
+.chart-box { position: relative; height: 180px; }
+
+/* Quarter table */
+.q-table { width: 100%; border-collapse: collapse; }
+.q-table th {
+  font-size: 9px; letter-spacing: 1px; color: var(--gray);
+  text-transform: uppercase; padding: 4px 6px; border-bottom: 1px solid var(--border);
+  text-align: center; font-weight: 700;
+}
+.q-table th:first-child { text-align: left; }
+.q-table td { padding: 7px 6px; text-align: center; font-size: 13px; font-weight: 600; }
+.q-table td:first-child { text-align: left; font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+.q-table td.won { font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 700; }
+.q-table .row-a td { color: var(--white); }
+.q-table .row-a td:first-child { color: var(--green); }
+.q-table .row-b td { color: var(--white); border-top: 1px solid var(--border); }
+.q-table .row-b td:first-child { color: var(--blue); }
+.q-table .row-a td.won { color: var(--green); }
+.q-table .row-b td.won { color: var(--blue); }
+.q-table td.total { font-family: 'Orbitron', sans-serif; color: var(--amber) !important; font-size: 13px; }
+
+/* Lead bar */
+.lead-section { margin-top: 4px; }
+.lead-bar-header {
+  display: flex; justify-content: space-between;
+  font-size: 12px; font-weight: 700; margin-bottom: 6px;
+}
+.lead-bar-header .la { color: var(--green); }
+.lead-bar-header .lb { color: var(--blue); }
+.lead-track { height: 18px; background: var(--surface2); border-radius: 9px; overflow: hidden; display: flex; }
+.lead-fill-a { height: 100%; background: var(--green); border-radius: 9px 0 0 9px; min-width: 0; transition: width 0.5s ease; }
+.lead-fill-b { height: 100%; background: var(--blue); border-radius: 0 9px 9px 0; min-width: 0; transition: width 0.5s ease; }
+.lead-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.lead-stat {
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+}
+.lead-stat-val { font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 700; }
+.lead-stat-val.a { color: var(--green); }
+.lead-stat-val.b { color: var(--blue); }
+.lead-stat-val.tie { color: var(--amber); }
+.lead-stat-lbl { font-size: 9px; color: var(--gray); letter-spacing: 1px; margin-top: 3px; text-transform: uppercase; }
+
+/* Quarters won */
+.quarters-won-row { display: flex; align-items: center; justify-content: space-between; margin-top: 2px; }
+.qw-team { display: flex; flex-direction: column; align-items: center; }
+.qw-val { font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 900; }
+.qw-val.a { color: var(--green); }
+.qw-val.b { color: var(--blue); }
+.qw-lbl { font-size: 10px; color: var(--gray); letter-spacing: 1px; }
+.qw-mid { font-size: 12px; color: var(--gray); }
+</style>
+</head>
+<body>
+
+<!-- ── SETUP ──────────────────────────────────────────────────── -->
+<div id="setup" class="screen active">
+  <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleSetup" title="Cambiar tema">🌙</button>
+  <div class="setup-logo">
+    <div class="setup-logo-title">MINIBASKET</div>
+    <div class="setup-logo-sub">Marcador · Categorías Mini &amp; Premini</div>
+  </div>
+
+  <div class="setup-teams">
+    <div class="setup-card local">
+      <div class="setup-card-accent"></div>
+      <label>Equipo Local</label>
+      <input id="nameA" type="text" placeholder="LOCAL" maxlength="10" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="setup-card visit">
+      <div class="setup-card-accent"></div>
+      <label>Equipo Visitante</label>
+      <input id="nameB" type="text" placeholder="VISITANTE" maxlength="10" autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+
+  <div class="setup-config">
+    <div class="setup-config-label">Número de cuartos</div>
+    <div class="q-selector">
+      <button class="q-btn" data-q="4" onclick="selectQuarters(4)">4</button>
+      <button class="q-btn active" data-q="8" onclick="selectQuarters(8)">8</button>
+    </div>
+  </div>
+
+  <button class="btn-start" onclick="startGame()">▶ INICIAR</button>
+</div>
+
+<!-- ── SCOREBOARD ─────────────────────────────────────────────── -->
+<div id="scoreboard" class="screen">
+  <div class="sb-header">
+    <div class="quarter-nav">
+      <button class="nav-btn" id="btnPrev" onclick="changeQ(-1)">‹</button>
+      <div class="q-display">
+        <div class="q-display-main" id="qLabel">Q1</div>
+        <div class="q-display-sub" id="qSub">de 8</div>
+      </div>
+      <button class="nav-btn" id="btnNext" onclick="changeQ(1)">›</button>
+    </div>
+    <div class="header-actions">
+      <button class="header-btn accent" onclick="openStats()">📊 STATS</button>
+      <button class="header-btn" onclick="toggleTheme()" id="themeToggleSb">🌙</button>
+      <button class="header-btn" onclick="showResetModal()" style="color:var(--red);border-color:#ff525230;">⟲</button>
+    </div>
+  </div>
+
+  <div class="sb-main">
+    <!-- Local -->
+    <div class="team-panel local">
+      <div class="team-header">
+        <div class="team-color-bar"></div>
+        <div class="team-name-display" id="dispNameA">LOCAL</div>
+      </div>
+      <div class="score-area">
+        <div class="q-score-label">CUARTO</div>
+        <div class="q-score" id="qScoreA">0</div>
+        <div class="divider"></div>
+        <div class="total-label">TOTAL</div>
+        <div class="total-score" id="totalA">0</div>
+      </div>
+      <div class="score-btns">
+        <button class="score-btn" onclick="addScore('A',1)">+1</button>
+        <button class="score-btn" onclick="addScore('A',2)">+2</button>
+        <button class="score-btn" onclick="addScore('A',3)">+3</button>
+        <button class="score-btn undo" onclick="addScore('A',-1)" title="Deshacer">−</button>
+      </div>
+      <div class="fouls-wrap">
+        <div class="fouls-label">Faltas</div>
+        <div class="fouls-dots" id="foulsA"></div>
+        <div class="fouls-ctrl">
+          <button class="foul-ctrl-btn" onclick="addFoul('A',-1)">−</button>
+          <button class="foul-ctrl-btn" onclick="addFoul('A',1)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visitor -->
+    <div class="team-panel visit">
+      <div class="team-header">
+        <div class="team-color-bar"></div>
+        <div class="team-name-display" id="dispNameB">VISIT.</div>
+      </div>
+      <div class="score-area">
+        <div class="q-score-label">CUARTO</div>
+        <div class="q-score" id="qScoreB">0</div>
+        <div class="divider"></div>
+        <div class="total-label">TOTAL</div>
+        <div class="total-score" id="totalB">0</div>
+      </div>
+      <div class="score-btns">
+        <button class="score-btn undo" onclick="addScore('B',-1)" title="Deshacer">−</button>
+        <button class="score-btn" onclick="addScore('B',1)">+1</button>
+        <button class="score-btn" onclick="addScore('B',2)">+2</button>
+        <button class="score-btn" onclick="addScore('B',3)">+3</button>
+      </div>
+      <div class="fouls-wrap">
+        <div class="fouls-label">Faltas</div>
+        <div class="fouls-dots" id="foulsB"></div>
+        <div class="fouls-ctrl">
+          <button class="foul-ctrl-btn" onclick="addFoul('B',-1)">−</button>
+          <button class="foul-ctrl-btn" onclick="addFoul('B',1)">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-history" id="historyBar"></div>
+</div>
+
+<!-- ── STATS ──────────────────────────────────────────────────── -->
+<div id="stats" class="screen">
+  <div class="stats-header">
+    <button class="stats-back" onclick="showScreen('scoreboard')">← VOLVER</button>
+    <div class="stats-title">ESTADÍSTICAS</div>
+    <button class="header-btn" onclick="toggleTheme()" id="themeToggleStats" style="margin-left:auto;">🌙</button>
+  </div>
+  <div class="stats-body">
+
+    <div class="final-card">
+      <div class="final-team">
+        <div class="final-team-name" id="sNameA">LOCAL</div>
+        <div class="final-total a" id="sTotalA">0</div>
+      </div>
+      <div class="final-vs">×</div>
+      <div class="final-team">
+        <div class="final-team-name" id="sNameB">VISIT.</div>
+        <div class="final-total b" id="sTotalB">0</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card-title">Cuartos ganados</div>
+      <div class="quarters-won-row">
+        <div class="qw-team">
+          <div class="qw-val a" id="qWonA">0</div>
+          <div class="qw-lbl" id="qWonNameA">Local</div>
+        </div>
+        <div class="qw-mid">cuartos</div>
+        <div class="qw-team">
+          <div class="qw-val b" id="qWonB">0</div>
+          <div class="qw-lbl" id="qWonNameB">Visitante</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card-title">Resultado por cuarto</div>
+      <table class="q-table" id="qTable"></table>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card-title">Evolución del marcador acumulado</div>
+      <div class="chart-box"><canvas id="chartLine"></canvas></div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card-title">Puntos anotados por cuarto</div>
+      <div class="chart-box"><canvas id="chartBar"></canvas></div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card-title">Dominio del partido</div>
+      <div class="lead-section">
+        <div class="lead-bar-header">
+          <span class="la" id="leadNameA">Local</span>
+          <span class="lb" id="leadNameB">Visitante</span>
+        </div>
+        <div class="lead-track">
+          <div class="lead-fill-a" id="leadFillA" style="width:0%"></div>
+          <div class="lead-fill-b" id="leadFillB" style="width:0%"></div>
+        </div>
+        <div class="lead-stats-grid">
+          <div class="lead-stat">
+            <div class="lead-stat-val a" id="leadValA">0</div>
+            <div class="lead-stat-lbl">acciones liderando</div>
+          </div>
+          <div class="lead-stat">
+            <div class="lead-stat-val tie" id="leadValTie">0</div>
+            <div class="lead-stat-lbl">empate</div>
+          </div>
+          <div class="lead-stat">
+            <div class="lead-stat-val b" id="leadValB">0</div>
+            <div class="lead-stat-lbl">acciones liderando</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── RESET MODAL ─────────────────────────────────────────────── -->
+<div id="resetModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center;">
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:24px 20px; max-width:320px; width:90%; display:flex; flex-direction:column; gap:12px;">
+    <div style="font-family:'Orbitron',sans-serif; font-size:14px; font-weight:700; color:var(--amber); letter-spacing:2px; text-align:center;">REINICIAR</div>
+    <div style="font-size:13px; color:var(--gray-light); text-align:center; line-height:1.5;">¿Qué quieres hacer?</div>
+    <button onclick="resetScores()" style="background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px; color:var(--white); font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; text-align:left; cursor:pointer; transition:background 0.15s;">
+      <div style="color:var(--green); font-size:12px; letter-spacing:1px; margin-bottom:2px;">REINICIAR MARCADOR</div>
+      <div style="color:var(--gray-light); font-size:12px; font-weight:600;">Pone todos los puntos a 0. Mantiene los equipos.</div>
+    </button>
+    <button onclick="resetGame()" style="background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px; color:var(--white); font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; text-align:left; cursor:pointer; transition:background 0.15s;">
+      <div style="color:var(--amber); font-size:12px; letter-spacing:1px; margin-bottom:2px;">NUEVO PARTIDO</div>
+      <div style="color:var(--gray-light); font-size:12px; font-weight:600;">Vuelve al inicio para cambiar los equipos.</div>
+    </button>
+    <button onclick="hideResetModal()" style="background:none; border:1px solid var(--border); border-radius:10px; padding:10px; color:var(--gray); font-family:'Rajdhani',sans-serif; font-size:14px; font-weight:600; cursor:pointer;">Cancelar</button>
+  </div>
+</div>
+<script>
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const MAX_FOULS = 5;
+let cfg = { numQ: 8 };
+
+let game = null;
+let chartLine = null, chartBar = null;
+
+function initGame(nameA, nameB, numQ) {
+  return {
+    nameA, nameB, numQ,
+    scoresA: Array(numQ).fill(0),
+    scoresB: Array(numQ).fill(0),
+    foulsA: Array(numQ).fill(0),
+    foulsB: Array(numQ).fill(0),
+    currentQ: 0,
+    lead: { A: 0, B: 0, tie: 0 }
+  };
+}
+
+// ─── SETUP ACTIONS ───────────────────────────────────────────────────────────
+function selectQuarters(n) {
+  cfg.numQ = n;
+  document.querySelectorAll('.q-btn').forEach(b => {
+    b.classList.toggle('active', +b.dataset.q === n);
+  });
+}
+
+function startGame() {
+  const nameA = document.getElementById('nameA').value.trim() || 'Local';
+  const nameB = document.getElementById('nameB').value.trim() || 'Visitante';
+  game = initGame(nameA, nameB, cfg.numQ);
+  showScreen('scoreboard');
+  render();
+}
+
+function showResetModal() {
+  const m = document.getElementById('resetModal');
+  m.style.display = 'flex';
+}
+function hideResetModal() {
+  document.getElementById('resetModal').style.display = 'none';
+}
+
+function resetScores() {
+  hideResetModal();
+  game.scoresA = Array(game.numQ).fill(0);
+  game.scoresB = Array(game.numQ).fill(0);
+  game.foulsA  = Array(game.numQ).fill(0);
+  game.foulsB  = Array(game.numQ).fill(0);
+  game.currentQ = 0;
+  game.lead = { A: 0, B: 0, tie: 0 };
+  render();
+}
+
+function resetGame() {
+  hideResetModal();
+  game = null;
+  showScreen('setup');
+}
+
+// ─── SCREEN NAVIGATION ───────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  const el = document.getElementById(id);
+  el.style.display = 'flex';
+  requestAnimationFrame(() => el.classList.add('active'));
+}
+
+function openStats() {
+  renderStats();
+  showScreen('stats');
+}
+
+// ─── GAME LOGIC ───────────────────────────────────────────────────────────────
+function changeQ(dir) {
+  const next = game.currentQ + dir;
+  if (next < 0 || next >= game.numQ) return;
+  game.currentQ = next;
+  render();
+}
+
+function addScore(team, pts) {
+  const q = game.currentQ;
+  if (team === 'A') {
+    game.scoresA[q] = Math.max(0, game.scoresA[q] + pts);
+  } else {
+    game.scoresB[q] = Math.max(0, game.scoresB[q] + pts);
+  }
+  // Track lead
+  const tA = totalOf('A'), tB = totalOf('B');
+  if (tA > tB) game.lead.A++;
+  else if (tB > tA) game.lead.B++;
+  else game.lead.tie++;
+
+  // Animate score
+  const el = document.getElementById(team === 'A' ? 'qScoreA' : 'qScoreB');
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
+
+  render();
+}
+
+function addFoul(team, delta) {
+  const q = game.currentQ;
+  if (team === 'A') {
+    game.foulsA[q] = Math.max(0, Math.min(MAX_FOULS, game.foulsA[q] + delta));
+  } else {
+    game.foulsB[q] = Math.max(0, Math.min(MAX_FOULS, game.foulsB[q] + delta));
+  }
+  render();
+}
+
+function totalOf(team) {
+  return (team === 'A' ? game.scoresA : game.scoresB).reduce((a, b) => a + b, 0);
+}
+
+function totalFoulsOf(team) {
+  return (team === 'A' ? game.foulsA : game.foulsB).reduce((a, b) => a + b, 0);
+}
+
+function quartersWon(team) {
+  let w = 0;
+  for (let i = 0; i < game.numQ; i++) {
+    if (team === 'A') { if (game.scoresA[i] > game.scoresB[i]) w++; }
+    else { if (game.scoresB[i] > game.scoresA[i]) w++; }
+  }
+  return w;
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render() {
+  const q = game.currentQ;
+
+  document.getElementById('qLabel').textContent = `Q${q + 1}`;
+  document.getElementById('qSub').textContent = `de ${game.numQ}`;
+  document.getElementById('btnPrev').disabled = q === 0;
+  document.getElementById('btnNext').disabled = q === game.numQ - 1;
+
+  document.getElementById('dispNameA').textContent = game.nameA;
+  document.getElementById('dispNameB').textContent = game.nameB;
+
+  document.getElementById('qScoreA').textContent = game.scoresA[q];
+  document.getElementById('qScoreB').textContent = game.scoresB[q];
+  document.getElementById('totalA').textContent = totalOf('A');
+  document.getElementById('totalB').textContent = totalOf('B');
+
+  renderFouls('A');
+  renderFouls('B');
+  renderHistory();
+}
+
+function renderFouls(team) {
+  const q = game.currentQ;
+  const count = team === 'A' ? game.foulsA[q] : game.foulsB[q];
+  const el = document.getElementById(`fouls${team}`);
+  el.innerHTML = '';
+  for (let i = 0; i < MAX_FOULS; i++) {
+    const d = document.createElement('div');
+    d.className = 'foul-dot' + (i < count ? ' on' : '');
+    el.appendChild(d);
+  }
+}
+
+function renderHistory() {
+  const bar = document.getElementById('historyBar');
+  const row = document.createElement('div');
+  row.className = 'history-row';
+
+  for (let i = 0; i < game.numQ; i++) {
+    const sA = game.scoresA[i], sB = game.scoresB[i];
+    const winner = sA > sB ? 'a' : sB > sA ? 'b' : '';
+    const dotColor = winner === 'a' ? 'var(--green)' : winner === 'b' ? 'var(--blue)' : 'transparent';
+
+    const el = document.createElement('div');
+    el.className = 'h-quarter' + (i === game.currentQ ? ' active' : '');
+    el.onclick = () => { game.currentQ = i; render(); };
+    el.innerHTML = `
+      <div class="h-q-label">Q${i + 1}</div>
+      <div class="h-scores">
+        <span class="h-sa">${sA}</span>
+        <span class="h-sep">-</span>
+        <span class="h-sb">${sB}</span>
+      </div>
+      <div class="h-win-dot" style="background:${dotColor}"></div>
+    `;
+    row.appendChild(el);
+  }
+
+  bar.innerHTML = '';
+  bar.appendChild(row);
+
+  // Auto-scroll active into view
+  const activeEl = row.querySelector('.active');
+  if (activeEl) activeEl.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+}
+
+// ─── STATS ────────────────────────────────────────────────────────────────────
+function renderStats() {
+  const tA = totalOf('A'), tB = totalOf('B');
+  const qwA = quartersWon('A'), qwB = quartersWon('B');
+  const labels = Array.from({ length: game.numQ }, (_, i) => `Q${i + 1}`);
+
+  // Header
+  document.getElementById('sNameA').textContent = game.nameA;
+  document.getElementById('sNameB').textContent = game.nameB;
+  document.getElementById('sTotalA').textContent = tA;
+  document.getElementById('sTotalB').textContent = tB;
+
+  // Quarters won
+  document.getElementById('qWonA').textContent = qwA;
+  document.getElementById('qWonB').textContent = qwB;
+  document.getElementById('qWonNameA').textContent = game.nameA;
+  document.getElementById('qWonNameB').textContent = game.nameB;
+
+  // Quarter table
+  const table = document.getElementById('qTable');
+  const ths = ['EQUIPO', ...labels, 'TOTAL'].map(h => `<th>${h}</th>`).join('');
+  const rowA = [
+    `<td>${game.nameA}</td>`,
+    ...game.scoresA.map((s, i) => `<td class="${s > game.scoresB[i] ? 'won' : ''}">${s}</td>`),
+    `<td class="total">${tA}</td>`
+  ].join('');
+  const rowB = [
+    `<td>${game.nameB}</td>`,
+    ...game.scoresB.map((s, i) => `<td class="${s > game.scoresA[i] ? 'won' : ''}">${s}</td>`),
+    `<td class="total">${tB}</td>`
+  ].join('');
+  table.innerHTML = `<thead><tr>${ths}</tr></thead><tbody>
+    <tr class="row-a">${rowA}</tr>
+    <tr class="row-b">${rowB}</tr>
+  </tbody>`;
+
+  // Lead bar
+  document.getElementById('leadNameA').textContent = game.nameA;
+  document.getElementById('leadNameB').textContent = game.nameB;
+  const total = game.lead.A + game.lead.B + game.lead.tie;
+  const pA = total > 0 ? (game.lead.A / total * 100) : 0;
+  const pB = total > 0 ? (game.lead.B / total * 100) : 0;
+  document.getElementById('leadFillA').style.width = pA + '%';
+  document.getElementById('leadFillB').style.width = pB + '%';
+  document.getElementById('leadValA').textContent = game.lead.A;
+  document.getElementById('leadValB').textContent = game.lead.B;
+  document.getElementById('leadValTie').textContent = game.lead.tie;
+
+  // Charts
+  const cA = isDark ? '#00e676' : '#00a854';
+  const cB = isDark ? '#29b6f6' : '#0284c7';
+  const style = getComputedStyle(document.documentElement);
+  const gridColor = style.getPropertyValue('--chart-grid').trim() || '#1e2228';
+  const tickColor = style.getPropertyValue('--chart-tick').trim() || '#5a6170';
+  const cumA = [], cumB = [];
+  let rA = 0, rB = 0;
+  for (let i = 0; i < game.numQ; i++) {
+    rA += game.scoresA[i]; rB += game.scoresB[i];
+    cumA.push(rA); cumB.push(rB);
+  }
+
+  const chartOpts = (type) => ({
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { labels: { color: tickColor, font: { family: 'Rajdhani', size: 12, weight: '700' }, boxWidth: 12, padding: 16 } }
+    },
+    scales: {
+      x: { ticks: { color: tickColor, font: { family: 'Rajdhani', size: 11 } }, grid: { color: gridColor } },
+      y: { ticks: { color: tickColor, font: { family: 'Rajdhani', size: 11 } }, grid: { color: gridColor }, beginAtZero: true }
+    }
+  });
+
+  // Line chart
+  if (chartLine) chartLine.destroy();
+  chartLine = new Chart(document.getElementById('chartLine'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: game.nameA, data: cumA, borderColor: cA, backgroundColor: cA + '18', fill: true, tension: 0.3, pointBackgroundColor: cA, pointRadius: 4, borderWidth: 2 },
+        { label: game.nameB, data: cumB, borderColor: cB, backgroundColor: cB + '18', fill: true, tension: 0.3, pointBackgroundColor: cB, pointRadius: 4, borderWidth: 2 }
+      ]
+    },
+    options: chartOpts('line')
+  });
+
+  // Bar chart
+  if (chartBar) chartBar.destroy();
+  chartBar = new Chart(document.getElementById('chartBar'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: game.nameA, data: game.scoresA, backgroundColor: cA + 'bb', borderColor: cA, borderWidth: 1, borderRadius: 4 },
+        { label: game.nameB, data: game.scoresB, backgroundColor: cB + 'bb', borderColor: cB, borderWidth: 1, borderRadius: 4 }
+      ]
+    },
+    options: chartOpts('bar')
+  });
+}
+
+// ─── THEME ────────────────────────────────────────────────────────────────────
+let isDark = true;
+
+function applyTheme() {
+  document.body.classList.toggle('light', !isDark);
+  const icon = isDark ? '🌙' : '☀️';
+  ['themeToggleSetup','themeToggleSb','themeToggleStats'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = icon;
+  });
+  try { localStorage.setItem('mb_theme', isDark ? 'dark' : 'light'); } catch(e) {}
+}
+
+function toggleTheme() {
+  isDark = !isDark;
+  applyTheme();
+}
+
+// Load saved theme
+try {
+  const saved = localStorage.getItem('mb_theme');
+  if (saved === 'light') { isDark = false; applyTheme(); }
+} catch(e) {}
+document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; s.classList.remove('active'); });
+document.getElementById('setup').style.display = 'flex';
+document.getElementById('setup').classList.add('active');
+
+document.getElementById('nameA').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('nameB').focus(); });
+document.getElementById('nameB').addEventListener('keydown', e => { if (e.key === 'Enter') startGame(); });
+</script>
+</body>
+</html>
