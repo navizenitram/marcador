@@ -6,7 +6,7 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
 ## Funcionalidades
 
 - **Equipo**: alta de jugadores con dorsal y nombre (editar / eliminar), nombre del equipo y email por defecto.
-- **Partidos**: crear partido (rival, fecha, 4/6/8 periodos), continuar, abrir, borrar.
+- **Partidos**: crear partido (rival, fecha, **8 periodos** de minibasket o **4 cuartos** para categorías superiores), continuar, abrir, borrar.
 - **Partido en directo** (pensado para que quepa todo sin scroll):
   - Marcador arriba: los puntos propios se suman solos con los tiros anotados; botones **+1 / +2 / +3 / −1** para el rival.
   - Periodo actual (‹ P3 ›). Al pasar de periodo se abre el selector de quinteto.

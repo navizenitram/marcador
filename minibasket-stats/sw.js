@@ -1,5 +1,5 @@
 /* Service worker: red primero y copia en caché para funcionar sin conexión en el pabellón. */
-const CACHE = 'mbstats-v4';
+const CACHE = 'mbstats-v5';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', (e) => {
