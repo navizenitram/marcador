@@ -64,6 +64,7 @@ const ui = {
   flash: null,           // { pid, type } botón a resaltar tras pulsar
   focus: null,           // selector a enfocar tras renderizar
   pendingModal: null,    // modal a abrir tras la próxima navegación
+  lastKey: null,         // pantalla pintada la última vez (para conservar el scroll)
 };
 
 function normalize(d) {
@@ -348,7 +349,15 @@ function render() {
       else go(team().players.length ? '#/partidos' : '#/equipo');
       return;
   }
+  // Al repintar la misma pantalla (p. ej. activar un botón en Ajustes u ordenar la tabla)
+  // se conserva la posición del scroll para que no salte arriba.
+  const key = view + '/' + arg;
+  const prev = appEl.querySelector('.content');
+  const scroll = key === ui.lastKey && prev ? prev.scrollTop : 0;
   appEl.innerHTML = html;
+  ui.lastKey = key;
+  const next = appEl.querySelector('.content');
+  if (next && scroll) next.scrollTop = scroll;
   postRender();
   if (ui.pendingModal) { const m = ui.pendingModal; ui.pendingModal = null; openModal(m); }
 }
