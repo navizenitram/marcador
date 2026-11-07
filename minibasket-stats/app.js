@@ -47,7 +47,7 @@ const OPTIONS = [
   { id: 'fr', acts: ['fr'], name: 'Falta recibida', desc: 'Le hacen falta' },
 ];
 
-function optEnabled(id) { return !db.settings.hidden.includes(id); }
+function optEnabled(id) { const t = team(); return !t || !t.hidden.includes(id); }
 function actEnabled(type) { const o = OPTIONS.find(o => o.acts.includes(type)); return !o || optEnabled(o.id); }
 function enabledShots() { return SHOT_ACTIONS.filter(actEnabled); }
 function enabledOthers() { return OTHER_ACTIONS.filter(actEnabled); }
@@ -68,30 +68,65 @@ const ui = {
 
 function normalize(d) {
   d = d && typeof d === 'object' ? d : {};
-  d.team = d.team && typeof d.team === 'object' ? d.team : {};
-  d.team.name = d.team.name || 'Mi equipo';
-  d.team.email = d.team.email || '';
-  d.team.players = Array.isArray(d.team.players) ? d.team.players : [];
   d.games = Array.isArray(d.games) ? d.games : [];
+  // v1 → v2: antes había un único equipo en d.team y los botones en d.settings.hidden
+  if (!Array.isArray(d.teams)) {
+    d.teams = [];
+    const old = d.team && typeof d.team === 'object' ? d.team : null;
+    if (old || d.games.length) {
+      const t = {
+        id: uid(),
+        name: (old && old.name) || 'Mi equipo',
+        email: (old && old.email) || '',
+        players: old && Array.isArray(old.players) ? old.players : [],
+        hidden: d.settings && Array.isArray(d.settings.hidden) ? d.settings.hidden : [],
+      };
+      d.teams.push(t);
+      d.currentTeamId = t.id;
+    }
+  }
+  delete d.team;
+  delete d.settings;
+  for (const t of d.teams) {
+    t.id = t.id || uid();
+    t.name = t.name || 'Mi equipo';
+    t.email = t.email || '';
+    t.players = Array.isArray(t.players) ? t.players : [];
+    t.hidden = Array.isArray(t.hidden) ? t.hidden : [];
+  }
+  const teamIds = new Set(d.teams.map(t => t.id));
   for (const g of d.games) {
+    if (!teamIds.has(g.teamId) && d.teams.length) g.teamId = d.teams[0].id;
     g.events = Array.isArray(g.events) ? g.events : [];
     g.onCourt = Array.isArray(g.onCourt) ? g.onCourt : [];
     g.roster = Array.isArray(g.roster) ? g.roster : [];
     g.played = g.played && typeof g.played === 'object' ? g.played : {};
     g.periods = +g.periods || 8;
     g.period = Math.min(Math.max(+g.period || 1, 1), g.periods);
-    g.teamName = g.teamName || d.team.name;
+    const t = d.teams.find(t => t.id === g.teamId);
+    g.teamName = g.teamName || (t ? t.name : 'Mi equipo');
   }
-  d.settings = d.settings && typeof d.settings === 'object' ? d.settings : {};
-  d.settings.hidden = Array.isArray(d.settings.hidden) ? d.settings.hidden : [];
-  d.version = 1;
+  if (!teamIds.has(d.currentTeamId)) d.currentTeamId = d.teams.length ? d.teams[0].id : null;
+  d.version = 2;
   return d;
 }
+
+/* Equipo seleccionado y sus partidos */
+function team() { return db.teams.find(t => t.id === db.currentTeamId) || null; }
+function teamGames() { return db.games.filter(g => g.teamId === db.currentTeamId); }
+function selectTeam(id) { if (db.currentTeamId !== id) { db.currentTeamId = id; ui.editId = null; save(); } }
 
 function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    if (raw) return normalize(JSON.parse(raw));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const migrate = parsed && parsed.version !== 2;
+      const d = normalize(parsed);
+      // Guardar ya el formato nuevo para que los identificadores migrados no cambien entre cargas
+      if (migrate) localStorage.setItem(STORE_KEY, JSON.stringify(d));
+      return d;
+    }
   } catch (e) { console.warn('No se pudieron leer los datos', e); }
   return normalize({});
 }
@@ -135,7 +170,7 @@ function byNumber(a, b) { return numVal(a.number) - numVal(b.number) || String(a
 function sortedPlayers(list) { return [...list].sort(byNumber); }
 
 function sortedGames() {
-  return [...db.games].sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0));
+  return teamGames().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0));
 }
 
 function getGame(id) { return db.games.find(g => g.id === id); }
@@ -230,7 +265,7 @@ function gameRows(g) {
 }
 
 function seasonRows() {
-  const games = [...db.games].sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0));
+  const games = teamGames().sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0));
   const map = {};
   const ensure = (p) => {
     if (!map[p.id]) map[p.id] = { id: p.id, number: p.number, name: p.name, line: blankLine(), gp: 0, nper: 0 };
@@ -251,12 +286,12 @@ function seasonRows() {
     }
   }
   // Nombres/dorsales actuales del equipo y jugadores sin partidos
-  for (const p of db.team.players) {
+  for (const p of team().players) {
     const r = ensure(p);
     r.number = p.number; r.name = p.name;
   }
   return Object.values(map)
-    .filter(r => r.gp > 0 || db.team.players.some(p => p.id === r.id))
+    .filter(r => r.gp > 0 || team().players.some(p => p.id === r.id))
     .map(r => ({ id: r.id, number: r.number, name: r.name, gp: r.gp, nper: r.nper, ...finish({ ...r.line }) }));
 }
 
@@ -290,18 +325,27 @@ function render() {
   const { view, arg } = parseRoute();
   let html;
   switch (view) {
-    case 'equipo': html = viewTeam(); break;
-    case 'partidos': html = viewGames(); break;
+    case 'equipos': html = viewTeams(); break;
     case 'partido': {
       const g = getGame(arg);
       if (!g) { go('#/partidos'); return; }
+      selectTeam(g.teamId);
       html = viewLive(g);
       break;
     }
-    case 'stats': html = viewStats(arg); break;
-    case 'ajustes': html = viewSettings(); break;
+    case 'equipo':
+    case 'partidos':
+    case 'stats':
+    case 'ajustes': {
+      if (view === 'stats' && arg && getGame(arg)) selectTeam(getGame(arg).teamId);
+      if (!team()) { go('#/equipos'); return; }
+      html = view === 'equipo' ? viewTeam() : view === 'partidos' ? viewGames() : view === 'stats' ? viewStats(arg) : viewSettings();
+      break;
+    }
     default:
-      go(db.team.players.length ? '#/partidos' : '#/equipo');
+      // Al abrir la app: con varios equipos (o ninguno) se elige primero el equipo
+      if (db.teams.length !== 1) go('#/equipos');
+      else go(team().players.length ? '#/partidos' : '#/equipo');
       return;
   }
   appEl.innerHTML = html;
@@ -363,16 +407,20 @@ function fsButton() {
 }
 
 function shell(active, content) {
-  const live = sortedGames().find(g => !g.finished);
+  const t = team();
+  const live = t ? sortedGames().find(g => !g.finished) : null;
   const tab = (id, href, label) => `<a class="tab ${active === id ? 'on' : ''}" href="${href}">${label}</a>`;
   return `
   <div class="page">
     <nav class="nav">
-      <div class="brand"><span class="ball">🏀</span><span>${esc(db.team.name)}</span></div>
+      <a class="brand ${active === 'equipos' ? 'on' : ''}" href="#/equipos" title="Cambiar de equipo">
+        <span class="ball">🏀</span><span class="brand-name">${t ? esc(t.name) : 'MiniBasket Stats'}</span>${t ? '<span class="brand-swap">⇅</span>' : ''}
+      </a>
+      ${t ? `
       ${tab('equipo', '#/equipo', 'Equipo')}
       ${tab('partidos', '#/partidos', 'Partidos')}
       ${tab('stats', '#/stats', 'Estadísticas')}
-      ${tab('ajustes', '#/ajustes', 'Ajustes')}
+      ${tab('ajustes', '#/ajustes', 'Ajustes')}` : ''}
       <span class="grow"></span>
       ${live ? `<a class="btn live-link" href="#/partido/${live.id}"><span class="dot"></span>vs ${esc(live.opponent)}</a>` : ''}
       ${themeButton()}
@@ -382,9 +430,43 @@ function shell(active, content) {
   </div>`;
 }
 
+/* ── Equipos (selección) ── */
+function viewTeams() {
+  const cards = db.teams.map(t => {
+    const games = db.games.filter(g => g.teamId === t.id);
+    let w = 0, l = 0;
+    for (const g of games) { const sc = score(g); if (sc.us > sc.them) w++; else if (sc.us < sc.them) l++; }
+    const live = games.some(g => !g.finished);
+    return `
+    <li class="team-card ${t.id === db.currentTeamId ? 'current' : ''}">
+      <button class="team-pick" data-action="pick-team" data-id="${t.id}">
+        <span class="team-name">${esc(t.name)}</span>
+        <small>${t.players.length} jugador${t.players.length === 1 ? '' : 'es'} · ${games.length} partido${games.length === 1 ? '' : 's'}${games.length ? ` · ${w}V ${l}D` : ''}</small>
+        ${live ? '<span class="team-live"><span class="dot"></span>Partido en juego</span>' : ''}
+      </button>
+      <button class="icon-btn danger" data-action="del-team" data-id="${t.id}" title="Eliminar equipo">🗑</button>
+    </li>`;
+  }).join('');
+  return shell('equipos', `
+  <div class="cols">
+    <section class="card grow">
+      <h2>${db.teams.length ? '¿Con qué equipo vas a recoger estadísticas?' : 'Bienvenido/a 👋'}</h2>
+      ${db.teams.length ? `<ul class="teams">${cards}</ul>` : '<p class="empty">Crea tu primer equipo para empezar.<br>Después podrás añadir más (por ejemplo, uno por categoría).</p>'}
+    </section>
+    <section class="card side">
+      <h2>Nuevo equipo</h2>
+      <form data-form="team-new" class="stack" autocomplete="off">
+        <label>Nombre del equipo<input name="name" maxlength="24" required placeholder="Ej.: Alevín A" autocapitalize="words"></label>
+        <button class="btn primary big" type="submit">＋ Crear equipo</button>
+      </form>
+      <p class="muted small">Cada equipo tiene su propia plantilla, partidos, estadísticas y botones del partido.</p>
+    </section>
+  </div>`);
+}
+
 /* ── Equipo ── */
 function viewTeam() {
-  const players = sortedPlayers(db.team.players);
+  const players = sortedPlayers(team().players);
   const ed = ui.editId ? players.find(p => p.id === ui.editId) : null;
   return shell('equipo', `
   <div class="cols">
@@ -401,8 +483,8 @@ function viewTeam() {
 
       <h2>Equipo</h2>
       <div class="stack">
-        <label>Nombre del equipo<input data-change="team-name" maxlength="24" value="${esc(db.team.name)}"></label>
-        <label>Email para enviar estadísticas <span class="muted">(opcional)</span><input data-change="team-email" type="email" placeholder="entrenador@club.com" value="${esc(db.team.email)}"></label>
+        <label>Nombre del equipo<input data-change="team-name" maxlength="24" value="${esc(team().name)}"></label>
+        <label>Email para enviar estadísticas <span class="muted">(opcional)</span><input data-change="team-email" type="email" placeholder="entrenador@club.com" value="${esc(team().email)}"></label>
       </div>
       <p class="muted small">Los botones del partido y la copia de seguridad están en <a href="#/ajustes">Ajustes</a>.</p>
     </section>
@@ -426,7 +508,7 @@ function viewTeam() {
 /* ── Partidos ── */
 function viewGames() {
   const games = sortedGames();
-  const hasPlayers = db.team.players.length > 0;
+  const hasPlayers = team().players.length > 0;
   const lastPeriods = (games[0] && games[0].periods) || 8;
   return shell('partidos', `
   <div class="cols">
@@ -455,7 +537,7 @@ function viewGames() {
         return `
         <li>
           <span class="g-date">${fmtDate(g.date, true)}</span>
-          <span class="g-main"><b>vs ${esc(g.opponent)}</b><small>${g.finished ? 'Finalizado' : `<span class="dot"></span>En juego · ${perAbbr(g, g.period)}`} · ${perCount(g)}</small></span>
+          <span class="g-main"><b>vs ${esc(g.opponent)}</b><small><span class="g-date-inline">${fmtDate(g.date, true)} · </span>${g.finished ? 'Finalizado' : `<span class="dot"></span>En juego · ${perAbbr(g, g.period)}`} · ${perCount(g)}</small></span>
           <span class="g-score ${g.finished ? res : ''}">${s.us}<i>–</i>${s.them}</span>
           <a class="btn" href="#/partido/${g.id}">${g.finished ? 'Abrir' : 'Continuar'}</a>
           <a class="btn" href="#/stats/${g.id}" title="Estadísticas">📊</a>
@@ -565,8 +647,8 @@ function viewSettings() {
   <div class="cols">
     <section class="card grow">
       <div class="card-head">
-        <h2>Botones del partido <span class="muted">(${n}/${OPTIONS.length})</span></h2>
-        ${db.settings.hidden.length ? '<button class="btn" data-action="opts-all">Activar todos</button>' : ''}
+        <h2>Botones del partido · ${esc(team().name)} <span class="muted">(${n}/${OPTIONS.length})</span></h2>
+        ${team().hidden.length ? '<button class="btn" data-action="opts-all">Activar todos</button>' : ''}
       </div>
       <p class="muted small">Elige qué acciones quieres apuntar durante el partido. Las desactivadas no aparecen en la pista ni en las estadísticas
       (salvo que haya datos de partidos anteriores) y no cuentan en la valoración. Con menos botones, cada uno es más grande.</p>
@@ -618,7 +700,7 @@ function statsData(arg) {
   const games = sortedGames();
   if (arg === 'temporada') {
     let rows = seasonRows();
-    const total = totalsRow(rows, db.games.length);
+    const total = totalsRow(rows, teamGames().length);
     if (ui.avg) rows = rows.map(averageRow);
     return { season: true, rows, total: ui.avg ? averageRow(total) : total, games };
   }
@@ -689,16 +771,17 @@ function gameSummary(g) {
 
 function seasonSummary() {
   let w = 0, l = 0, t = 0, pf = 0, pc = 0;
-  for (const g of db.games) {
+  const games = teamGames();
+  for (const g of games) {
     const s = score(g);
     pf += s.us; pc += s.them;
     if (s.us > s.them) w++; else if (s.us < s.them) l++; else t++;
   }
-  const n = db.games.length || 1;
+  const n = games.length || 1;
   const box = (v, lbl, cls = '') => `<div class="kpi ${cls}"><b>${v}</b><small>${lbl}</small></div>`;
   return `
   <section class="card summary kpis">
-    ${box(db.games.length, 'Partidos')}
+    ${box(games.length, 'Partidos')}
     ${box(w, 'Victorias', 'win')}
     ${box(l, 'Derrotas', 'loss')}
     ${t ? box(t, 'Empates') : ''}
@@ -930,8 +1013,9 @@ function markPlayed(g) {
 /* Añade al roster del partido jugadores nuevos del equipo y actualiza nombres
    (solo en partidos no finalizados). */
 function syncRoster(g) {
-  if (g.finished) return;
-  for (const p of db.team.players) {
+  const t = db.teams.find(t => t.id === g.teamId);
+  if (g.finished || !t) return;
+  for (const p of t.players) {
     const r = g.roster.find(x => x.id === p.id);
     if (r) { r.number = p.number; r.name = p.name; }
     else g.roster.push({ id: p.id, number: p.number, name: p.name });
@@ -982,16 +1066,33 @@ const actions = {
   'edit-player'(el) { ui.editId = el.dataset.id; ui.focus = 'input[name=name]'; render(); },
   'cancel-edit'() { ui.editId = null; render(); },
   async 'del-player'(el) {
-    const p = db.team.players.find(x => x.id === el.dataset.id);
+    const p = team().players.find(x => x.id === el.dataset.id);
     if (!p) return;
     if (!await confirmBox(`¿Eliminar a <b>${esc(pLabel(p))}</b> del equipo?<br><small class="muted">Sus estadísticas en partidos ya jugados se conservan.</small>`, 'Eliminar', true)) return;
-    db.team.players = db.team.players.filter(x => x.id !== p.id);
+    team().players = team().players.filter(x => x.id !== p.id);
     if (ui.editId === p.id) ui.editId = null;
     save(); render();
   },
   'export-json'() {
     const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
     download(blob, `minibasket-stats-${todayISO()}.json`);
+  },
+
+  /* Equipos */
+  'pick-team'(el) {
+    selectTeam(el.dataset.id);
+    go(team().players.length ? '#/partidos' : '#/equipo');
+  },
+  async 'del-team'(el) {
+    const t = db.teams.find(x => x.id === el.dataset.id);
+    if (!t) return;
+    const n = db.games.filter(g => g.teamId === t.id).length;
+    if (!await confirmBox(`¿Eliminar el equipo <b>${esc(t.name)}</b>?<br><small class="muted">Se borrarán sus ${t.players.length} jugadores y ${n} partidos con todas sus estadísticas. No se puede deshacer.</small>`, 'Eliminar equipo', true)) return;
+    db.teams = db.teams.filter(x => x.id !== t.id);
+    db.games = db.games.filter(g => g.teamId !== t.id);
+    if (db.currentTeamId === t.id) db.currentTeamId = db.teams.length ? db.teams[0].id : null;
+    save(); render();
+    toast(`Equipo ${esc(t.name)} eliminado`);
   },
 
   /* Partidos */
@@ -1137,13 +1238,13 @@ const actions = {
   fullscreen() { toggleFullscreen(); },
   'toggle-opt'(el) {
     const id = el.dataset.id;
-    const hidden = db.settings.hidden;
-    if (hidden.includes(id)) db.settings.hidden = hidden.filter(x => x !== id);
+    const hidden = team().hidden;
+    if (hidden.includes(id)) team().hidden = hidden.filter(x => x !== id);
     else if (OPTIONS.length - hidden.length <= 1) { toast('Tiene que quedar al menos un botón'); return; }
     else hidden.push(id);
     save(); vibrate(8); render();
   },
-  'opts-all'() { db.settings.hidden = []; save(); render(); toast('Todos los botones activados'); },
+  'opts-all'() { team().hidden = []; save(); render(); toast('Todos los botones activados'); },
   theme() { toggleTheme(); },
   'modal-close'() { closeModal(); },
   'confirm-yes'() { const m = ui.modal; ui.modal = null; refreshModal(); m.resolve(true); },
@@ -1176,15 +1277,15 @@ document.addEventListener('submit', (e) => {
     const number = String(fd.get('number') || '').trim();
     const name = String(fd.get('name') || '').trim();
     if (!number || !name) return;
-    const dup = db.team.players.find(p => p.number === number && p.id !== ui.editId);
+    const dup = team().players.find(p => p.number === number && p.id !== ui.editId);
     if (dup) { toast(`⚠️ El dorsal ${esc(number)} ya es de ${esc(dup.name)}`); return; }
     if (ui.editId) {
-      const p = db.team.players.find(x => x.id === ui.editId);
+      const p = team().players.find(x => x.id === ui.editId);
       if (p) { p.number = number; p.name = name; }
       ui.editId = null;
       toast(`Guardado ${esc(pLabel({ number, name }))}`);
     } else {
-      db.team.players.push({ id: uid(), number, name });
+      team().players.push({ id: uid(), number, name });
       toast(`Añadido ${esc(pLabel({ number, name }))}`);
     }
     save();
@@ -1192,18 +1293,33 @@ document.addEventListener('submit', (e) => {
     render();
   }
 
+  if (kind === 'team-new') {
+    const name = String(fd.get('name') || '').trim();
+    if (!name) return;
+    const cur = team();
+    const t = { id: uid(), name, email: cur ? cur.email : '', players: [], hidden: [] };
+    db.teams.push(t);
+    db.currentTeamId = t.id;
+    ui.editId = null;
+    save();
+    ui.focus = 'input[name=number]';
+    go('#/equipo');
+    toast(`Equipo ${esc(name)} creado. Añade sus jugadores.`);
+  }
+
   if (kind === 'game') {
-    if (!db.team.players.length) return;
+    if (!team().players.length) return;
     const opponent = String(fd.get('opponent') || '').trim() || 'Rival';
     const g = {
       id: uid(),
       createdAt: Date.now(),
       date: String(fd.get('date') || todayISO()),
       opponent,
-      teamName: db.team.name,
+      teamId: team().id,
+      teamName: team().name,
       periods: parseInt(fd.get('periods'), 10) || 8,
       period: 1,
-      roster: sortedPlayers(db.team.players).map(p => ({ id: p.id, number: p.number, name: p.name })),
+      roster: sortedPlayers(team().players).map(p => ({ id: p.id, number: p.number, name: p.name })),
       onCourt: [],
       played: {},
       events: [],
@@ -1221,11 +1337,11 @@ document.addEventListener('change', (e) => {
   const k = el.dataset && el.dataset.change;
   if (!k) return;
   if (k === 'team-name') {
-    db.team.name = el.value.trim() || 'Mi equipo';
-    for (const g of db.games) if (!g.finished) g.teamName = db.team.name;
+    team().name = el.value.trim() || 'Mi equipo';
+    for (const g of db.games) if (!g.finished && g.teamId === team().id) g.teamName = team().name;
     save(); render();
   } else if (k === 'team-email') {
-    db.team.email = el.value.trim();
+    team().email = el.value.trim();
     save();
     toast('Email guardado');
   } else if (k === 'stats-select') {
@@ -1255,8 +1371,8 @@ async function importJSON(file) {
   if (!file) return;
   try {
     const data = JSON.parse(await file.text());
-    if (!data || !data.team || !Array.isArray(data.games)) throw new Error('Formato no válido');
-    const ok = await confirmBox(`¿Importar <b>${esc(file.name)}</b>?<br><small class="muted">Se reemplazarán el equipo y los ${db.games.length} partidos actuales por ${data.games.length} partidos del archivo.</small>`, 'Importar', true);
+    if (!data || !(data.team || Array.isArray(data.teams)) || !Array.isArray(data.games)) throw new Error('Formato no válido');
+    const ok = await confirmBox(`¿Importar <b>${esc(file.name)}</b>?<br><small class="muted">Se reemplazarán todos los datos actuales (${db.teams.length} equipo${db.teams.length === 1 ? '' : 's'} y ${db.games.length} partidos) por los del archivo.</small>`, 'Importar', true);
     if (!ok) return;
     db = normalize(data);
     save(); render();
@@ -1273,7 +1389,7 @@ function buildText(arg) {
   if (!data) return '';
   const out = [];
   if (data.season) {
-    out.push(`${db.team.name} · Estadísticas de temporada (${db.games.length} partidos)${ui.avg ? ' · promedio por partido' : ''}`);
+    out.push(`${team().name} · Estadísticas de temporada (${teamGames().length} partidos)${ui.avg ? ' · promedio por partido' : ''}`);
     for (const g of sortedGames()) { const s = score(g); out.push(`  ${fmtDate(g.date)} vs ${g.opponent}: ${s.us}-${s.them}`); }
   } else {
     const g = data.game, s = score(g), ps = periodScores(g);
@@ -1298,13 +1414,13 @@ function buildText(arg) {
 
 function statsTitle(arg) {
   const g = getGame(arg);
-  return g ? `${g.teamName} vs ${g.opponent} · ${fmtDate(g.date)}` : `${db.team.name} · Temporada`;
+  return g ? `${g.teamName} vs ${g.opponent} · ${fmtDate(g.date)}` : `${team().name} · Temporada`;
 }
 
 function shareStats(arg) {
   const text = buildText(arg);
   const subject = `Estadísticas · ${statsTitle(arg)}`;
-  const mailto = `mailto:${encodeURIComponent(db.team.email || '')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
+  const mailto = `mailto:${encodeURIComponent(team().email || '')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
   openModal({ kind: 'share', text, subject, mailto });
 }
 
@@ -1315,7 +1431,7 @@ function renderShare(m) {
   <div class="modal-actions">
     <button class="btn" data-action="copy-text">📋 Copiar</button>
     ${navigator.share ? '<button class="btn" data-action="native-share">↗ Compartir</button>' : ''}
-    <a class="btn primary" href="${esc(m.mailto)}">✉ Email${db.team.email ? ` a ${esc(db.team.email)}` : ''}</a>
+    <a class="btn primary" href="${esc(m.mailto)}">✉ Email${team().email ? ` a ${esc(team().email)}` : ''}</a>
     <button class="btn" data-action="modal-close">Cerrar</button>
   </div>`;
 }
