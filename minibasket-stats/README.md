@@ -40,10 +40,9 @@ python3 -m http.server 8000
 
 ## Despliegue en Vercel
 
-1. *Add New → Project* e importar el repositorio.
-2. **Root Directory**: `minibasket-stats` (si la app está en la raíz de su propio repositorio, déjalo vacío).
-3. **Framework Preset**: *Other*. Sin comando de build ni directorio de salida.
-4. Deploy.
+Se publica junto con el marcador del repositorio: el proyecto de Vercel apunta a la raíz del repo
+y la app queda disponible en `/minibasket-stats/` (con un enlace desde la pantalla de inicio del marcador).
+No hace falta build. La configuración está en el `vercel.json` de la raíz.
 
 ## Estructura
 
@@ -54,7 +53,6 @@ styles.css            Estilos (layout horizontal)
 sw.js                 Service worker (modo sin conexión)
 manifest.webmanifest  Manifest PWA (orientación horizontal)
 icon.svg              Icono
-vercel.json           Cabeceras para Vercel
 ```
 
 Los datos viven en `localStorage` con la clave `mbstats.v1`. Borrar los datos del navegador los elimina:
