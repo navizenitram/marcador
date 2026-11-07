@@ -140,6 +140,11 @@ function sortedGames() {
 
 function getGame(id) { return db.games.find(g => g.id === id); }
 
+/* Partidos a 4 cuartos: "Q1" / "Cuarto"; el resto: "P1" / "Periodo" */
+function perAbbr(g, n) { return (g.periods === 4 ? 'Q' : 'P') + n; }
+function perName(g) { return g.periods === 4 ? 'Cuarto' : 'Periodo'; }
+function perCount(g) { return g.periods === 4 ? '4 cuartos' : `${g.periods} periodos`; }
+
 function pLabel(p) { return p ? `#${p.number} ${p.name}` : '¿?'; }
 
 function vibrate(ms = 12) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) { /* noop */ } }
@@ -430,13 +435,13 @@ function viewGames() {
       ${hasPlayers ? '' : `<p class="warn">Primero da de alta a los jugadores en <a href="#/equipo">Equipo</a>.</p>`}
       <form data-form="game" class="stack" autocomplete="off">
         <label>Rival<input name="opponent" maxlength="24" required placeholder="Nombre del rival"></label>
-        <div class="row">
-          <label class="grow">Fecha<input name="date" type="date" required value="${todayISO()}"></label>
-          <label>Periodos
-            <select name="periods">
-              ${[4, 6, 8].map(n => `<option value="${n}" ${n === lastPeriods ? 'selected' : ''}>${n}</option>`).join('')}
-            </select>
-          </label>
+        <label>Fecha<input name="date" type="date" required value="${todayISO()}"></label>
+        <div class="field">
+          <span class="field-label">Duración</span>
+          <div class="seg-radio">
+            ${[[8, '8 periodos', 'Minibasket'], [4, '4 cuartos', 'Categorías superiores']].map(([n, t, d]) => `
+              <label><input type="radio" name="periods" value="${n}" ${n === (lastPeriods === 4 ? 4 : 8) ? 'checked' : ''}><span><b>${t}</b><small>${d}</small></span></label>`).join('')}
+          </div>
         </div>
         <button class="btn primary big" type="submit" ${hasPlayers ? '' : 'disabled'}>▶ Empezar partido</button>
       </form>
@@ -450,7 +455,7 @@ function viewGames() {
         return `
         <li>
           <span class="g-date">${fmtDate(g.date, true)}</span>
-          <span class="g-main"><b>vs ${esc(g.opponent)}</b><small>${g.finished ? 'Finalizado' : `<span class="dot"></span>En juego · P${g.period}`} · ${g.periods} periodos</small></span>
+          <span class="g-main"><b>vs ${esc(g.opponent)}</b><small>${g.finished ? 'Finalizado' : `<span class="dot"></span>En juego · ${perAbbr(g, g.period)}`} · ${perCount(g)}</small></span>
           <span class="g-score ${g.finished ? res : ''}">${s.us}<i>–</i>${s.them}</span>
           <a class="btn" href="#/partido/${g.id}">${g.finished ? 'Abrir' : 'Continuar'}</a>
           <a class="btn" href="#/stats/${g.id}" title="Estadísticas">📊</a>
@@ -494,7 +499,7 @@ function viewLive(g) {
       <button class="icon-btn" data-action="menu" title="Menú">☰</button>
       <div class="period">
         <button data-action="period" data-d="-1" ${g.period <= 1 ? 'disabled' : ''}>‹</button>
-        <div><b>P${g.period}</b><small>de ${g.periods}</small></div>
+        <div><b>${perAbbr(g, g.period)}</b><small>de ${g.periods}</small></div>
         <button data-action="period" data-d="1">›</button>
       </div>
       <div class="board">
@@ -673,7 +678,7 @@ function gameSummary(g) {
     </div>
     <div class="ptable-wrap">
       <table class="ptable">
-        <tr><th></th>${ps.us.map((_, i) => `<th>P${i + 1}</th>`).join('')}<th>Total</th></tr>
+        <tr><th></th>${ps.us.map((_, i) => `<th>${perAbbr(g, i + 1)}</th>`).join('')}<th>Total</th></tr>
         <tr><td class="l us">${esc(g.teamName)}</td>${ps.us.map((v, i) => `<td class="${v > ps.them[i] ? 'w' : ''}">${v}</td>`).join('')}<td class="t">${s.us}</td></tr>
         <tr><td class="l them">${esc(g.opponent)}</td>${ps.them.map((v, i) => `<td class="${v > ps.us[i] ? 'w' : ''}">${v}</td>`).join('')}<td class="t">${s.them}</td></tr>
       </table>
@@ -880,7 +885,7 @@ function renderLog(m) {
   <div class="log">
     ${evs.length ? evs.map(e => `
       <div class="log-row ${e.type === 'opp' ? 'opp' : (EV[e.type] && EV[e.type].cls) || ''}">
-        <span class="lp">P${e.period}</span>
+        <span class="lp">${perAbbr(g, e.period)}</span>
         <span class="lt">${eventText(g, e)}</span>
         <button class="icon-btn danger" data-action="del-event" data-id="${e.id}" title="Eliminar">✕</button>
       </div>`).join('') : '<p class="empty">Aún no hay jugadas.</p>'}
@@ -1036,14 +1041,14 @@ const actions = {
     render();
     if (d > 0) {
       syncRoster(g);
-      openModal({ kind: 'lineup', gid: g.id, title: `Quinteto · Periodo ${g.period}` });
+      openModal({ kind: 'lineup', gid: g.id, title: `Quinteto · ${perName(g)} ${g.period}` });
     }
   },
   lineup() {
     const g = currentGame();
     if (!g) return;
     syncRoster(g);
-    openModal({ kind: 'lineup', gid: g.id, title: `Jugadores en pista · P${g.period}` });
+    openModal({ kind: 'lineup', gid: g.id, title: `Jugadores en pista · ${perAbbr(g, g.period)}` });
   },
   'toggle-court'(el) {
     const g = getGame(ui.modal.gid);
@@ -1206,7 +1211,7 @@ document.addEventListener('submit', (e) => {
     };
     db.games.push(g);
     save();
-    ui.pendingModal = { kind: 'lineup', gid: g.id, title: 'Quinteto inicial · Periodo 1' };
+    ui.pendingModal = { kind: 'lineup', gid: g.id, title: `Quinteto inicial · ${perName(g)} 1` };
     go(`#/partido/${g.id}`);
   }
 });
@@ -1274,7 +1279,7 @@ function buildText(arg) {
     const g = data.game, s = score(g), ps = periodScores(g);
     out.push(`${g.teamName} ${s.us} - ${s.them} ${g.opponent}`);
     out.push(`Fecha: ${fmtDate(g.date)}`);
-    out.push(`Parciales: ${ps.us.map((v, i) => `P${i + 1} ${v}-${ps.them[i]}`).join(' | ')}`);
+    out.push(`Parciales: ${ps.us.map((v, i) => `${perAbbr(g, i + 1)} ${v}-${ps.them[i]}`).join(' | ')}`);
   }
   out.push('');
   const rows = [...data.rows].filter(r => r.gp > 0).sort((a, b) => b.val - a.val || byNumber(a, b));
