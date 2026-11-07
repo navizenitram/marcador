@@ -10,9 +10,10 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
 - **Partido en directo** (pensado para que quepa todo sin scroll):
   - Marcador arriba: los puntos propios se suman solos con los tiros anotados; botones **+1 / +2 / +3 / −1** para el rival.
   - Periodo actual (‹ P3 ›). Al pasar de periodo se abre el selector de quinteto.
-  - Una fila por jugador en pista (máx. 5) con 14 botones:
-    `1✓ 1✗ 2✓ 2✗ 3✓ 3✗ | REC PÉR RO RD AS TAP FC FR`
-    (recuperación, pérdida, rebote de ataque, rebote defensivo, asistencia, tapón, falta cometida, falta recibida).
+  - Una fila por jugador en pista (máx. 5) con hasta 15 botones:
+    `1✓ 1✗ 2✓ 2✗ 3✓ 3✗ | REC PÉR RO RD AS TAP TR FC FR`
+    (recuperación, pérdida, rebote de ataque, rebote defensivo, asistencia, tapón, tapón recibido, falta cometida, falta recibida).
+  - Los botones se eligen en **Ajustes** (cada entrenador activa solo lo que quiere apuntar).
   - Tocar el nombre del jugador → cambio con alguien del banquillo.
   - Aviso visual a las 4 faltas y jugador eliminado a las 5.
   - ↶ deshacer la última acción y listado de jugadas para borrar cualquier error.
@@ -20,6 +21,7 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
 - **Estadísticas**: por partido o de temporada (totales o promedio por partido), parciales por periodo,
   líderes, tabla ordenable y valoración.
   - **Enviar**: email (`mailto:`), copiar o compartir (menú nativo del móvil). También descarga en **CSV**.
+- **Ajustes**: botones del partido que se quieren usar (con vista previa) y copia de seguridad.
 - **Copia de seguridad**: exportar / importar todos los datos en JSON (útil para cambiar de dispositivo).
 - **Modo claro / oscuro** (botón 🌙/☀️ en la barra superior o en el menú ☰ del partido). Se comparte con el marcador.
 - PWA: se puede "Añadir a pantalla de inicio", funciona sin conexión y en Android se abre en horizontal y pantalla completa.
@@ -27,9 +29,11 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
 ### Valoración
 
 ```
-VAL = puntos + rebotes (RO + RD) + asistencias + tapones + recuperaciones + faltas recibidas
-      − tiros fallados − pérdidas − faltas cometidas
+VAL = (puntos + rebotes + asistencias + robos + tapones + faltas recibidas)
+    − (tiros de campo fallados + tiros libres fallados + tapones recibidos + pérdidas + faltas cometidas)
 ```
+
+Es la valoración de la ACB / Euroliga. Cada tiro fallado resta 1, sea de 1, 2 o 3 puntos.
 
 ## Desarrollo local
 
