@@ -17,6 +17,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script>
+  // Aplicar el tema antes de pintar (misma preferencia que el marcador)
+  try { if (localStorage.getItem('mb_theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch (e) {}
+</script>
 </head>
 <body>
   <div id="app"></div>
