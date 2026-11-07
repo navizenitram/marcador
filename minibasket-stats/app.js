@@ -19,14 +19,37 @@ const EV = {
   rec:   { label: 'REC', sub: 'Recup.', cls: 'pos', text: 'Balón recuperado' },
   lost:  { label: 'PÉR', sub: 'Pierde', cls: 'neg', text: 'Balón perdido' },
   ro:    { label: 'RO', sub: 'Ataque', cls: 'reb', text: 'Rebote de ataque' },
-  rd:    { label: 'RD', sub: 'Defensa', cls: 'reb', text: 'Rebote defensivo' },
+  rd:    { label: 'RD', sub: 'Defen.', cls: 'reb', text: 'Rebote defensivo' },
   fc:    { label: 'FC', sub: 'Comete', cls: 'foul', text: 'Falta cometida' },
   fr:    { label: 'FR', sub: 'Recibe', cls: 'pos', text: 'Falta recibida' },
   ast:   { label: 'AS', sub: 'Asiste', cls: 'ast', text: 'Asistencia' },
-  blk:   { label: 'TAP', sub: 'Tapón', cls: 'blk', text: 'Tapón' },
+  blk:   { label: 'TAP', sub: 'Pone', cls: 'blk', text: 'Tapón' },
+  blkr:  { label: 'TR', sub: 'Recibe', cls: 'neg', text: 'Tapón recibido' },
 };
 const SHOT_ACTIONS = ['t1_ok', 't1_ko', 't2_ok', 't2_ko', 't3_ok', 't3_ko'];
-const OTHER_ACTIONS = ['rec', 'lost', 'ro', 'rd', 'ast', 'blk', 'fc', 'fr'];
+const OTHER_ACTIONS = ['rec', 'lost', 'ro', 'rd', 'ast', 'blk', 'blkr', 'fc', 'fr'];
+
+/* Botones que cada entrenador puede activar o desactivar (vista Ajustes).
+   Los tiros van por parejas (anotado + fallado) para que los porcentajes tengan sentido. */
+const OPTIONS = [
+  { id: 't1', acts: ['t1_ok', 't1_ko'], name: 'Tiros libres', desc: 'Anotado y fallado' },
+  { id: 't2', acts: ['t2_ok', 't2_ko'], name: 'Tiros de 2', desc: 'Anotado y fallado' },
+  { id: 't3', acts: ['t3_ok', 't3_ko'], name: 'Triples', desc: 'Anotado y fallado' },
+  { id: 'rec', acts: ['rec'], name: 'Balón recuperado', desc: 'Robo' },
+  { id: 'lost', acts: ['lost'], name: 'Balón perdido', desc: 'Pérdida' },
+  { id: 'ro', acts: ['ro'], name: 'Rebote de ataque', desc: 'Rebote ofensivo' },
+  { id: 'rd', acts: ['rd'], name: 'Rebote defensivo', desc: 'Rebote en defensa' },
+  { id: 'ast', acts: ['ast'], name: 'Asistencia', desc: 'Pase de canasta' },
+  { id: 'blk', acts: ['blk'], name: 'Tapón', desc: 'Tapón puesto' },
+  { id: 'blkr', acts: ['blkr'], name: 'Tapón recibido', desc: 'Le ponen un tapón' },
+  { id: 'fc', acts: ['fc'], name: 'Falta cometida', desc: 'Cuenta para las 5 faltas' },
+  { id: 'fr', acts: ['fr'], name: 'Falta recibida', desc: 'Le hacen falta' },
+];
+
+function optEnabled(id) { return !db.settings.hidden.includes(id); }
+function actEnabled(type) { const o = OPTIONS.find(o => o.acts.includes(type)); return !o || optEnabled(o.id); }
+function enabledShots() { return SHOT_ACTIONS.filter(actEnabled); }
+function enabledOthers() { return OTHER_ACTIONS.filter(actEnabled); }
 
 /* ─────────────────────────── Datos ─────────────────────────── */
 
@@ -58,6 +81,8 @@ function normalize(d) {
     g.period = Math.min(Math.max(+g.period || 1, 1), g.periods);
     g.teamName = g.teamName || d.team.name;
   }
+  d.settings = d.settings && typeof d.settings === 'object' ? d.settings : {};
+  d.settings.hidden = Array.isArray(d.settings.hidden) ? d.settings.hidden : [];
   d.version = 1;
   return d;
 }
@@ -125,7 +150,7 @@ function round1(n) { return Math.round(n * 10) / 10; }
 /* ───────────────────────── Estadísticas ───────────────────────── */
 
 function blankLine() {
-  return { t1m: 0, t1a: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ro: 0, rd: 0, ast: 0, blk: 0, rec: 0, lost: 0, fc: 0, fr: 0 };
+  return { t1m: 0, t1a: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ro: 0, rd: 0, ast: 0, blk: 0, blkr: 0, rec: 0, lost: 0, fc: 0, fr: 0 };
 }
 
 function addEvent(l, type) {
@@ -145,13 +170,15 @@ function sumLines(target, src) {
   return target;
 }
 
-/* Valoración: PTS + rebotes + asistencias + tapones + recuperaciones + faltas recibidas
-   − tiros fallados − pérdidas − faltas cometidas */
+/* Valoración (fórmula ACB / Euroliga):
+   (PTS + rebotes + asistencias + robos + tapones + faltas recibidas)
+   − (tiros de campo fallados + tiros libres fallados + tapones recibidos + pérdidas + faltas cometidas)
+   Cada tiro fallado resta 1, sea de 1, 2 o 3. */
 function finish(l) {
   l.pts = l.t1m + 2 * l.t2m + 3 * l.t3m;
   l.reb = l.ro + l.rd;
   l.miss = (l.t1a - l.t1m) + (l.t2a - l.t2m) + (l.t3a - l.t3m);
-  l.val = l.pts + l.reb + l.ast + l.blk + l.rec + l.fr - l.miss - l.lost - l.fc;
+  l.val = l.pts + l.reb + l.ast + l.blk + l.rec + l.fr - l.miss - l.blkr - l.lost - l.fc;
   return l;
 }
 
@@ -266,6 +293,7 @@ function render() {
       break;
     }
     case 'stats': html = viewStats(arg); break;
+    case 'ajustes': html = viewSettings(); break;
     default:
       go(db.team.players.length ? '#/partidos' : '#/equipo');
       return;
@@ -338,6 +366,7 @@ function shell(active, content) {
       ${tab('equipo', '#/equipo', 'Equipo')}
       ${tab('partidos', '#/partidos', 'Partidos')}
       ${tab('stats', '#/stats', 'Estadísticas')}
+      ${tab('ajustes', '#/ajustes', 'Ajustes')}
       <span class="grow"></span>
       ${live ? `<a class="btn live-link" href="#/partido/${live.id}"><span class="dot"></span>vs ${esc(live.opponent)}</a>` : ''}
       ${themeButton()}
@@ -369,13 +398,7 @@ function viewTeam() {
         <label>Nombre del equipo<input data-change="team-name" maxlength="24" value="${esc(db.team.name)}"></label>
         <label>Email para enviar estadísticas <span class="muted">(opcional)</span><input data-change="team-email" type="email" placeholder="entrenador@club.com" value="${esc(db.team.email)}"></label>
       </div>
-
-      <h2>Copia de seguridad</h2>
-      <p class="muted small">Los datos se guardan solo en este navegador. Exporta una copia de vez en cuando o para pasarlos a otro dispositivo.</p>
-      <div class="row">
-        <button class="btn" data-action="export-json">⬇ Exportar</button>
-        <label class="btn">⬆ Importar<input type="file" accept="application/json,.json" data-change="import-json" hidden></label>
-      </div>
+      <p class="muted small">Los botones del partido y la copia de seguridad están en <a href="#/ajustes">Ajustes</a>.</p>
     </section>
 
     <section class="card grow">
@@ -461,11 +484,7 @@ function viewLive(g) {
           <span class="pinfo"><span class="pname">${esc(p.name)}</span>
           <span class="pline"><b>${l.pts}</b> pts · <span class="fouls">${fouls} F</span>${fouls >= MAX_FOULS ? ' · ELIM.' : ''}</span></span>
         </button>
-        <div class="acts">
-          ${SHOT_ACTIONS.map(btn).join('')}
-          <span class="sep"></span>
-          ${OTHER_ACTIONS.map(btn).join('')}
-        </div>
+        ${actsHTML(btn)}
       </div>`);
   }
   return `
@@ -498,6 +517,70 @@ function viewLive(g) {
   </div>`;
 }
 
+/* Botones de acción de una fila, según los ajustes */
+function actsHTML(btn) {
+  const shots = enabledShots(), others = enabledOthers();
+  const cols = [];
+  if (shots.length) cols.push(`repeat(${shots.length}, minmax(0, 1fr))`);
+  if (shots.length && others.length) cols.push('3px');
+  if (others.length) cols.push(`repeat(${others.length}, minmax(0, 1fr))`);
+  return `<div class="acts" style="grid-template-columns: ${cols.join(' ')}">
+    ${shots.map(btn).join('')}
+    ${shots.length && others.length ? '<span class="sep"></span>' : ''}
+    ${others.map(btn).join('')}
+  </div>`;
+}
+
+/* ── Ajustes ── */
+function viewSettings() {
+  const sample = (t) => `<span class="act ${EV[t].cls}"><b>${EV[t].label}</b><i>${EV[t].sub}</i></span>`;
+  const item = (o) => {
+    const on = optEnabled(o.id);
+    return `
+    <button class="opt ${on ? 'on' : ''}" data-action="toggle-opt" data-id="${o.id}" role="switch" aria-checked="${on}">
+      <span class="opt-btns">${o.acts.map(sample).join('')}</span>
+      <span class="opt-txt"><b>${o.name}</b><small>${o.desc}</small></span>
+      <span class="switch"><i></i></span>
+    </button>`;
+  };
+  const shots = OPTIONS.filter(o => o.id[0] === 't');
+  const others = OPTIONS.filter(o => o.id[0] !== 't');
+  const n = OPTIONS.filter(o => optEnabled(o.id)).length;
+  return shell('ajustes', `
+  <section class="card preview-card">
+    <h2>Vista previa de un jugador en pista</h2>
+    <div class="preview">
+      <div class="prow">
+        <span class="pid"><span class="num">7</span><span class="pinfo"><span class="pname">Jugador</span><span class="pline"><b>0</b> pts · 0 F</span></span></span>
+        ${actsHTML(sample)}
+      </div>
+    </div>
+  </section>
+  <div class="cols">
+    <section class="card grow">
+      <div class="card-head">
+        <h2>Botones del partido <span class="muted">(${n}/${OPTIONS.length})</span></h2>
+        ${db.settings.hidden.length ? '<button class="btn" data-action="opts-all">Activar todos</button>' : ''}
+      </div>
+      <p class="muted small">Elige qué acciones quieres apuntar durante el partido. Las desactivadas no aparecen en la pista ni en las estadísticas
+      (salvo que haya datos de partidos anteriores) y no cuentan en la valoración. Con menos botones, cada uno es más grande.</p>
+      <h3 class="sub">Tiros</h3>
+      <div class="opts">${shots.map(item).join('')}</div>
+      <h3 class="sub">Otras acciones</h3>
+      <div class="opts">${others.map(item).join('')}</div>
+    </section>
+
+    <section class="card side">
+      <h2>Copia de seguridad</h2>
+      <p class="muted small">Los datos se guardan solo en este navegador. Exporta una copia de vez en cuando o para pasarlos a otro dispositivo.</p>
+      <div class="row">
+        <button class="btn" data-action="export-json">⬇ Exportar</button>
+        <label class="btn">⬆ Importar<input type="file" accept="application/json,.json" data-change="import-json" hidden></label>
+      </div>
+    </section>
+  </div>`);
+}
+
 /* ── Estadísticas ── */
 const COLS = [
   { k: 'number', h: '#', cls: 'c-num' },
@@ -512,7 +595,8 @@ const COLS = [
   { k: 'rd', h: 'RD', t: 'Rebotes de defensa' },
   { k: 'reb', h: 'RT', t: 'Rebotes totales' },
   { k: 'ast', h: 'AS', t: 'Asistencias' },
-  { k: 'blk', h: 'TAP', t: 'Tapones' },
+  { k: 'blk', h: 'TAP', t: 'Tapones puestos' },
+  { k: 'blkr', h: 'TR', t: 'Tapones recibidos' },
   { k: 'rec', h: 'REC', t: 'Balones recuperados' },
   { k: 'lost', h: 'PÉR', t: 'Balones perdidos' },
   { k: 'fc', h: 'FC', t: 'Faltas cometidas' },
@@ -565,7 +649,7 @@ function viewStats(arg) {
     ${data.season ? seasonSummary() : gameSummary(data.game)}
     ${leaders(data)}
     <section class="card table-card">${statsTable(data)}</section>
-    <p class="muted small formula"><b>VAL</b> (valoración) = puntos + rebotes + asistencias + tapones + recuperaciones + faltas recibidas − tiros fallados − pérdidas − faltas cometidas.
+    <p class="muted small formula"><b>VAL</b> (valoración ACB) = puntos + rebotes + asistencias + recuperaciones + tapones + faltas recibidas − tiros fallados (cada uno resta 1) − tapones recibidos − pérdidas − faltas cometidas.
     Toca la cabecera de una columna para ordenar.</p>
   `);
 }
@@ -617,6 +701,7 @@ function leaders(data) {
   if (!rows.length) return '';
   const best = (k) => rows.reduce((a, b) => (b[k] > a[k] ? b : a), rows[0]);
   const card = (k, lbl) => {
+    if (!colVisible(k, data)) return '';
     const r = best(k);
     if (!r || r[k] <= 0) return `<div class="leader"><small>${lbl}</small><b>–</b></div>`;
     return `<div class="leader"><small>${lbl}</small><b>${r[k]}</b><span>#${esc(r.number)} ${esc(r.name)}</span></div>`;
@@ -637,8 +722,18 @@ function cellValue(r, c) {
   return r[c.k];
 }
 
+/* Una columna se oculta si su acción está desactivada y no hay datos que mostrar */
+const COL_OPTS = { t1: ['t1'], t2: ['t2'], t3: ['t3'], ro: ['ro'], rd: ['rd'], reb: ['ro', 'rd'], ast: ['ast'], blk: ['blk'], blkr: ['blkr'], rec: ['rec'], lost: ['lost'], fc: ['fc'], fr: ['fr'] };
+function colVisible(k, data) {
+  const opts = COL_OPTS[k];
+  if (!opts || opts.some(optEnabled)) return true;
+  const t = data.total;
+  const v = k[0] === 't' && k.length === 2 ? t[`${k}a`] : t[k];
+  return v !== 0;
+}
+
 function statsTable(data) {
-  const cols = COLS.filter(c => !c.season || data.season);
+  const cols = COLS.filter(c => (!c.season || data.season) && colVisible(c.k, data));
   const { key, dir } = ui.sort;
   const sk = (r) => {
     const c = cols.find(c => c.k === key) || cols[0];
@@ -1029,6 +1124,15 @@ const actions = {
 
   /* General */
   fullscreen() { toggleFullscreen(); },
+  'toggle-opt'(el) {
+    const id = el.dataset.id;
+    const hidden = db.settings.hidden;
+    if (hidden.includes(id)) db.settings.hidden = hidden.filter(x => x !== id);
+    else if (OPTIONS.length - hidden.length <= 1) { toast('Tiene que quedar al menos un botón'); return; }
+    else hidden.push(id);
+    save(); vibrate(8); render();
+  },
+  'opts-all'() { db.settings.hidden = []; save(); render(); toast('Todos los botones activados'); },
   theme() { toggleTheme(); },
   'modal-close'() { closeModal(); },
   'confirm-yes'() { const m = ui.modal; ui.modal = null; refreshModal(); m.resolve(true); },
@@ -1171,13 +1275,13 @@ function buildText(arg) {
   for (const r of rows) {
     out.push(`#${r.number} ${r.name}${data.season ? ` (${r.gp} PJ)` : ''}`);
     out.push(`   ${r.pts} pts · T1 ${shotTxt(r, 1)} · T2 ${shotTxt(r, 2)} · T3 ${shotTxt(r, 3)}`);
-    out.push(`   Reb ${r.reb} (${r.ro} of + ${r.rd} def) · As ${r.ast} · Tap ${r.blk} · Rec ${r.rec} · Pér ${r.lost} · FC ${r.fc} · FR ${r.fr} · VAL ${r.val}`);
+    out.push(`   Reb ${r.reb} (${r.ro} of + ${r.rd} def) · As ${r.ast} · Tap ${r.blk} · TapRec ${r.blkr} · Rec ${r.rec} · Pér ${r.lost} · FC ${r.fc} · FR ${r.fr} · VAL ${r.val}`);
   }
   const t = data.total;
   out.push('');
-  out.push(`EQUIPO: ${t.pts} pts · T1 ${shotTxt(t, 1)} · T2 ${shotTxt(t, 2)} · T3 ${shotTxt(t, 3)} · Reb ${t.reb} · As ${t.ast} · Tap ${t.blk} · Rec ${t.rec} · Pér ${t.lost} · FC ${t.fc} · FR ${t.fr} · VAL ${t.val}`);
+  out.push(`EQUIPO: ${t.pts} pts · T1 ${shotTxt(t, 1)} · T2 ${shotTxt(t, 2)} · T3 ${shotTxt(t, 3)} · Reb ${t.reb} · As ${t.ast} · Tap ${t.blk} · TapRec ${t.blkr} · Rec ${t.rec} · Pér ${t.lost} · FC ${t.fc} · FR ${t.fr} · VAL ${t.val}`);
   out.push('');
-  out.push('VAL = puntos + rebotes + asistencias + tapones + recuperaciones + faltas recibidas − tiros fallados − pérdidas − faltas cometidas');
+  out.push('VAL = puntos + rebotes + asistencias + recuperaciones + tapones + faltas recibidas − tiros fallados − tapones recibidos − pérdidas − faltas cometidas');
   return out.join('\n');
 }
 
@@ -1208,8 +1312,8 @@ function renderShare(m) {
 function downloadCSV(arg) {
   const data = statsData(arg);
   if (!data) return;
-  const head = ['Dorsal', 'Jugador', ...(data.season ? ['PJ'] : []), 'Periodos', 'PTS', 'T1A', 'T1I', 'T2A', 'T2I', 'T3A', 'T3I', 'RO', 'RD', 'RT', 'AS', 'TAP', 'REC', 'PER', 'FC', 'FR', 'VAL'];
-  const line = (r) => [r.number, r.name, ...(data.season ? [r.gp] : []), r.nper, r.pts, r.t1m, r.t1a, r.t2m, r.t2a, r.t3m, r.t3a, r.ro, r.rd, r.reb, r.ast, r.blk, r.rec, r.lost, r.fc, r.fr, r.val];
+  const head = ['Dorsal', 'Jugador', ...(data.season ? ['PJ'] : []), 'Periodos', 'PTS', 'T1A', 'T1I', 'T2A', 'T2I', 'T3A', 'T3I', 'RO', 'RD', 'RT', 'AS', 'TAP', 'TR', 'REC', 'PER', 'FC', 'FR', 'VAL'];
+  const line = (r) => [r.number, r.name, ...(data.season ? [r.gp] : []), r.nper, r.pts, r.t1m, r.t1a, r.t2m, r.t2a, r.t3m, r.t3a, r.ro, r.rd, r.reb, r.ast, r.blk, r.blkr, r.rec, r.lost, r.fc, r.fr, r.val];
   const rows = [head, ...sortedPlayers(data.rows).map(line), line(data.total)];
   const csv = rows.map(r => r.map(v => {
     const s = String(v ?? '').replace('.', ',');

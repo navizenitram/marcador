@@ -228,6 +228,32 @@ input[type=date] { min-height: 42px; }
 .add-player { width: 100%; height: 100%; border: 2px dashed var(--border); border-radius: 8px; color: var(--muted); font-size: 16px; font-weight: 700; letter-spacing: .5px; }
 .add-player:active { background: var(--surface2); }
 
+/* ── Ajustes ── */
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.card-head h2 { margin: 0; }
+h3.sub { font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; }
+.opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px; }
+.opt {
+  display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 6px; text-align: left; min-width: 0;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+}
+.opt:not(.on) .opt-btns { opacity: .35; filter: grayscale(1); }
+.opt:not(.on) .opt-txt b { color: var(--muted); }
+.opt-btns { display: flex; gap: 3px; flex: none; }
+.opt-btns .act { width: 44px; height: 42px; }
+.opt-btns .act b { font-size: 18px; }
+.opt-btns .act i { font-size: 11px; }
+.opt-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+.opt-txt b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.opt-txt small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.switch { flex: none; width: 42px; height: 24px; border-radius: 12px; background: var(--surface3); border: 1px solid var(--border); position: relative; transition: background .15s; }
+.switch i { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+.opt.on .switch { background: var(--green); border-color: var(--green); }
+.opt.on .switch i { transform: translateX(18px); background: var(--on-accent); }
+.preview-card { margin-bottom: 12px; }
+.preview .prow { height: clamp(52px, 16vh, 72px); }
+.preview .act, .preview .pid { pointer-events: none; }
+
 /* ── Estadísticas ── */
 .stats-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 .stats-select { width: auto; max-width: 46vw; }
