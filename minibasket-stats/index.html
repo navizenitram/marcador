@@ -28,9 +28,31 @@
   <div id="toast" hidden></div>
 
   <div id="rotate">
-    <div class="rotate-icon">📱</div>
-    <p>Gira el dispositivo</p>
-    <small>La app está pensada para usarse en horizontal</small>
+    <div class="splash-brand">
+      <svg class="splash-logo" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="46" fill="#ff8a00"/>
+        <circle cx="50" cy="50" r="46" fill="url(#ballShade)"/>
+        <g fill="none" stroke="#2a1300" stroke-width="3.2" stroke-linecap="round">
+          <circle cx="50" cy="50" r="46"/>
+          <path d="M4 50h92M50 4v92"/>
+          <path d="M18 18c14 14 14 50 0 64M82 18c-14 14-14 50 0 64"/>
+        </g>
+        <defs>
+          <radialGradient id="ballShade" cx="35%" cy="30%" r="75%">
+            <stop offset="0" stop-color="#fff" stop-opacity=".28"/>
+            <stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+            <stop offset="1" stop-color="#000" stop-opacity=".25"/>
+          </radialGradient>
+        </defs>
+      </svg>
+      <h1 class="splash-name">Cantera <span>Stats</span></h1>
+      <p class="splash-tag">Estadísticas de baloncesto formativo</p>
+    </div>
+    <div class="rotate-hint">
+      <div class="rotate-icon">📱</div>
+      <p>Gira el dispositivo</p>
+      <small>La app está pensada para usarse en horizontal</small>
+    </div>
   </div>
 
   <script src="app.js"></script>
