@@ -166,6 +166,9 @@ input { font-family: inherit; }
   transition: transform 0.12s, opacity 0.12s;
 }
 .stats-link:active { transform: scale(0.96); opacity: 0.9; }
+.setup-links { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.kofi-link { color: #ff5e5b; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-decoration: none; opacity: .85; }
+.kofi-link:active { opacity: .6; }
 
 /* Theme toggle */
 .theme-toggle {
@@ -205,6 +208,8 @@ input { font-family: inherit; }
   .setup-config-label { font-size: 11px; }
   .btn-start { padding: 11px 32px; font-size: 13px; }
   .stats-link { padding: 7px 18px; font-size: 12px; }
+  .setup-links { flex-direction: row; gap: 16px; }
+  .kofi-link { font-size: 12px; }
 }
 
 /* ─── SCOREBOARD ──────────────────────────────────────────────── */
@@ -602,7 +607,10 @@ input { font-family: inherit; }
   </div>
 
   <button class="btn-start" onclick="startGame()">▶ INICIAR</button>
-  <a class="stats-link" href="/minibasket-stats/">📊 Estadísticas de jugadores</a>
+  <div class="setup-links">
+    <a class="stats-link" href="/minibasket-stats/">📊 Estadísticas de jugadores</a>
+    <a class="kofi-link" href="https://ko-fi.com/navizenitram" target="_blank" rel="noopener">☕ Invítame a un café</a>
+  </div>
 </div>
 
 <!-- ── SCOREBOARD ─────────────────────────────────────────────── -->

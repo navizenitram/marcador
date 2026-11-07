@@ -7,6 +7,7 @@
 const STORE_KEY = 'mbstats.v1';
 const MAX_ON_COURT = 5;
 const MAX_FOULS = 5;
+const KOFI_URL = 'https://ko-fi.com/navizenitram';
 
 /* Acciones que se pueden registrar para un jugador */
 const EV = {
@@ -577,6 +578,10 @@ function viewSettings() {
         <button class="btn" data-action="export-json">⬇ Exportar</button>
         <label class="btn">⬆ Importar<input type="file" accept="application/json,.json" data-change="import-json" hidden></label>
       </div>
+
+      <h2>Apoya el proyecto</h2>
+      <p class="muted small">La app es gratuita, sin anuncios y sin registro. Si te resulta útil en tus partidos, puedes invitarme a un café para que siga mejorando.</p>
+      <a class="btn kofi" href="${KOFI_URL}" target="_blank" rel="noopener">☕ Invítame a un café</a>
     </section>
   </div>`);
 }
@@ -651,6 +656,7 @@ function viewStats(arg) {
     <section class="card table-card">${statsTable(data)}</section>
     <p class="muted small formula"><b>VAL</b> (valoración ACB) = puntos + rebotes + asistencias + recuperaciones + tapones + faltas recibidas − tiros fallados (cada uno resta 1) − tapones recibidos − pérdidas − faltas cometidas.
     Toca la cabecera de una columna para ordenar.</p>
+    <p class="support">¿Te es útil la app? <a href="${KOFI_URL}" target="_blank" rel="noopener">☕ Invítame a un café</a></p>
   `);
 }
 

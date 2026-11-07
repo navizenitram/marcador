@@ -254,6 +254,11 @@ h3.sub { font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; colo
 .preview .prow { height: clamp(52px, 16vh, 72px); }
 .preview .act, .preview .pid { pointer-events: none; }
 
+.btn.kofi { background: #ff5e5b; border-color: #ff5e5b; color: #fff; width: 100%; font-size: 16px; min-height: 44px; }
+.btn.kofi:active { background: #e94e4b; }
+.support { text-align: center; color: var(--muted); font-size: 14px; margin: 18px 0 4px; }
+.support a { color: #ff5e5b; font-weight: 700; text-decoration: none; white-space: nowrap; }
+
 /* ── Estadísticas ── */
 .stats-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 .stats-select { width: auto; max-width: 46vw; }
