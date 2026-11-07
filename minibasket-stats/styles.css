@@ -1,3 +1,17 @@
+/* Fuente incluida en la app (sin peticiones a terceros). Rajdhani, licencia SIL OFL 1.1: fonts/OFL.txt */
+@font-face {
+  font-family: 'Rajdhani'; font-style: normal; font-weight: 500; font-display: swap;
+  src: url('fonts/rajdhani-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Rajdhani'; font-style: normal; font-weight: 600; font-display: swap;
+  src: url('fonts/rajdhani-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Rajdhani'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url('fonts/rajdhani-latin-700-normal.woff2') format('woff2');
+}
+
 :root {
   --bg: #06080a;
   --surface: #0e1014;
@@ -267,6 +281,18 @@ label { min-width: 0; }
 .team-live { color: var(--red); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
 .team-card .icon-btn.danger { align-self: center; }
 
+/* ── Privacidad ── */
+.privacy { max-width: 760px; margin: 0 auto; line-height: 1.55; font-size: 16px; }
+.privacy h1 { font-size: 26px; margin: 14px 0 4px; }
+.privacy > .btn:last-child { margin-top: 16px; }
+.privacy .lead { font-size: 18px; font-weight: 600; margin: 0 0 6px; }
+.privacy h2 { margin-top: 22px; }
+.privacy p, .privacy ul { margin: 6px 0; }
+.privacy ul { padding-left: 22px; }
+.privacy li { margin: 4px 0; }
+.privacy-note { font-size: 13px; color: var(--muted); margin-top: 10px; }
+.privacy-note a, .privacy a { color: var(--blue); }
+
 /* ── Ajustes ── */
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
 .card-head h2 { margin: 0; }
@@ -464,6 +490,7 @@ table.stats tfoot .c-name { background: var(--surface2); }
   .install small { color: var(--muted); font-size: 13px; text-align: center; }
   .install .install-btn { width: 100%; }
   .ios-share { width: 20px; height: 20px; vertical-align: -4px; color: var(--blue); }
+  .splash-privacy { margin: 2px 0 0; color: var(--muted); font-size: 13px; font-weight: 600; max-width: 300px; text-wrap: balance; }
   .rotate-hint { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .rotate-hint p { margin: 0; font-size: 22px; font-weight: 700; }
   .rotate-hint small { color: var(--muted); font-size: 14px; }
