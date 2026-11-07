@@ -1476,6 +1476,69 @@ async function toggleFullscreen() {
   if (ui.modal && ui.modal.kind === 'menu') { closeModal(true); render(); }
 }
 
+/* ─────────────── Añadir a la pantalla de inicio ─────────────── */
+// Se muestra en la pantalla de "Gira el dispositivo" si la app no está instalada.
+let installPrompt = null;   // evento beforeinstallprompt (Android / Chrome)
+
+function isInstalled() {
+  return matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
+}
+
+function platform() {
+  const ua = navigator.userAgent || '';
+  if (/iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'ios';
+  if (/Android/i.test(ua)) return 'android';
+  return 'other';
+}
+
+const SHARE_ICON = '<svg class="ios-share" viewBox="0 0 24 24" aria-label="Compartir"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 11H6.5A1.5 1.5 0 0 0 5 12.5v7A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-7a1.5 1.5 0 0 0-1.5-1.5H16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+function renderInstall() {
+  const el = document.getElementById('install');
+  if (!el) return;
+  const plat = platform();
+  if (isInstalled() || (plat === 'other' && !installPrompt)) { el.hidden = true; return; }
+  let body;
+  if (installPrompt) {
+    body = `<button class="btn primary big install-btn" data-action="install">📲 Instalar Cantera Stats</button>`;
+  } else if (plat === 'ios') {
+    body = `<ol>
+      <li>Toca ${SHARE_ICON} <b>Compartir</b> en la barra de Safari</li>
+      <li>Elige <b>“Añadir a pantalla de inicio”</b></li>
+      <li>Ábrela desde el icono 🏀</li>
+    </ol>`;
+  } else {
+    body = `<ol>
+      <li>Abre el menú <b>⋮</b> del navegador</li>
+      <li>Elige <b>“Instalar aplicación”</b> o <b>“Añadir a pantalla de inicio”</b></li>
+      <li>Ábrela desde el icono 🏀</li>
+    </ol>`;
+  }
+  el.innerHTML = `<h2>Añádela a tu pantalla de inicio</h2>${body}
+    <small>Se abre a pantalla completa y funciona sin conexión en el pabellón.</small>`;
+  el.hidden = false;
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  renderInstall();
+});
+window.addEventListener('appinstalled', () => { installPrompt = null; renderInstall(); });
+
+actions.install = async () => {
+  if (!installPrompt) return;
+  const e = installPrompt;
+  installPrompt = null;
+  try {
+    await e.prompt();
+    const choice = await e.userChoice;
+    if (choice && choice.outcome === 'accepted') { document.getElementById('install').hidden = true; return; }
+  } catch (err) { /* cancelado */ }
+  renderInstall();
+};
+
 /* ─────────────────────────── Inicio ─────────────────────────── */
 
 render();
+renderInstall();

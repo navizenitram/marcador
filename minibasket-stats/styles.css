@@ -441,19 +441,41 @@ table.stats tfoot .c-name { background: var(--surface2); }
 @media (orientation: portrait) {
   #rotate {
     display: flex; position: fixed; inset: 0; z-index: 1000; background: var(--bg);
-    flex-direction: column; align-items: center; justify-content: center; gap: 44px; text-align: center;
+    flex-direction: column; align-items: center; justify-content: flex-start; gap: 44px; text-align: center;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
     padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
     background-image: radial-gradient(ellipse 70% 40% at 50% 28%, color-mix(in srgb, var(--orange) 12%, transparent), transparent 70%);
   }
+  /* Centrado vertical que no recorta si el contenido no cabe (se puede desplazar) */
+  #rotate > :first-child { margin-top: auto; }
+  #rotate > :last-child { margin-bottom: auto; }
   .splash-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; }
   .splash-logo { width: 112px; height: 112px; filter: drop-shadow(0 10px 24px color-mix(in srgb, var(--orange) 35%, transparent)); }
   .splash-name { margin: 6px 0 0; font-size: 40px; font-weight: 700; letter-spacing: 1px; line-height: 1; }
   .splash-name span { color: var(--green); }
   .splash-tag { margin: 0; color: var(--muted); font-size: 15px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; max-width: 280px; line-height: 1.4; text-wrap: balance; }
+  .install {
+    width: min(340px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 16px; text-align: left; display: flex; flex-direction: column; gap: 8px;
+  }
+  .install[hidden] { display: none; }
+  .install h2 { margin: 0; text-align: center; color: var(--text); font-size: 14px; }
+  .install ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; font-size: 16px; line-height: 1.3; }
+  .install small { color: var(--muted); font-size: 13px; text-align: center; }
+  .install .install-btn { width: 100%; }
+  .ios-share { width: 20px; height: 20px; vertical-align: -4px; color: var(--blue); }
   .rotate-hint { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .rotate-hint p { margin: 0; font-size: 22px; font-weight: 700; }
   .rotate-hint small { color: var(--muted); font-size: 14px; }
   .rotate-icon { font-size: 48px; animation: rot 2s ease-in-out infinite; }
+  @media (max-height: 700px) {
+    #rotate { gap: 22px; }
+    .splash-logo { width: 84px; height: 84px; }
+    .splash-name { font-size: 32px; }
+    .splash-tag { font-size: 13px; }
+    .rotate-icon { font-size: 36px; }
+    .rotate-hint p { font-size: 19px; }
+  }
   @keyframes rot { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
 }
 
