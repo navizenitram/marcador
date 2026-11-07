@@ -1,7 +1,7 @@
 'use strict';
 
 /* ════════════════════════════════════════════════════════════════
-   MiniBasket Stats — SPA sin dependencias. Datos en localStorage.
+   Cantera Stats — SPA sin dependencias. Datos en localStorage.
    ════════════════════════════════════════════════════════════════ */
 
 const STORE_KEY = 'mbstats.v1';
@@ -423,7 +423,7 @@ function shell(active, content) {
   <div class="page">
     <nav class="nav">
       <a class="brand ${active === 'equipos' ? 'on' : ''}" href="#/equipos" title="Cambiar de equipo">
-        <span class="ball">🏀</span><span class="brand-name">${t ? esc(t.name) : 'MiniBasket Stats'}</span>${t ? '<span class="brand-swap">⇅</span>' : ''}
+        <span class="ball">🏀</span><span class="brand-name">${t ? esc(t.name) : 'Cantera Stats'}</span>${t ? '<span class="brand-swap">⇅</span>' : ''}
       </a>
       ${t ? `
       ${tab('equipo', '#/equipo', 'Equipo')}

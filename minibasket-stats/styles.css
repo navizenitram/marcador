@@ -441,11 +441,19 @@ table.stats tfoot .c-name { background: var(--surface2); }
 @media (orientation: portrait) {
   #rotate {
     display: flex; position: fixed; inset: 0; z-index: 1000; background: var(--bg);
-    flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 24px;
+    flex-direction: column; align-items: center; justify-content: center; gap: 44px; text-align: center;
+    padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+    background-image: radial-gradient(ellipse 70% 40% at 50% 28%, color-mix(in srgb, var(--orange) 12%, transparent), transparent 70%);
   }
-  #rotate p { margin: 0; font-size: 24px; font-weight: 700; }
-  #rotate small { color: var(--muted); font-size: 15px; }
-  .rotate-icon { font-size: 64px; animation: rot 2s ease-in-out infinite; }
+  .splash-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .splash-logo { width: 112px; height: 112px; filter: drop-shadow(0 10px 24px color-mix(in srgb, var(--orange) 35%, transparent)); }
+  .splash-name { margin: 6px 0 0; font-size: 40px; font-weight: 700; letter-spacing: 1px; line-height: 1; }
+  .splash-name span { color: var(--green); }
+  .splash-tag { margin: 0; color: var(--muted); font-size: 15px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; max-width: 280px; line-height: 1.4; text-wrap: balance; }
+  .rotate-hint { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .rotate-hint p { margin: 0; font-size: 22px; font-weight: 700; }
+  .rotate-hint small { color: var(--muted); font-size: 14px; }
+  .rotate-icon { font-size: 48px; animation: rot 2s ease-in-out infinite; }
   @keyframes rot { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
 }
 
