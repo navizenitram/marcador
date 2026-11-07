@@ -38,6 +38,13 @@ VAL = (puntos + rebotes + asistencias + robos + tapones + faltas recibidas)
 
 Es la valoración de la ACB / Euroliga. Cada tiro fallado resta 1, sea de 1, 2 o 3 puntos.
 
+## Privacidad
+
+Cantera Stats no recoge, no envía y no rastrea ningún dato: no hay cuentas, cookies, publicidad ni analítica,
+y no se cargan recursos de terceros (la fuente Rajdhani va incluida en `fonts/`, licencia SIL OFL 1.1).
+Todo se guarda en el `localStorage` del navegador y solo sale del dispositivo si el usuario lo comparte o exporta.
+El texto completo está en la propia app (`#/privacidad`, enlazado desde Ajustes y desde la pantalla de equipos).
+
 ## Desarrollo local
 
 ```bash
@@ -60,7 +67,8 @@ app.js                Lógica, vistas y almacenamiento
 styles.css            Estilos (layout horizontal)
 sw.js                 Service worker (modo sin conexión)
 manifest.webmanifest  Manifest PWA (orientación horizontal)
-icon.svg              Icono
+icon.svg              Icono (y PNG para iOS/Android)
+fonts/                Fuente Rajdhani incluida (sin Google Fonts)
 ```
 
 Los datos viven en `localStorage` con la clave `mbstats.v1`. Borrar los datos del navegador los elimina:

@@ -327,6 +327,7 @@ function render() {
   let html;
   switch (view) {
     case 'equipos': html = viewTeams(); break;
+    case 'privacidad': html = viewPrivacy(); break;
     case 'partido': {
       const g = getGame(arg);
       if (!g) { go('#/partidos'); return; }
@@ -469,8 +470,47 @@ function viewTeams() {
         <button class="btn primary big" type="submit">＋ Crear equipo</button>
       </form>
       <p class="muted small">Cada equipo tiene su propia plantilla, partidos, estadísticas y botones del partido.</p>
+      <p class="privacy-note">🔒 Sin registro ni seguimiento: todo se guarda solo en este dispositivo. <a href="#/privacidad">Privacidad</a></p>
     </section>
   </div>`);
+}
+
+/* ── Privacidad ── */
+function viewPrivacy() {
+  return shell('privacidad', `
+  <section class="card privacy">
+    <button class="btn" data-action="back">← Volver</button>
+    <h1>🔒 Tu privacidad</h1>
+    <p class="lead">Cantera Stats no recoge, no envía y no rastrea ningún dato. Lo que apuntas es tuyo y se queda en tu dispositivo.</p>
+
+    <h2>Qué no hace la app</h2>
+    <ul>
+      <li>No tiene cuentas ni registro: no te pide email, contraseña ni ningún dato personal.</li>
+      <li>No usa cookies, publicidad, analítica ni herramientas de seguimiento.</li>
+      <li>No envía a ningún servidor los equipos, jugadores, partidos ni estadísticas que introduces.</li>
+      <li>No carga recursos de terceros: la fuente y los iconos van incluidos en la propia app.</li>
+    </ul>
+
+    <h2>Dónde se guardan tus datos</h2>
+    <p>Todo se guarda únicamente en el almacenamiento local del navegador de este dispositivo. Nadie más tiene acceso a ello, ni siquiera yo.
+    Solo sale de tu móvil si tú decides compartirlo: al enviar las estadísticas por email, compartirlas, descargar un CSV o exportar una copia de seguridad.</p>
+    <p>Por eso mismo, si borras los datos del navegador, desinstalas la app o cambias de dispositivo, los datos se pierden.
+    Te recomiendo exportar una copia de seguridad de vez en cuando desde <a href="#/ajustes">Ajustes</a>.</p>
+    <p>Como la app trabaja con datos de menores, una buena práctica es usar solo el nombre de pila o un apodo de cada jugador.</p>
+
+    <h2>Lo que queda fuera de la app</h2>
+    <p>Como cualquier página web, el servicio que la aloja (Vercel) puede registrar datos técnicos de las visitas, como la dirección IP,
+    para su funcionamiento y seguridad. La app no utiliza ni consulta esos datos.
+    El enlace "Invítame a un café" lleva a Ko-fi, una web externa con su propia política de privacidad; solo se abre si lo pulsas.</p>
+
+    <h2>Por qué existe Cantera Stats</h2>
+    <p>Construí Cantera Stats como una herramienta para mi propio uso, porque en el baloncesto formativo hay mucho más que los puntos
+    y quería una forma sencilla de seguir lo que hace cada jugador en la pista. Funcionaba tan bien que decidí compartirla de forma gratuita
+    con la comunidad: entrenadores, familias y clubes.</p>
+    <p>Es un proyecto personal, sin ánimo de lucro, sin anuncios y sin intereses detrás. Si te resulta útil y quieres apoyarlo,
+    puedes <a href="${KOFI_URL}" target="_blank" rel="noopener">invitarme a un café ☕</a>.</p>
+    <button class="btn" data-action="back">← Volver</button>
+  </section>`);
 }
 
 /* ── Equipo ── */
@@ -674,6 +714,10 @@ function viewSettings() {
         <button class="btn" data-action="export-json">⬇ Exportar</button>
         <label class="btn">⬆ Importar<input type="file" accept="application/json,.json" data-change="import-json" hidden></label>
       </div>
+
+      <h2>Privacidad</h2>
+      <p class="muted small">Cantera Stats no recoge ni envía tus datos: no hay registro, ni publicidad, ni seguimiento. Todo se guarda solo en este dispositivo.</p>
+      <a class="btn" href="#/privacidad">🔒 Leer la política de privacidad</a>
 
       <h2>Apoya el proyecto</h2>
       <p class="muted small">La app es gratuita, sin anuncios y sin registro. Si te resulta útil en tus partidos, puedes invitarme a un café para que siga mejorando.</p>
@@ -1245,6 +1289,7 @@ const actions = {
 
   /* General */
   fullscreen() { toggleFullscreen(); },
+  back() { if (history.length > 1) history.back(); else go(team() ? '#/ajustes' : '#/equipos'); },
   'toggle-opt'(el) {
     const id = el.dataset.id;
     const hidden = team().hidden;
