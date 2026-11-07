@@ -16,15 +16,17 @@ const EV = {
   t2_ko: { label: '2', sub: '✗', cls: 'miss', text: 'Tiro de 2 fallado' },
   t3_ok: { label: '3', sub: '✓', cls: 'made', text: 'Triple', pts: 3 },
   t3_ko: { label: '3', sub: '✗', cls: 'miss', text: 'Triple fallado' },
-  rec:   { label: 'REC', sub: 'Recupera', cls: 'pos', text: 'Balón recuperado' },
+  rec:   { label: 'REC', sub: 'Recup.', cls: 'pos', text: 'Balón recuperado' },
   lost:  { label: 'PÉR', sub: 'Pierde', cls: 'neg', text: 'Balón perdido' },
-  ro:    { label: 'RO', sub: 'Reb. at.', cls: 'reb', text: 'Rebote de ataque' },
-  rd:    { label: 'RD', sub: 'Reb. def.', cls: 'reb', text: 'Rebote defensivo' },
+  ro:    { label: 'RO', sub: 'Ataque', cls: 'reb', text: 'Rebote de ataque' },
+  rd:    { label: 'RD', sub: 'Defensa', cls: 'reb', text: 'Rebote defensivo' },
   fc:    { label: 'FC', sub: 'Comete', cls: 'foul', text: 'Falta cometida' },
   fr:    { label: 'FR', sub: 'Recibe', cls: 'pos', text: 'Falta recibida' },
+  ast:   { label: 'AS', sub: 'Asiste', cls: 'ast', text: 'Asistencia' },
+  blk:   { label: 'TAP', sub: 'Tapón', cls: 'blk', text: 'Tapón' },
 };
 const SHOT_ACTIONS = ['t1_ok', 't1_ko', 't2_ok', 't2_ko', 't3_ok', 't3_ko'];
-const OTHER_ACTIONS = ['rec', 'lost', 'ro', 'rd', 'fc', 'fr'];
+const OTHER_ACTIONS = ['rec', 'lost', 'ro', 'rd', 'ast', 'blk', 'fc', 'fr'];
 
 /* ─────────────────────────── Datos ─────────────────────────── */
 
@@ -123,7 +125,7 @@ function round1(n) { return Math.round(n * 10) / 10; }
 /* ───────────────────────── Estadísticas ───────────────────────── */
 
 function blankLine() {
-  return { t1m: 0, t1a: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ro: 0, rd: 0, rec: 0, lost: 0, fc: 0, fr: 0 };
+  return { t1m: 0, t1a: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ro: 0, rd: 0, ast: 0, blk: 0, rec: 0, lost: 0, fc: 0, fr: 0 };
 }
 
 function addEvent(l, type) {
@@ -143,13 +145,13 @@ function sumLines(target, src) {
   return target;
 }
 
-/* Valoración: PTS + rebotes + recuperaciones + faltas recibidas
+/* Valoración: PTS + rebotes + asistencias + tapones + recuperaciones + faltas recibidas
    − tiros fallados − pérdidas − faltas cometidas */
 function finish(l) {
   l.pts = l.t1m + 2 * l.t2m + 3 * l.t3m;
   l.reb = l.ro + l.rd;
   l.miss = (l.t1a - l.t1m) + (l.t2a - l.t2m) + (l.t3a - l.t3m);
-  l.val = l.pts + l.reb + l.rec + l.fr - l.miss - l.lost - l.fc;
+  l.val = l.pts + l.reb + l.ast + l.blk + l.rec + l.fr - l.miss - l.lost - l.fc;
   return l;
 }
 
@@ -288,12 +290,37 @@ function postRender() {
 
 window.addEventListener('hashchange', () => { closeModal(true); toastEl.hidden = true; render(); });
 
-// Si los datos cambian en otra pestaña, recargarlos
+// Si los datos o el tema cambian en otra pestaña (o en el marcador), aplicarlos
 window.addEventListener('storage', (e) => {
   if (e.key === STORE_KEY) { db = load(); if (!ui.modal) render(); }
+  if (e.key === THEME_KEY) { applyTheme(e.newValue === 'light'); if (!ui.modal) render(); }
 });
 
 /* ─────────────────────────── Vistas ─────────────────────────── */
+
+/* ─────────────────────────── Tema ─────────────────────────── */
+// Misma clave que el marcador (mismo dominio): el tema elegido vale para las dos apps.
+const THEME_KEY = 'mb_theme';
+
+function isLight() { return document.documentElement.dataset.theme === 'light'; }
+
+function applyTheme(light) {
+  document.documentElement.dataset.theme = light ? 'light' : 'dark';
+  const meta = document.querySelector('meta[name=theme-color]');
+  if (meta) meta.content = light ? '#f0f3f8' : '#06080a';
+}
+
+function toggleTheme() {
+  const light = !isLight();
+  applyTheme(light);
+  try { localStorage.setItem(THEME_KEY, light ? 'light' : 'dark'); } catch (e) { /* noop */ }
+  if (ui.modal && ui.modal.kind === 'menu') refreshModal();
+  render();
+}
+
+function themeButton() {
+  return `<button class="icon-btn" data-action="theme" title="${isLight() ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}">${isLight() ? '☀️' : '🌙'}</button>`;
+}
 
 function fsButton() {
   if (!document.fullscreenEnabled) return '';
@@ -313,6 +340,7 @@ function shell(active, content) {
       ${tab('stats', '#/stats', 'Estadísticas')}
       <span class="grow"></span>
       ${live ? `<a class="btn live-link" href="#/partido/${live.id}"><span class="dot"></span>vs ${esc(live.opponent)}</a>` : ''}
+      ${themeButton()}
       ${fsButton()}
     </nav>
     <main class="content">${content}</main>
@@ -483,6 +511,8 @@ const COLS = [
   { k: 'ro', h: 'RO', t: 'Rebotes de ataque' },
   { k: 'rd', h: 'RD', t: 'Rebotes de defensa' },
   { k: 'reb', h: 'RT', t: 'Rebotes totales' },
+  { k: 'ast', h: 'AS', t: 'Asistencias' },
+  { k: 'blk', h: 'TAP', t: 'Tapones' },
   { k: 'rec', h: 'REC', t: 'Balones recuperados' },
   { k: 'lost', h: 'PÉR', t: 'Balones perdidos' },
   { k: 'fc', h: 'FC', t: 'Faltas cometidas' },
@@ -535,7 +565,7 @@ function viewStats(arg) {
     ${data.season ? seasonSummary() : gameSummary(data.game)}
     ${leaders(data)}
     <section class="card table-card">${statsTable(data)}</section>
-    <p class="muted small formula"><b>VAL</b> (valoración) = puntos + rebotes + recuperaciones + faltas recibidas − tiros fallados − pérdidas − faltas cometidas.
+    <p class="muted small formula"><b>VAL</b> (valoración) = puntos + rebotes + asistencias + tapones + recuperaciones + faltas recibidas − tiros fallados − pérdidas − faltas cometidas.
     Toca la cabecera de una columna para ordenar.</p>
   `);
 }
@@ -592,7 +622,7 @@ function leaders(data) {
     return `<div class="leader"><small>${lbl}</small><b>${r[k]}</b><span>#${esc(r.number)} ${esc(r.name)}</span></div>`;
   };
   return `<section class="leaders">
-    ${card('val', 'Mejor valoración')}${card('pts', 'Máx. anotador')}${card('reb', 'Más rebotes')}${card('rec', 'Más recuperaciones')}${card('fr', 'Más faltas recibidas')}
+    ${card('val', 'Mejor valoración')}${card('pts', 'Máx. anotador')}${card('reb', 'Más rebotes')}${card('ast', 'Más asistencias')}${card('rec', 'Más recuperaciones')}${card('blk', 'Más tapones')}
   </section>`;
 }
 
@@ -726,6 +756,7 @@ function renderMenu(m) {
     <button class="btn" data-action="lineup">⇄ Jugadores en pista</button>
     <button class="btn" data-action="log">📝 Jugadas registradas (${g.events.length})</button>
     <a class="btn" href="#/stats/${g.id}">📊 Estadísticas del partido</a>
+    <button class="btn" data-action="theme">${isLight() ? '🌙 Modo oscuro' : '☀️ Modo claro'}</button>
     ${document.fullscreenEnabled ? `<button class="btn" data-action="fullscreen">⛶ Pantalla completa</button>` : ''}
     ${g.finished
       ? `<button class="btn" data-action="reopen" data-id="${g.id}">↺ Reabrir partido</button>`
@@ -998,6 +1029,7 @@ const actions = {
 
   /* General */
   fullscreen() { toggleFullscreen(); },
+  theme() { toggleTheme(); },
   'modal-close'() { closeModal(); },
   'confirm-yes'() { const m = ui.modal; ui.modal = null; refreshModal(); m.resolve(true); },
   'confirm-no'() { closeModal(); },
@@ -1139,13 +1171,13 @@ function buildText(arg) {
   for (const r of rows) {
     out.push(`#${r.number} ${r.name}${data.season ? ` (${r.gp} PJ)` : ''}`);
     out.push(`   ${r.pts} pts · T1 ${shotTxt(r, 1)} · T2 ${shotTxt(r, 2)} · T3 ${shotTxt(r, 3)}`);
-    out.push(`   Reb ${r.reb} (${r.ro} of + ${r.rd} def) · Rec ${r.rec} · Pér ${r.lost} · FC ${r.fc} · FR ${r.fr} · VAL ${r.val}`);
+    out.push(`   Reb ${r.reb} (${r.ro} of + ${r.rd} def) · As ${r.ast} · Tap ${r.blk} · Rec ${r.rec} · Pér ${r.lost} · FC ${r.fc} · FR ${r.fr} · VAL ${r.val}`);
   }
   const t = data.total;
   out.push('');
-  out.push(`EQUIPO: ${t.pts} pts · T1 ${shotTxt(t, 1)} · T2 ${shotTxt(t, 2)} · T3 ${shotTxt(t, 3)} · Reb ${t.reb} · Rec ${t.rec} · Pér ${t.lost} · FC ${t.fc} · FR ${t.fr} · VAL ${t.val}`);
+  out.push(`EQUIPO: ${t.pts} pts · T1 ${shotTxt(t, 1)} · T2 ${shotTxt(t, 2)} · T3 ${shotTxt(t, 3)} · Reb ${t.reb} · As ${t.ast} · Tap ${t.blk} · Rec ${t.rec} · Pér ${t.lost} · FC ${t.fc} · FR ${t.fr} · VAL ${t.val}`);
   out.push('');
-  out.push('VAL = puntos + rebotes + recuperaciones + faltas recibidas − tiros fallados − pérdidas − faltas cometidas');
+  out.push('VAL = puntos + rebotes + asistencias + tapones + recuperaciones + faltas recibidas − tiros fallados − pérdidas − faltas cometidas');
   return out.join('\n');
 }
 
@@ -1176,8 +1208,8 @@ function renderShare(m) {
 function downloadCSV(arg) {
   const data = statsData(arg);
   if (!data) return;
-  const head = ['Dorsal', 'Jugador', ...(data.season ? ['PJ'] : []), 'Periodos', 'PTS', 'T1A', 'T1I', 'T2A', 'T2I', 'T3A', 'T3I', 'RO', 'RD', 'RT', 'REC', 'PER', 'FC', 'FR', 'VAL'];
-  const line = (r) => [r.number, r.name, ...(data.season ? [r.gp] : []), r.nper, r.pts, r.t1m, r.t1a, r.t2m, r.t2a, r.t3m, r.t3a, r.ro, r.rd, r.reb, r.rec, r.lost, r.fc, r.fr, r.val];
+  const head = ['Dorsal', 'Jugador', ...(data.season ? ['PJ'] : []), 'Periodos', 'PTS', 'T1A', 'T1I', 'T2A', 'T2I', 'T3A', 'T3I', 'RO', 'RD', 'RT', 'AS', 'TAP', 'REC', 'PER', 'FC', 'FR', 'VAL'];
+  const line = (r) => [r.number, r.name, ...(data.season ? [r.gp] : []), r.nper, r.pts, r.t1m, r.t1a, r.t2m, r.t2a, r.t3m, r.t3a, r.ro, r.rd, r.reb, r.ast, r.blk, r.rec, r.lost, r.fc, r.fr, r.val];
   const rows = [head, ...sortedPlayers(data.rows).map(line), line(data.total)];
   const csv = rows.map(r => r.map(v => {
     const s = String(v ?? '').replace('.', ',');
