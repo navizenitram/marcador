@@ -1,4 +1,6 @@
-# MiniBasket Stats
+# Cantera Stats
+
+_Estadísticas de baloncesto formativo._
 
 SPA para recoger estadísticas de partidos de minibasket desde el móvil o la tablet, **en horizontal**.
 Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en el `localStorage` del navegador.

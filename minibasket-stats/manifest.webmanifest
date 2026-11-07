@@ -1,7 +1,7 @@
 {
-  "name": "MiniBasket Stats",
-  "short_name": "MiniStats",
-  "description": "Estadísticas de partidos de minibasket",
+  "name": "Cantera Stats",
+  "short_name": "Cantera Stats",
+  "description": "Estadísticas de baloncesto formativo",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
