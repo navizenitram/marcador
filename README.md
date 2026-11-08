@@ -24,6 +24,24 @@ npm run build     # genera dist/
 npm run preview   # sirve dist/
 ```
 
+## Tests
+
+```bash
+npm test               # una pasada (unos segundos)
+npm run test:watch     # se repiten al guardar
+npm run test:coverage  # informe de cobertura en coverage/
+```
+
+Usan [Vitest](https://vitest.dev) y [jsdom](https://github.com/jsdom/jsdom). Las apps no se modifican para probarlas:
+los helpers de `tests/helpers/` cargan su `index.html` y su `app.js` reales en un DOM simulado y llaman a sus funciones
+o pulsan sus botones. Si la app lanza una excepción durante un test, el test falla aunque sus comprobaciones pasen.
+
+| Carpeta | Qué cubre |
+| --- | --- |
+| `tests/app/` | App de estadísticas: cálculos y valoración, datos (migración v1→v2, carga, importación), exportación (texto, CSV, JSON) y flujos de uso (equipos, plantilla, partido en directo, ajustes, estadísticas) |
+| `tests/marcador/` | Marcador: puntos, faltas y periodos, estadísticas y gráficas (Chart.js se sustituye por un doble), reinicio y tema |
+| `tests/web/` | `site.config.mjs`, `scripts/postbuild.mjs`, mismos textos en castellano y catalán, y archivos de la PWA (service worker, manifest, fuentes) |
+
 ## Configuración
 
 | Variable | Para qué | Por defecto |
