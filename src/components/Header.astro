@@ -1,0 +1,22 @@
+---
+import Ball from './Ball.astro';
+import { APP_URL, type Lang } from '../consts';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const t = lang === 'ca'
+  ? { home: '/ca/', guides: null, open: "Obre l'app", nav: 'Navegació principal' }
+  : { home: '/', guides: '/guias/', open: 'Abrir la app', nav: 'Navegación principal' };
+---
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="wordmark" href={t.home}>
+      <Ball size={30} />
+      <span>Cantera Stats</span>
+    </a>
+    <nav aria-label={t.nav}>
+      {t.guides && <a class="nav-link" href={t.guides}>Guías</a>}
+      {lang === 'es' && <a class="nav-link hide-sm" href="/plantilla-estadisticas-baloncesto/">Plantilla</a>}
+      <a class="btn btn-primary btn-sm" href={APP_URL} data-umami-event="abrir-app" data-umami-event-origen="cabecera">{t.open}</a>
+    </nav>
+  </div>
+</header>

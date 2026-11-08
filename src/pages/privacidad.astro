@@ -1,0 +1,48 @@
+---
+import Base from '../layouts/Base.astro';
+import { APP_URL, UMAMI_WEBSITE_ID } from '../consts';
+---
+<Base
+  title="Privacidad · Cantera Stats"
+  description="Qué datos recoge la web de Cantera Stats y por qué la app de estadísticas no recoge ninguno."
+>
+  <section class="article">
+    <div class="wrap">
+      <header class="article-head">
+        <h1>Privacidad</h1>
+        <p class="lead">La app no recoge ningún dato. Esta web informativa, solo estadísticas anónimas de visitas.</p>
+      </header>
+      <div class="prose">
+        <h2>La app de estadísticas</h2>
+        <p>
+          La <a href={APP_URL}>app de Cantera Stats</a> no tiene cuentas, cookies, publicidad ni analítica. Los equipos,
+          jugadores, partidos y estadísticas que apuntas se guardan únicamente en el almacenamiento local del navegador de tu
+          dispositivo y solo salen de él si tú los compartes o los exportas. Tienes el texto completo dentro de la propia app,
+          en Ajustes.
+        </p>
+
+        <h2>Esta web</h2>
+        {UMAMI_WEBSITE_ID ? (
+          <p>
+            Para saber cuánta gente visita estas páginas y si la información le resulta útil, uso Umami, una herramienta de
+            analítica que no usa cookies, no guarda tu dirección IP y no permite identificarte. Solo veo datos agregados: páginas
+            visitadas, de qué web llegas, el tipo de dispositivo, el país y los clics en botones como «Abrir la app». Estos datos
+            no se usan para publicidad ni se comparten con nadie.
+          </p>
+        ) : (
+          <p>Estas páginas no usan cookies ni herramientas de analítica.</p>
+        )}
+        <p>
+          Como cualquier web, el servicio que la aloja puede registrar datos técnicos de las visitas, como la dirección IP,
+          para su funcionamiento y seguridad. No uso esos datos.
+        </p>
+
+        <h2>Enlaces externos</h2>
+        <p>
+          Los enlaces para compartir por WhatsApp o para invitarme a un café en Ko-fi llevan a servicios externos con su propia
+          política de privacidad. Solo se abren si los pulsas.
+        </p>
+      </div>
+    </div>
+  </section>
+</Base>

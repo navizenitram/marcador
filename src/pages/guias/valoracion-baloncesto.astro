@@ -1,0 +1,131 @@
+---
+import Guide from '../../layouts/Guide.astro';
+import { APP_URL } from '../../consts';
+---
+<Guide
+  title="Valoración en baloncesto: qué es y cómo se calcula (fórmula ACB con ejemplo)"
+  description="Qué es la valoración de un jugador de baloncesto, la fórmula que usan la ACB y la Euroliga, un ejemplo paso a paso y cómo interpretarla en minibasket y baloncesto formativo."
+  h1="Valoración en baloncesto: qué es y cómo se calcula"
+  lead="La valoración resume en un solo número lo que ha aportado un jugador en un partido: suma lo que ayuda al equipo y resta lo que le perjudica. Aquí tienes la fórmula de la ACB, un ejemplo completo y cómo leerla en categorías de formación."
+  updated="2026-11-08"
+  crumb="Valoración"
+  origin="guia-valoracion"
+>
+  <h2>La fórmula de la valoración</h2>
+  <p>
+    Es la que verás en las estadísticas de la Liga ACB como <strong>VAL</strong> y en la Euroliga como
+    <strong>PIR</strong> (<i lang="en">Performance Index Rating</i>). Todas las acciones valen un punto, positivo o negativo,
+    salvo los puntos anotados, que cuentan por su valor.
+  </p>
+  <div class="formula" role="math" aria-label="Valoración igual a puntos más rebotes más asistencias más recuperaciones más tapones más faltas recibidas, menos tiros de campo fallados, tiros libres fallados, tapones recibidos, pérdidas y faltas cometidas">
+    VAL = <span class="plus">(puntos + rebotes + asistencias + recuperaciones + tapones + faltas recibidas)</span>
+    − <span class="minus">(tiros de campo fallados + tiros libres fallados + tapones recibidos + pérdidas + faltas cometidas)</span>
+  </div>
+
+  <div class="table-scroll">
+    <table>
+      <caption>Qué suma y qué resta</caption>
+      <thead>
+        <tr><th scope="col">Suma</th><th scope="col">Resta</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Puntos anotados (1, 2 o 3 por canasta)</td><td>Cada tiro de 2 o triple fallado (−1)</td></tr>
+        <tr><td>Rebotes, de ataque y de defensa (+1)</td><td>Cada tiro libre fallado (−1)</td></tr>
+        <tr><td>Asistencias (+1)</td><td>Tapones recibidos (−1)</td></tr>
+        <tr><td>Recuperaciones o robos (+1)</td><td>Pérdidas de balón (−1)</td></tr>
+        <tr><td>Tapones (+1)</td><td>Faltas cometidas (−1)</td></tr>
+        <tr><td>Faltas recibidas (+1)</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Detalles que suelen generar dudas</h3>
+  <ul>
+    <li><strong>Un tiro fallado resta 1, sea del valor que sea.</strong> Fallar un triple penaliza lo mismo que fallar un tiro de 2.</li>
+    <li><strong>Los puntos ya incluyen el valor del tiro.</strong> Un triple anotado suma 3; no se suma además un punto por acertar.</li>
+    <li><strong>Los rebotes se cuentan todos juntos.</strong> Ofensivos y defensivos valen lo mismo.</li>
+    <li><strong>Un tapón recibido</strong> es que el rival te tapone un tiro: resta 1 y, además, ese tiro cuenta como fallado.</li>
+  </ul>
+
+  <h2>Ejemplo paso a paso</h2>
+  <p>Imagina esta línea de estadísticas de un jugador en un partido de minibasket:</p>
+  <div class="table-scroll">
+    <table>
+      <caption>Estadísticas del jugador</caption>
+      <thead>
+        <tr><th scope="col">Acción</th><th scope="col" class="num">Dato</th><th scope="col" class="num">Valoración</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Tiros libres: 2 de 4</td><td class="num">2 pts, 2 fallados</td><td class="num">+2 −2</td></tr>
+        <tr><td>Tiros de 2: 4 de 9</td><td class="num">8 pts, 5 fallados</td><td class="num">+8 −5</td></tr>
+        <tr><td>Triples: 0 de 1</td><td class="num">0 pts, 1 fallado</td><td class="num">−1</td></tr>
+        <tr><td>Rebotes (2 de ataque y 4 de defensa)</td><td class="num">6</td><td class="num">+6</td></tr>
+        <tr><td>Asistencias</td><td class="num">2</td><td class="num">+2</td></tr>
+        <tr><td>Recuperaciones</td><td class="num">3</td><td class="num">+3</td></tr>
+        <tr><td>Faltas recibidas</td><td class="num">3</td><td class="num">+3</td></tr>
+        <tr><td>Tapones recibidos</td><td class="num">1</td><td class="num">−1</td></tr>
+        <tr><td>Pérdidas</td><td class="num">4</td><td class="num">−4</td></tr>
+        <tr><td>Faltas cometidas</td><td class="num">2</td><td class="num">−2</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td>Total</td><td class="num">10 puntos</td><td class="num">24 − 15 = 9</td></tr>
+      </tfoot>
+    </table>
+  </div>
+  <p>
+    Lo positivo suma 24 (10 puntos, 6 rebotes, 2 asistencias, 3 recuperaciones y 3 faltas recibidas) y lo negativo,
+    15 (6 tiros de campo fallados, 2 tiros libres fallados, 1 tapón recibido, 4 pérdidas y 2 faltas cometidas).
+    Su valoración es <strong>9</strong>.
+  </p>
+  <p>
+    Fíjate en que con solo dos pérdidas menos su valoración sería 11. Por eso es útil mirar de dónde sale el número,
+    no solo el número.
+  </p>
+
+  <h2>Cómo interpretarla en baloncesto formativo</h2>
+  <p>
+    La valoración es cómoda porque se calcula a simple vista, pero no es una medida perfecta: da el mismo peso a acciones
+    muy distintas y no ve nada de lo que pasa sin balón. Hay incluso trabajos académicos, como
+    <a href="https://dialnet.unirioja.es/descarga/articulo/9630814.pdf" rel="noopener">este artículo de 2024 sobre la «Valoración ACB»</a>,
+    que critican que carece de base teórica. En categorías de formación conviene usarla con cuidado:
+  </p>
+  <ul>
+    <li>
+      <strong>Penaliza tirar.</strong> Cada tiro fallado resta, así que un jugador que se atreve a lanzar puede salir peor parado
+      que uno que no tira nunca. En edades de formación quieres que tiren: mira los intentos y los porcentajes por separado.
+    </li>
+    <li>
+      <strong>Depende de cuánto juega.</strong> Quien juega seis periodos acumula más que quien juega dos. Para comparar,
+      usa el promedio por partido o fíjate en los periodos jugados.
+    </li>
+    <li>
+      <strong>Compara a cada jugador consigo mismo.</strong> Lo interesante es su evolución durante la temporada, no si está
+      por encima o por debajo de un compañero.
+    </li>
+    <li>
+      <strong>No mide la defensa sin balón,</strong> las ayudas, la comunicación ni la actitud. Son cosas que el entrenador
+      ve en la pista y que ningún número recoge.
+    </li>
+    <li>
+      <strong>Úsala para hablar de acciones, no para hacer rankings.</strong> «Este mes perdemos menos balones» ayuda más a un
+      equipo de niños que una clasificación por valoración.
+    </li>
+  </ul>
+
+  <div class="callout">
+    <h2>Calcúlala sin hacer cuentas</h2>
+    <p>
+      Cantera Stats calcula la valoración de cada jugador de forma automática, por partido y de toda la temporada, con esta
+      misma fórmula. Si desactivas algún botón en los ajustes, esa acción no cuenta en la valoración.
+    </p>
+    <div class="actions">
+      <a class="btn btn-primary" href={APP_URL} data-umami-event="abrir-app" data-umami-event-origen="guia-valoracion-cuerpo">Abrir la app gratis</a>
+    </div>
+  </div>
+
+  <h2>Sigue leyendo</h2>
+  <ul>
+    <li><a href="/guias/estadisticas-minibasket/">Estadísticas en minibasket: qué apuntar y cómo usarlas para mejorar</a></li>
+    <li><a href="/plantilla-estadisticas-baloncesto/">Plantilla de estadísticas de baloncesto para imprimir</a></li>
+  </ul>
+</Guide>

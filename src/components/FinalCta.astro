@@ -1,0 +1,30 @@
+---
+import { APP_URL, SCOREBOARD_URL, type Lang } from '../consts';
+interface Props { lang?: Lang; origin?: string }
+const { lang = 'es', origin = 'final' } = Astro.props;
+const ca = lang === 'ca';
+const home = new URL(ca ? '/ca/' : '/', Astro.site).href;
+const shareText = ca
+  ? `Mira aquesta app gratuïta d'estadístiques de bàsquet formatiu. Apuntes el que fa cada jugador durant el partit: ${home}`
+  : `Mira esta app gratuita de estadísticas de baloncesto formativo. Apuntas lo que hace cada jugador durante el partido: ${home}`;
+const wa = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+---
+<section class="final-cta">
+  <div class="wrap final-inner">
+    <h2>{ca ? 'Prova-la al pròxim partit' : 'Pruébala en el próximo partido'}</h2>
+    <p>{ca
+      ? "No cal registrar-se ni instal·lar res. Obre-la al mòbil, crea l'equip i ja pots apuntar."
+      : 'No hace falta registrarse ni instalar nada. Ábrela en el móvil, crea el equipo y ya puedes apuntar.'}</p>
+    <div class="actions">
+      <a class="btn btn-primary" href={APP_URL} data-umami-event="abrir-app" data-umami-event-origen={origin}>
+        {ca ? "Obre l'app gratis" : 'Abrir la app gratis'}
+      </a>
+      <a class="btn btn-ghost" href={wa} target="_blank" rel="noopener" data-umami-event="compartir-whatsapp" data-umami-event-origen={origin}>
+        {ca ? 'Comparteix-la per WhatsApp' : 'Compartirla por WhatsApp'}
+      </a>
+    </div>
+    <p class="aside">{ca
+      ? <>Només vols portar el resultat? També hi ha un <a href={SCOREBOARD_URL}>marcador senzill de minibàsquet</a>.</>
+      : <>¿Solo quieres llevar el resultado? También hay un <a href={SCOREBOARD_URL}>marcador sencillo de minibasket</a>.</>}</p>
+  </div>
+</section>

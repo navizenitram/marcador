@@ -1,0 +1,78 @@
+---
+import Base from './Base.astro';
+import FinalCta from '../components/FinalCta.astro';
+import { SITE_NAME } from '../consts';
+
+interface Props {
+  title: string;
+  description: string;
+  h1: string;
+  lead: string;
+  updated: string; // AAAA-MM-DD
+  crumb: string;
+  origin: string; // etiqueta para la analítica
+  image?: string;
+}
+
+const { title, description, h1, lead, updated, crumb, origin, image } = Astro.props;
+const site = Astro.site!.href.replace(/\/$/, '');
+const url = new URL(Astro.url.pathname, Astro.site).href;
+const isGuide = Astro.url.pathname.startsWith('/guias/');
+const updatedText = new Date(`${updated}T12:00:00Z`).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+
+const crumbs = [
+  { name: 'Inicio', href: '/' },
+  ...(isGuide ? [{ name: 'Guías', href: '/guias/' }] : []),
+  { name: crumb, href: Astro.url.pathname },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      '@id': `${url}#articulo`,
+      headline: h1,
+      description,
+      inLanguage: 'es-ES',
+      dateModified: updated,
+      datePublished: updated,
+      mainEntityOfPage: url,
+      image: new URL(image ?? '/og/cantera-stats.png', Astro.site).href,
+      author: { '@type': 'Organization', name: SITE_NAME, url: `${site}/` },
+      publisher: { '@type': 'Organization', name: SITE_NAME, url: `${site}/` },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: crumbs.map((c, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: c.name,
+        item: new URL(c.href, Astro.site).href,
+      })),
+    },
+  ],
+};
+---
+<Base title={title} description={description} type="article" jsonLd={jsonLd} image={image}>
+  <article class="article">
+    <div class="wrap">
+      <nav class="crumbs" aria-label="Ruta de navegación">
+        <ol>
+          {crumbs.map((c, i) => (
+            <li>{i < crumbs.length - 1 ? <a href={c.href}>{c.name}</a> : <span aria-current="page">{c.name}</span>}</li>
+          ))}
+        </ol>
+      </nav>
+      <header class="article-head">
+        <h1>{h1}</h1>
+        <p class="lead">{lead}</p>
+        <p class="updated">Actualizado el <time datetime={updated}>{updatedText}</time></p>
+      </header>
+      <div class="prose">
+        <slot />
+      </div>
+    </div>
+  </article>
+  <FinalCta origin={origin} />
+</Base>

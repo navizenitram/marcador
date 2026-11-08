@@ -1,0 +1,15 @@
+---
+interface Props { src: string; alt: string; eager?: boolean; class?: string }
+const { src, alt, eager = false, class: cls = '' } = Astro.props;
+---
+<figure class={`phone ${cls}`}>
+  <img
+    src={src}
+    alt={alt}
+    width="1688"
+    height="780"
+    loading={eager ? 'eager' : 'lazy'}
+    fetchpriority={eager ? 'high' : 'auto'}
+    decoding="async"
+  />
+</figure>

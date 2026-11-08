@@ -1,0 +1,131 @@
+<!doctype html>
+<!--
+  Fuente de public/descargas/plantilla-estadisticas-baloncesto.pdf (A4 apaisado).
+  Para regenerarla: abrir este archivo en Chrome → Imprimir → Guardar como PDF, sin márgenes y con gráficos de fondo,
+  o usar Playwright: page.pdf({ format: 'A4', landscape: true, printBackground: true }).
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Hoja de estadísticas de baloncesto · Cantera Stats</title>
+<style>
+  @font-face { font-family: 'Rajdhani'; font-weight: 700; src: url('../public/fonts/rajdhani-latin-700-normal.woff2') format('woff2'); }
+  @font-face { font-family: 'Barlow'; font-weight: 400; src: url('../public/fonts/barlow-latin-400-normal.woff2') format('woff2'); }
+  @font-face { font-family: 'Barlow'; font-weight: 600; src: url('../public/fonts/barlow-latin-600-normal.woff2') format('woff2'); }
+  @page { size: A4 landscape; margin: 9mm 10mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: 'Barlow', sans-serif; color: #14213a; font-size: 9.5pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: 277mm; height: 192mm; display: flex; flex-direction: column; gap: 3.2mm; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 6mm; }
+  h1 { font-family: 'Rajdhani', sans-serif; font-size: 18pt; white-space: nowrap; margin: 0; line-height: 1; }
+  .fields { display: grid; grid-template-columns: 52mm 52mm 26mm 30mm; gap: 2mm 4mm; }
+  .field { border-bottom: 1px solid #14213a; height: 8mm; display: flex; align-items: flex-end; padding-bottom: .6mm; font-weight: 600; font-size: 8.5pt; color: #46597a; }
+  .score { display: flex; gap: 4mm; align-items: stretch; }
+  table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+  th, td { border: 1px solid #9aa9bf; text-align: center; padding: 0; }
+  thead th { font-family: 'Rajdhani', sans-serif; font-size: 10pt; line-height: 1.05; background: #eef2f7; height: 5.5mm; }
+  thead tr.pernum th { font-size: 8pt; height: 4.5mm; }
+  thead th small { display: block; font-family: 'Barlow', sans-serif; font-weight: 400; font-size: 6.5pt; color: #46597a; }
+  tbody td { height: 10.6mm; }
+  .stats col.n { width: 11.5mm; } .stats col.name { width: 31mm; } .stats col.per { width: 4.2mm; }
+  .stats col.res { width: 10.5mm; }
+  .stats td.per { background: #fff; }
+  .stats thead th.pergroup { font-size: 8.5pt; }
+  .stats .made { color: #0b7a3e; } .stats .miss { color: #b42318; }
+  .stats td.res, .stats th.res { background: #fff7ec; }
+  tfoot td { height: 8mm; font-family: 'Rajdhani', sans-serif; font-weight: 700; background: #eef2f7; }
+  tfoot td.label { text-align: right; padding-right: 2mm; }
+  .bottom { display: grid; grid-template-columns: 1fr 92mm; gap: 6mm; }
+  .legend { font-size: 7.8pt; line-height: 1.35; color: #283a5c; }
+  .legend p { margin: 0 0 1mm; }
+  .legend b { font-family: 'Rajdhani', sans-serif; font-size: 9pt; }
+  .periods th, .periods td { height: 6.5mm; font-size: 8pt; }
+  .periods th:first-child { width: 19mm; }
+  .periods th { font-family: 'Rajdhani', sans-serif; background: #eef2f7; }
+  .periods td.team { text-align: left; padding-left: 1.5mm; font-weight: 600; width: 19mm; }
+  .brand { font-size: 7.5pt; color: #46597a; margin-top: 1mm; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Hoja de estadísticas de baloncesto</h1>
+    <div class="fields">
+      <div class="field">Equipo</div>
+      <div class="field">Rival</div>
+      <div class="field">Fecha</div>
+      <div class="field">Resultado</div>
+    </div>
+  </header>
+
+  <table class="stats">
+    <colgroup>
+      <col class="n"><col class="name">
+      <col class="per"><col class="per"><col class="per"><col class="per"><col class="per"><col class="per"><col class="per"><col class="per">
+      <col><col><col><col><col><col><col><col><col><col><col><col><col><col><col>
+      <col class="res"><col class="res">
+    </colgroup>
+    <thead>
+      <tr>
+        <th rowspan="2">Dorsal</th>
+        <th rowspan="2">Jugador</th>
+        <th class="pergroup" colspan="8">Periodos jugados</th>
+        <th rowspan="2" class="made">TL ✓<small>libre</small></th>
+        <th rowspan="2" class="miss">TL ✗<small>libre</small></th>
+        <th rowspan="2" class="made">T2 ✓<small>de 2</small></th>
+        <th rowspan="2" class="miss">T2 ✗<small>de 2</small></th>
+        <th rowspan="2" class="made">T3 ✓<small>triple</small></th>
+        <th rowspan="2" class="miss">T3 ✗<small>triple</small></th>
+        <th rowspan="2">RO<small>reb. ataque</small></th>
+        <th rowspan="2">RD<small>reb. defensa</small></th>
+        <th rowspan="2">AS<small>asistencia</small></th>
+        <th rowspan="2">REC<small>recupera</small></th>
+        <th rowspan="2">PÉR<small>pierde</small></th>
+        <th rowspan="2">TAP<small>pone</small></th>
+        <th rowspan="2">TR<small>recibe</small></th>
+        <th rowspan="2">FC<small>comete</small></th>
+        <th rowspan="2">FR<small>recibe</small></th>
+        <th rowspan="2" class="res">PTS</th>
+        <th rowspan="2" class="res">VAL</th>
+      </tr>
+      <tr class="pernum"><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
+    </thead>
+    <tbody>
+      <!-- 12 filas -->
+      <tr><td></td><td></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="res"></td><td class="res"></td></tr>
+      <tr><td></td><td></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="res"></td><td class="res"></td></tr>
+      <tr><td></td><td></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="res"></td><td class="res"></td></tr>
+      <tr><td></td><td></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="res"></td><td class="res"></td></tr>
+      <tr><td></td><td></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="res"></td><td class="res"></td></tr>
+      <tr><td></td><td></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="res"></td><td class="res"></td></tr>
+      <tr><td></td><td></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="res"></td><td class="res"></td></tr>
+      <tr><td></td><td></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="res"></td><td class="res"></td></tr>
+      <tr><td></td><td></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="res"></td><td class="res"></td></tr>
+      <tr><td></td><td></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="res"></td><td class="res"></td></tr>
+      <tr><td></td><td></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="res"></td><td class="res"></td></tr>
+      <tr><td></td><td></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td class="per"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="res"></td><td class="res"></td></tr>
+    </tbody>
+    <tfoot>
+      <tr><td colspan="10" class="label">Total equipo</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tfoot>
+  </table>
+
+  <div class="bottom">
+    <div class="legend">
+      <p>Marca un palote en la casilla por cada acción y una cruz en los periodos que juega cada jugador. Al acabar, suma cada columna.</p>
+      <p><b>PTS</b> = TL ✓ + 2 × T2 ✓ + 3 × T3 ✓</p>
+      <p><b>VAL</b> (fórmula ACB) = PTS + RO + RD + AS + REC + TAP + FR − (T2 ✗ + T3 ✗ + TL ✗ + TR + PÉR + FC)</p>
+      <p class="brand">Cantera Stats: app gratuita para apuntar estas estadísticas desde el móvil. Suma los totales, los porcentajes y la valoración por ti.</p>
+    </div>
+    <table class="periods">
+      <thead><tr><th></th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr></thead>
+      <tbody>
+        <tr><td class="team">Nosotros</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="team">Rival</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>

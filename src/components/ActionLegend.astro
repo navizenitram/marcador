@@ -1,0 +1,57 @@
+---
+import type { Lang } from '../consts';
+interface Props { lang?: Lang }
+const { lang = 'es' } = Astro.props;
+const ca = lang === 'ca';
+
+// Mismos botones, colores y textos que en la pista de la app.
+const groups = [
+  {
+    name: ca ? 'Tirs' : 'Tiros',
+    items: [
+      { label: '1', mark: '✓', cls: 'made', text: ca ? 'Tir lliure anotat' : 'Tiro libre anotado' },
+      { label: '1', mark: '✗', cls: 'miss', text: ca ? 'Tir lliure fallat' : 'Tiro libre fallado' },
+      { label: '2', mark: '✓', cls: 'made', text: ca ? 'Cistella de 2' : 'Canasta de 2' },
+      { label: '2', mark: '✗', cls: 'miss', text: ca ? 'Tir de 2 fallat' : 'Tiro de 2 fallado' },
+      { label: '3', mark: '✓', cls: 'made', text: 'Triple' },
+      { label: '3', mark: '✗', cls: 'miss', text: ca ? 'Triple fallat' : 'Triple fallado' },
+    ],
+  },
+  {
+    name: ca ? 'Pilota i rebot' : 'Balón y rebote',
+    items: [
+      { label: 'REC', cls: 'rec', text: ca ? 'Pilota recuperada' : 'Balón recuperado' },
+      { label: 'PÉR', cls: 'lost', text: ca ? 'Pilota perduda' : 'Balón perdido' },
+      { label: 'RO', cls: 'reb', text: ca ? "Rebot d'atac" : 'Rebote de ataque' },
+      { label: 'RD', cls: 'reb', text: ca ? 'Rebot defensiu' : 'Rebote defensivo' },
+    ],
+  },
+  {
+    name: ca ? 'Joc i faltes' : 'Juego y faltas',
+    items: [
+      { label: 'AS', cls: 'ast', text: ca ? 'Assistència' : 'Asistencia' },
+      { label: 'TAP', cls: 'blk', text: ca ? 'Tap' : 'Tapón' },
+      { label: 'TR', cls: 'lost', text: ca ? 'Tap rebut' : 'Tapón recibido' },
+      { label: 'FC', cls: 'foul', text: ca ? 'Falta comesa' : 'Falta cometida' },
+      { label: 'FR', cls: 'rec', text: ca ? 'Falta rebuda' : 'Falta recibida' },
+    ],
+  },
+];
+---
+<div class="legend">
+  {groups.map((g) => (
+    <div class="legend-group">
+      <h3>{g.name}</h3>
+      <ul>
+        {g.items.map((i) => (
+          <li>
+            <span class={`key key-${i.cls}`} aria-hidden="true">
+              <b>{i.label}</b>{i.mark && <i>{i.mark}</i>}
+            </span>
+            <span>{i.text}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ))}
+</div>
