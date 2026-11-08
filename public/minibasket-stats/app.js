@@ -942,14 +942,14 @@ function closeModal(silent) {
   }
 }
 
-function confirmBox(msg, ok = 'Aceptar', danger = false) {
-  return new Promise(resolve => openModal({ kind: 'confirm', msg, ok, danger, resolve }));
+function confirmBox(msg, ok = 'Aceptar', danger = false, cancel = 'Cancelar') {
+  return new Promise(resolve => openModal({ kind: 'confirm', msg, ok, danger, cancel, resolve }));
 }
 
 function renderConfirm(m) {
   return `<p class="confirm-msg">${m.msg}</p>
   <div class="modal-actions">
-    <button class="btn" data-action="confirm-no">Cancelar</button>
+    <button class="btn" data-action="confirm-no">${m.cancel || 'Cancelar'}</button>
     <button class="btn ${m.danger ? 'danger-fill' : 'primary'}" data-action="confirm-yes">${m.ok}</button>
   </div>`;
 }
@@ -1311,6 +1311,26 @@ const actions = {
   'confirm-no'() { closeModal(); },
 };
 
+/* Al empezar un partido nuevo se ofrece finalizar los del equipo que siguen abiertos: el caso típico es
+   cerrar el móvil al acabar sin pulsar «Finalizar». Los partidos sin ninguna jugada se dejan como están,
+   porque finalizarlos los convertiría en un empate 0-0. */
+async function offerFinishPending() {
+  const pending = teamGames().filter(g => !g.finished && g.events.length);
+  if (!pending.length) return;
+  const one = pending.length === 1;
+  const label = (g) => { const s = score(g); return `contra <b>${esc(g.opponent)}</b> del ${fmtDate(g.date, true)} (${s.us}-${s.them})`; };
+  const msg = one
+    ? `El partido ${label(pending[0])} sigue sin finalizar. ¿Lo finalizas antes de empezar el nuevo?`
+    : `Hay ${pending.length} partidos sin finalizar:<br>${pending.map(g => `· ${label(g)}`).join('<br>')}<br>¿Los finalizas antes de empezar el nuevo?`;
+  const ok = await confirmBox(
+    `${msg}<br><small class="muted">Solo los partidos finalizados cuentan como victoria, derrota o empate. Podrás reabrir${one ? 'lo' : 'los'} desde el menú del partido.</small>`,
+    one ? '🏁 Finalizarlo' : '🏁 Finalizarlos', false, 'Dejar sin finalizar');
+  if (!ok) return;
+  for (const g of pending) g.finished = true;
+  save();
+  toast(one ? '🏁 Partido finalizado' : `🏁 ${pending.length} partidos finalizados`);
+}
+
 function finishGame(g) {
   g.finished = true;
   save();
@@ -1326,7 +1346,7 @@ document.addEventListener('click', (e) => {
   if (fn) { e.preventDefault(); fn(el, e); }
 });
 
-document.addEventListener('submit', (e) => {
+document.addEventListener('submit', async (e) => {
   const form = e.target;
   const kind = form.dataset.form;
   if (!kind) return;
@@ -1370,6 +1390,7 @@ document.addEventListener('submit', (e) => {
   if (kind === 'game') {
     if (!team().players.length) return;
     const opponent = String(fd.get('opponent') || '').trim() || 'Rival';
+    await offerFinishPending();
     const g = {
       id: uid(),
       createdAt: Date.now(),
