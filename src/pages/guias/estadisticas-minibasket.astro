@@ -1,0 +1,132 @@
+---
+import Guide from '../../layouts/Guide.astro';
+import { APP_URL, TEMPLATE_PDF } from '../../consts';
+---
+<Guide
+  title="Estadísticas en minibasket: qué apuntar y cómo usarlas para mejorar"
+  description="Guía práctica para entrenadores y familias: qué estadísticas tomar en minibasket y baloncesto formativo, cómo apuntarlas durante el partido y cómo convertirlas en objetivos de entrenamiento."
+  h1="Estadísticas en minibasket: qué apuntar y cómo usarlas"
+  lead="En baloncesto formativo el resultado importa menos que lo que aprende el equipo. Unas pocas estadísticas bien tomadas te dicen qué está mejorando y qué conviene trabajar en el próximo entrenamiento."
+  updated="2026-11-08"
+  crumb="Estadísticas en minibasket"
+  origin="guia-estadisticas"
+>
+  <h2>Por qué apuntar algo más que el marcador</h2>
+  <p>
+    El marcador dice quién ha ganado, pero no por qué. Un partido perdido de pocos puntos puede esconder una mejora clara
+    en el rebote defensivo, y una victoria cómoda, veinte balones perdidos. Con estadísticas sencillas dejas de depender de
+    la sensación que te ha quedado del partido y puedes hablar con datos con tu equipo, tu cuerpo técnico y las familias.
+  </p>
+
+  <h2>Qué apuntar: empieza por poco</h2>
+  <p>
+    Menos datos bien apuntados valen más que muchos a medias. Si es la primera vez, empieza por el primer nivel y añade más
+    cuando quien apunta vaya con soltura.
+  </p>
+  <h3>Primer nivel: tiro, balón y rebote</h3>
+  <ul>
+    <li><strong>Tiros anotados y fallados</strong>, separando tiros libres, tiros de 2 y triples.</li>
+    <li><strong>Pérdidas de balón:</strong> pases al rival, pasos, dobles, balones que se van fuera.</li>
+    <li><strong>Rebotes</strong>, aunque al principio no distingas entre ataque y defensa.</li>
+  </ul>
+  <h3>Segundo nivel: lo que crea juego</h3>
+  <ul>
+    <li><strong>Recuperaciones</strong> o robos de balón.</li>
+    <li><strong>Asistencias:</strong> el último pase antes de una canasta.</li>
+    <li><strong>Faltas cometidas</strong>, que además te avisan de quién está cerca de las cinco.</li>
+  </ul>
+  <h3>Tercer nivel: el detalle</h3>
+  <ul>
+    <li><strong>Rebote de ataque y rebote defensivo</strong> por separado.</li>
+    <li><strong>Tapones</strong> puestos y recibidos.</li>
+    <li><strong>Faltas recibidas</strong>, útiles para ver quién ataca el aro.</li>
+  </ul>
+
+  <h2>Cómo apuntarlas durante el partido</h2>
+  <ul>
+    <li>
+      <strong>Que apunte alguien que no dirige.</strong> El entrenador bastante tiene con el partido. Un ayudante, un jugador
+      lesionado o una madre o un padre en la grada pueden hacerlo perfectamente.
+    </li>
+    <li>
+      <strong>Apunta en el momento.</strong> Si lo dejas para el final del periodo, se olvidan acciones. Si te equivocas, es
+      mejor corregir después que dejar de apuntar.
+    </li>
+    <li>
+      <strong>Marca quién está en pista en cada periodo.</strong> En muchas competiciones de minibasket hay normas sobre los
+      periodos que debe jugar cada niño, y además te sirve para comparar de forma justa.
+    </li>
+    <li>
+      <strong>No persigas la perfección.</strong> Una jugada dudosa mal apuntada no cambia las conclusiones. Lo importante es
+      apuntar con el mismo criterio todos los partidos.
+    </li>
+  </ul>
+
+  <h2>Qué mirar después del partido</h2>
+  <ul>
+    <li>
+      <strong>Pérdidas contra recuperaciones.</strong> Si pierdes muchos más balones de los que recuperas, el problema suele estar
+      en el manejo y el pase bajo presión antes que en el tiro.
+    </li>
+    <li>
+      <strong>Rebote defensivo.</strong> Si el rival coge muchos rebotes en ataque, os está costando cerrar el rebote.
+    </li>
+    <li>
+      <strong>Reparto de tiros.</strong> ¿Tira casi todo el equipo o siempre los mismos dos jugadores?
+    </li>
+    <li>
+      <strong>Porcentaje de tiros libres.</strong> Es el tiro que más se puede entrenar en solitario.
+    </li>
+    <li>
+      <strong>Parciales por periodo.</strong> ¿Hay un periodo en el que el equipo siempre baja? ¿Algún quinteto funciona mejor?
+    </li>
+    <li>
+      <strong>Periodos jugados.</strong> Un reparto equilibrado de minutos también es un dato que conviene revisar.
+    </li>
+  </ul>
+  <p>
+    Si quieres un único número por jugador, la <a href="/guias/valoracion-baloncesto/">valoración</a> resume todo lo anterior,
+    pero en formación tiene trampas: por ejemplo, penaliza a quien se atreve a tirar.
+  </p>
+
+  <h2>De los datos al entrenamiento</h2>
+  <p>
+    Las estadísticas solo sirven si cambian lo que haces el martes. Elige un objetivo por semana, entrénalo y míralo en el
+    siguiente partido.
+  </p>
+  <div class="table-scroll">
+    <table>
+      <caption>Ejemplos de dato, objetivo y trabajo</caption>
+      <thead>
+        <tr><th scope="col">Si ves esto</th><th scope="col">Puedes trabajar</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Muchas pérdidas</td><td>Bote con las dos manos, pase y recepción bajo presión, jugar con ventaja numérica (2 contra 1, 3 contra 2)</td></tr>
+        <tr><td>Pocos rebotes defensivos</td><td>Cerrar el rebote: buscar al rival, contactar y luego ir al balón</td></tr>
+        <tr><td>Muchos tiros fallados cerca del aro</td><td>Entradas con las dos manos y finalizaciones con oposición</td></tr>
+        <tr><td>Pocas asistencias</td><td>Juego de pases, ocupar espacios y buscar al compañero libre</td></tr>
+        <tr><td>Bajo porcentaje de tiros libres</td><td>Rutina de tiro libre al final de cada entrenamiento</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Cómo compartirlas con las familias</h2>
+  <ul>
+    <li>Habla del <strong>equipo</strong> en público y de lo <strong>individual</strong> en privado.</li>
+    <li>Evita clasificaciones de niños por puntos o por valoración: generan comparaciones que no ayudan a nadie.</li>
+    <li>Destaca la evolución: «este mes cogemos más rebotes» es un mensaje que motiva.</li>
+    <li>Son datos de menores: usa solo el nombre de pila o un apodo y comparte lo justo.</li>
+  </ul>
+
+  <div class="callout">
+    <h2>En papel o en el móvil</h2>
+    <p>
+      Puedes apuntarlo todo en papel con la <a href={TEMPLATE_PDF} data-umami-event="descargar-plantilla" data-umami-event-origen="guia-estadisticas">plantilla imprimible</a>.
+      Si prefieres no sumar a mano, Cantera Stats lo hace por ti: tocas la acción de cada jugador y al acabar tienes los
+      totales, los porcentajes, los parciales por periodo y la valoración, también de toda la temporada.
+    </p>
+    <div class="actions">
+      <a class="btn btn-primary" href={APP_URL} data-umami-event="abrir-app" data-umami-event-origen="guia-estadisticas-cuerpo">Abrir la app gratis</a>
+    </div>
+  </div>
+</Guide>

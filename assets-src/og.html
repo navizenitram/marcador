@@ -1,0 +1,49 @@
+<!doctype html>
+<!-- Fuente de public/og/cantera-stats.png (1200×630). Captura a 1200×630 con Chrome o Playwright. -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Rajdhani'; font-weight: 700; src: url('../public/fonts/rajdhani-latin-700-normal.woff2') format('woff2'); }
+  @font-face { font-family: 'Barlow'; font-weight: 500; src: url('../public/fonts/barlow-latin-500-normal.woff2') format('woff2'); }
+  html, body { margin: 0; }
+  body { width: 1200px; height: 630px; overflow: hidden; background: #eef2f7; color: #14213a; position: relative; font-family: 'Barlow', sans-serif; }
+  .court { position: absolute; right: -250px; top: -40px; width: 700px; color: #ccd6e3; }
+  .copy { position: absolute; left: 64px; top: 56px; width: 600px; }
+  .brand { display: flex; align-items: center; gap: 14px; font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 40px; }
+  h1 { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 74px; line-height: .98; margin: 34px 0 22px; letter-spacing: -.5px; }
+  p { font-size: 28px; margin: 0; color: #46597a; }
+  .phone { position: absolute; right: -150px; bottom: 44px; width: 660px; background: #06080a; padding: 14px 17px; border-radius: 30px; box-shadow: 0 0 0 2px #2b313a inset, 0 30px 60px -20px rgba(20,33,58,.55); }
+  .phone img { display: block; width: 100%; border-radius: 10px; }
+  .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 14px; background: #ff8a00; }
+</style>
+</head>
+<body>
+  <svg class="court" viewBox="-4 -4 568 608" aria-hidden="true">
+    <g fill="none" stroke="currentColor" stroke-width="3">
+      <rect x="0" y="0" width="560" height="600" />
+      <path d="M0 228 A72 72 0 0 1 0 372" />
+      <rect x="328" y="202" width="232" height="196" />
+      <circle cx="328" cy="300" r="72" />
+      <path d="M560 36 H440.4 A270 270 0 0 0 440.4 564 H560" />
+      <path d="M512 264 V336" stroke-width="5" />
+      <circle cx="497" cy="300" r="9" />
+    </g>
+  </svg>
+  <div class="copy">
+    <div class="brand">
+      <svg width="52" height="52" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="46" fill="#ff8a00" />
+        <g fill="none" stroke="#2a1300" stroke-width="4" stroke-linecap="round">
+          <circle cx="50" cy="50" r="46" /><path d="M4 50h92M50 4v92" /><path d="M18 18c14 14 14 50 0 64M82 18c-14 14-14 50 0 64" />
+        </g>
+      </svg>
+      Cantera Stats
+    </div>
+    <h1>Apunta lo que hace cada jugador, no solo el marcador</h1>
+    <p>App gratis de estadísticas de baloncesto formativo y minibasket</p>
+  </div>
+  <div class="phone"><img src="../public/img/app-partido.webp" alt=""></div>
+  <div class="bar"></div>
+</body>
+</html>

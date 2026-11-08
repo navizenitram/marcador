@@ -1,0 +1,62 @@
+---
+import Guide from '../layouts/Guide.astro';
+import { APP_URL, TEMPLATE_PDF } from '../consts';
+---
+<Guide
+  title="Plantilla de estadísticas de baloncesto para imprimir (PDF gratis)"
+  description="Descarga gratis una hoja de estadísticas de baloncesto en PDF para apuntar tiros, rebotes, asistencias, recuperaciones, pérdidas y faltas de cada jugador. Pensada para minibasket y baloncesto formativo."
+  h1="Plantilla de estadísticas de baloncesto para imprimir"
+  lead="Una hoja en PDF, gratis y sin registro, para apuntar en papel lo que hace cada jugador durante el partido: tiros, rebotes, asistencias, recuperaciones, pérdidas, tapones y faltas."
+  updated="2026-11-08"
+  crumb="Plantilla para imprimir"
+  origin="plantilla"
+>
+  <div class="actions">
+    <a class="btn btn-primary" href={TEMPLATE_PDF} download data-umami-event="descargar-plantilla" data-umami-event-origen="plantilla">Descargar la plantilla en PDF</a>
+  </div>
+
+  <figure class="sheet-preview">
+    <img
+      src="/img/plantilla-estadisticas-baloncesto.webp"
+      alt="Hoja de estadísticas de baloncesto en A4 apaisado con filas para 12 jugadores, casillas de periodos jugados, columnas de tiros anotados y fallados, rebotes, asistencias, recuperaciones, pérdidas, tapones, faltas, puntos y valoración"
+      width="1685"
+      height="1191"
+      loading="lazy"
+      decoding="async"
+    />
+  </figure>
+
+  <h2>Qué incluye</h2>
+  <ul>
+    <li>Un folio A4 apaisado con espacio para <strong>12 jugadores</strong> y una fila de totales del equipo.</li>
+    <li>Casillas para marcar los <strong>periodos que juega cada jugador</strong>, de 1 a 8 (en partidos a cuatro cuartos, usa las cuatro primeras).</li>
+    <li>Columnas para tiros libres, tiros de 2 y triples, <strong>anotados y fallados</strong> por separado.</li>
+    <li>Rebotes de ataque y de defensa, asistencias, recuperaciones, pérdidas, tapones puestos y recibidos, y faltas cometidas y recibidas.</li>
+    <li>Columnas de puntos y valoración para rellenar al final, con las fórmulas en la propia hoja.</li>
+    <li>Un cuadro para el marcador de cada periodo.</li>
+  </ul>
+
+  <h2>Cómo usarla</h2>
+  <ol>
+    <li>Antes del partido, escribe el dorsal y el nombre de cada jugador.</li>
+    <li>Durante el partido, marca un palote en la casilla correspondiente cada vez que un jugador hace una acción, y una cruz en los periodos que juega.</li>
+    <li>Al acabar, suma cada columna. Los puntos son los tiros libres anotados, más el doble de los tiros de 2 anotados, más el triple de los triples.</li>
+    <li>Si quieres la valoración, aplica la fórmula de la hoja. Tienes un <a href="/guias/valoracion-baloncesto/">ejemplo paso a paso</a>.</li>
+  </ol>
+  <p>
+    Si es la primera vez que tomas estadísticas, no hace falta rellenar todas las columnas. En la guía de
+    <a href="/guias/estadisticas-minibasket/">estadísticas en minibasket</a> tienes por dónde empezar.
+  </p>
+
+  <div class="callout">
+    <h2>¿Prefieres no sumar a mano?</h2>
+    <p>
+      Cantera Stats tiene los mismos botones que esta hoja, pero en el móvil. Tocas la acción de cada jugador y al acabar
+      tienes los totales, los porcentajes de tiro, los parciales por periodo y la valoración, también de toda la temporada.
+      Gratis y sin registro.
+    </p>
+    <div class="actions">
+      <a class="btn btn-primary" href={APP_URL} data-umami-event="abrir-app" data-umami-event-origen="plantilla-cuerpo">Abrir la app gratis</a>
+    </div>
+  </div>
+</Guide>

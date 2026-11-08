@@ -1,0 +1,11 @@
+// Despliegue en Cloudflare (Workers con recursos estáticos, sin código de servidor).
+// Workers Builds: comando de build "npm run build" y de despliegue "npx wrangler deploy".
+{
+  "name": "cantera-stats",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}

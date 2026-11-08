@@ -1,0 +1,40 @@
+---
+import Ball from './Ball.astro';
+import { APP_URL, SCOREBOARD_URL, KOFI_URL, type Lang } from '../consts';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const ca = lang === 'ca';
+---
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="footer-brand">
+      <a class="wordmark" href={ca ? '/ca/' : '/'}><Ball size={26} /><span>Cantera Stats</span></a>
+      <p>{ca
+        ? 'Estadístiques de bàsquet formatiu. Gratis, sense registre i sense anuncis.'
+        : 'Estadísticas de baloncesto formativo. Gratis, sin registro y sin anuncios.'}</p>
+    </div>
+    <nav aria-label={ca ? 'Eines' : 'Herramientas'}>
+      <h2>{ca ? 'Eines' : 'Herramientas'}</h2>
+      <ul>
+        <li><a href={APP_URL} data-umami-event="abrir-app" data-umami-event-origen="pie">{ca ? "App d'estadístiques" : 'App de estadísticas'}</a></li>
+        <li><a href={SCOREBOARD_URL}>{ca ? 'Marcador de minibàsquet' : 'Marcador de minibasket'}</a></li>
+        <li><a href="/plantilla-estadisticas-baloncesto/">{ca ? 'Plantilla per imprimir (castellà)' : 'Plantilla para imprimir'}</a></li>
+      </ul>
+    </nav>
+    <nav aria-label={ca ? 'Guies' : 'Guías'}>
+      <h2>{ca ? 'Guies (castellà)' : 'Guías'}</h2>
+      <ul>
+        <li><a href="/guias/estadisticas-minibasket/">{ca ? 'Estadístiques en minibàsquet' : 'Estadísticas en minibasket'}</a></li>
+        <li><a href="/guias/valoracion-baloncesto/">{ca ? 'Com es calcula la valoració' : 'Cómo se calcula la valoración'}</a></li>
+      </ul>
+    </nav>
+    <nav aria-label={ca ? 'Projecte' : 'Proyecto'}>
+      <h2>{ca ? 'Projecte' : 'Proyecto'}</h2>
+      <ul>
+        <li><a href="/privacidad/">{ca ? 'Privacitat (castellà)' : 'Privacidad'}</a></li>
+        <li><a href={KOFI_URL} target="_blank" rel="noopener" data-umami-event="kofi">{ca ? "Convida'm a un cafè" : 'Invítame a un café'}</a></li>
+        <li>{ca ? <a href="/" hreflang="es" lang="es">Castellano</a> : <a href="/ca/" hreflang="ca" lang="ca">Català</a>}</li>
+      </ul>
+    </nav>
+  </div>
+</footer>

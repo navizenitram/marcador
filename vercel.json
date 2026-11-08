@@ -1,5 +1,12 @@
 {
+  "framework": "astro",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "trailingSlash": true,
+  "redirects": [
+    { "source": "/app", "destination": "/minibasket-stats/", "permanent": false },
+    { "source": "/app/", "destination": "/minibasket-stats/", "permanent": false }
+  ],
   "headers": [
     {
       "source": "/minibasket-stats/sw.js",

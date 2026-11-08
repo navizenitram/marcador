@@ -48,16 +48,18 @@ El texto completo está en la propia app (`#/privacidad`, enlazado desde Ajustes
 ## Desarrollo local
 
 ```bash
-cd minibasket-stats
+cd public/minibasket-stats
 python3 -m http.server 8000
 # abrir http://localhost:8000
 ```
 
-## Despliegue en Vercel
+También se sirve con el resto del sitio usando `npm run dev` desde la raíz del repositorio.
 
-Se publica junto con el marcador del repositorio: el proyecto de Vercel apunta a la raíz del repo
-y la app queda disponible en `/minibasket-stats/` (con un enlace desde la pantalla de inicio del marcador).
-No hace falta build. La configuración está en el `vercel.json` de la raíz.
+## Despliegue
+
+La app vive en `public/minibasket-stats/` y Astro la copia tal cual al compilar la web (ver el README de la raíz),
+así que sigue disponible en `/minibasket-stats/` sin proceso de build propio. Las etiquetas canonical y Open Graph de
+`index.html` llevan el marcador `%SITE_URL%`, que se sustituye al compilar.
 
 ## Estructura
 

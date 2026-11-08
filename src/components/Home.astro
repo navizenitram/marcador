@@ -1,0 +1,162 @@
+---
+import Base from '../layouts/Base.astro';
+import Court from './Court.astro';
+import Phone from './Phone.astro';
+import ActionLegend from './ActionLegend.astro';
+import FinalCta from './FinalCta.astro';
+import { home } from '../i18n/home';
+import { APP_URL, KOFI_URL, SITE_NAME, TEMPLATE_PDF, type Lang } from '../consts';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const t = home[lang];
+const site = Astro.site!.href.replace(/\/$/, '');
+const pageUrl = `${site}${lang === 'ca' ? '/ca/' : '/'}`;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    { '@type': 'WebSite', '@id': `${site}/#website`, name: SITE_NAME, url: `${site}/`, inLanguage: ['es-ES', 'ca-ES'] },
+    {
+      '@type': 'WebApplication',
+      '@id': `${site}/#app`,
+      name: SITE_NAME,
+      url: `${site}${APP_URL}`,
+      description: home.es.description,
+      applicationCategory: 'SportsApplication',
+      operatingSystem: 'Android, iOS, Windows, macOS (navegador web)',
+      browserRequirements: 'Requiere JavaScript',
+      inLanguage: 'es-ES',
+      isAccessibleForFree: true,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+      screenshot: `${site}/img/app-partido.webp`,
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${pageUrl}#preguntas`,
+      inLanguage: lang === 'ca' ? 'ca-ES' : 'es-ES',
+      mainEntity: t.faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+    },
+  ],
+};
+
+const alternates = [
+  { hreflang: 'es', href: '/' },
+  { hreflang: 'ca', href: '/ca/' },
+  { hreflang: 'x-default', href: '/' },
+];
+---
+<Base title={t.title} description={t.description} lang={lang} alternates={alternates} jsonLd={jsonLd}>
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <h1>{t.h1}</h1>
+        <p class="lead">{t.lead}</p>
+        <div class="actions">
+          <a class="btn btn-primary" href={APP_URL} data-umami-event="abrir-app" data-umami-event-origen="portada">{t.open}</a>
+          <a class="btn btn-ghost" href="#como-funciona">{t.how}</a>
+        </div>
+        <ul class="facts">{t.facts.map((f) => <li>{f}</li>)}</ul>
+      </div>
+      <div class="hero-visual">
+        <Court />
+        <Phone src="/img/app-partido.webp" alt={t.heroAlt} eager />
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-paper" aria-labelledby="para-quien">
+    <div class="wrap">
+      <div class="section-intro">
+        <h2 id="para-quien">{t.audienceTitle}</h2>
+        <p>{t.audienceIntro}</p>
+      </div>
+      <div class="audience">
+        {t.audience.map((a) => (
+          <div>
+            <h3>{a.h}</h3>
+            <p>{a.p}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="como-funciona" aria-labelledby="como-funciona-titulo">
+    <div class="wrap">
+      <div class="section-intro">
+        <h2 id="como-funciona-titulo">{t.stepsTitle}</h2>
+      </div>
+      <ol class="steps">
+        {t.steps.map((s) => (
+          <li>
+            <h3>{s.h}</h3>
+            <p>{s.p}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <section class="section section-paper" aria-labelledby="que-apuntar">
+    <div class="wrap">
+      <div class="section-intro">
+        <h2 id="que-apuntar">{t.actionsTitle}</h2>
+        <p>{t.actionsIntro}</p>
+      </div>
+      <ActionLegend lang={lang} />
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="minibasket">
+    <div class="wrap split">
+      <div>
+        <h2 id="minibasket">{t.miniTitle}</h2>
+        <ul class="ticks">{t.mini.map((m) => <li>{m}</li>)}</ul>
+      </div>
+      <Phone src="/img/app-ajustes.webp" alt={t.miniAlt} />
+    </div>
+  </section>
+
+  <section class="section section-paper" aria-labelledby="estadisticas">
+    <div class="wrap split reverse">
+      <div>
+        <h2 id="estadisticas">{t.statsTitle}</h2>
+        <ul class="ticks">
+          {t.stats.map((s) => <li>{s}</li>)}
+          <li>{t.statsVal} <a href="/guias/valoracion-baloncesto/">{t.statsValLink}</a>.</li>
+        </ul>
+      </div>
+      <Phone src="/img/app-estadisticas.webp" alt={t.statsAlt} />
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="privacidad">
+    <div class="wrap">
+      <div class="privacy">
+        <h2 id="privacidad">{t.privacyTitle}</h2>
+        {t.privacy.map((p) => <p>{p}</p>)}
+        <p>{t.about} <a href={KOFI_URL} target="_blank" rel="noopener" data-umami-event="kofi">{t.kofi}</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-paper" aria-labelledby="preguntas">
+    <div class="wrap">
+      <div class="faq">
+        <h2 id="preguntas">{t.faqTitle}</h2>
+        {t.faqs.map((f) => (
+          <details>
+            <summary>{f.q}</summary>
+            <p>{f.a}{f.link && <> <a href={f.link.href}>{f.link.text}</a>.</>}</p>
+          </details>
+        ))}
+        <p class="legend-note">
+          {t.paper} <a href={TEMPLATE_PDF} data-umami-event="descargar-plantilla" data-umami-event-origen="portada">{t.paperLink}</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <FinalCta lang={lang} origin="final" />
+</Base>

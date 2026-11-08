@@ -1,0 +1,79 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE_NAME, UMAMI_WEBSITE_ID, GSC_VERIFICATION, type Lang } from '../consts';
+
+interface Props {
+  title: string;
+  description: string;
+  lang?: Lang;
+  image?: string;
+  imageAlt?: string;
+  type?: 'website' | 'article';
+  alternates?: { hreflang: string; href: string }[];
+  jsonLd?: unknown;
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description,
+  lang = 'es',
+  image = '/og/cantera-stats.png',
+  imageAlt = 'Cantera Stats: estadísticas de baloncesto formativo desde el móvil',
+  type = 'website',
+  alternates = [],
+  jsonLd,
+  noindex = false,
+} = Astro.props;
+
+const site = Astro.site!;
+const canonical = new URL(Astro.url.pathname, site).href;
+const ogImage = new URL(image, site).href;
+const locale = lang === 'ca' ? 'ca_ES' : 'es_ES';
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
+    {alternates.map((a) => <link rel="alternate" hreflang={a.hreflang} href={new URL(a.href, site).href} />)}
+
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:type" content={type} />
+    <meta property="og:locale" content={locale} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={imageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/minibasket-stats/icon-180.png" />
+    <meta name="theme-color" content="#eef2f7" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="preload" href="/fonts/rajdhani-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+
+    {GSC_VERIFICATION && <meta name="google-site-verification" content={GSC_VERIFICATION} />}
+    {jsonLd && <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+    {UMAMI_WEBSITE_ID && (
+      <script is:inline defer src="https://cloud.umami.is/script.js" data-website-id={UMAMI_WEBSITE_ID} data-domains={site.hostname}></script>
+    )}
+  </head>
+  <body>
+    <a class="skip" href="#main">{lang === 'ca' ? 'Salta al contingut' : 'Saltar al contenido'}</a>
+    <Header lang={lang} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer lang={lang} />
+  </body>
+</html>

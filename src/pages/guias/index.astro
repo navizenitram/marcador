@@ -1,0 +1,44 @@
+---
+import Base from '../../layouts/Base.astro';
+import FinalCta from '../../components/FinalCta.astro';
+
+const guides = [
+  {
+    href: '/guias/estadisticas-minibasket/',
+    title: 'Estadísticas en minibasket: qué apuntar y cómo usarlas',
+    text: 'Qué datos tomar según tu experiencia, cómo apuntarlos durante el partido y cómo convertirlos en objetivos de entrenamiento.',
+  },
+  {
+    href: '/guias/valoracion-baloncesto/',
+    title: 'Valoración en baloncesto: qué es y cómo se calcula',
+    text: 'La fórmula de la ACB y la Euroliga, un ejemplo paso a paso y por qué conviene usarla con cuidado en formación.',
+  },
+  {
+    href: '/plantilla-estadisticas-baloncesto/',
+    title: 'Plantilla de estadísticas de baloncesto para imprimir',
+    text: 'Una hoja en PDF para apuntar en papel tiros, rebotes, asistencias, pérdidas y faltas de cada jugador.',
+  },
+];
+---
+<Base
+  title="Guías de estadísticas para baloncesto formativo · Cantera Stats"
+  description="Guías prácticas para entrenadores y familias de minibasket y baloncesto formativo: qué estadísticas apuntar, cómo calcular la valoración y una plantilla para imprimir."
+>
+  <section class="article">
+    <div class="wrap">
+      <header class="article-head">
+        <h1>Guías para entrenadores y familias</h1>
+        <p class="lead">Cómo tomar y usar estadísticas en partidos de baloncesto formativo, explicado sin tecnicismos.</p>
+      </header>
+      <ul class="guide-list">
+        {guides.map((g) => (
+          <li>
+            <h2><a href={g.href}>{g.title}</a></h2>
+            <p>{g.text}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+  <FinalCta origin="guias" />
+</Base>

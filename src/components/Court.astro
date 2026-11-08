@@ -1,0 +1,16 @@
+---
+// Media pista vista desde arriba, con la línea de fondo a la derecha. Escala: 40 px = 1 m.
+interface Props { class?: string }
+const { class: cls = '' } = Astro.props;
+---
+<svg class={`court ${cls}`} viewBox="-4 -4 568 608" aria-hidden="true" focusable="false">
+  <g fill="none" stroke="currentColor" stroke-width="3">
+    <rect x="0" y="0" width="560" height="600" />
+    <path d="M0 228 A72 72 0 0 1 0 372" />
+    <rect x="328" y="202" width="232" height="196" />
+    <circle cx="328" cy="300" r="72" />
+    <path d="M560 36 H440.4 A270 270 0 0 0 440.4 564 H560" />
+    <path d="M512 264 V336" stroke-width="5" />
+    <circle cx="497" cy="300" r="9" />
+  </g>
+</svg>
