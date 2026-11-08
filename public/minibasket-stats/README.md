@@ -10,6 +10,7 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
 - **Varios equipos** (por ejemplo, uno por categoría): al abrir la app se elige con cuál recoger estadísticas; se cambia tocando el nombre del equipo arriba a la izquierda. Cada equipo tiene su plantilla, partidos, estadísticas y botones del partido.
 - **Equipo**: alta de jugadores con dorsal y nombre (editar / eliminar), nombre del equipo y email por defecto.
 - **Partidos**: crear partido (rival, fecha, **8 periodos** de minibasket o **4 cuartos** para categorías superiores), continuar, abrir, borrar.
+  Al crear uno nuevo, si el equipo tiene partidos sin finalizar con jugadas, propone finalizarlos (solo los finalizados cuentan como victoria, derrota o empate en la temporada).
 - **Partido en directo** (pensado para que quepa todo sin scroll):
   - Marcador arriba: los puntos propios se suman solos con los tiros anotados; botones **+1 / +2 / +3 / −1** para el rival.
   - Periodo actual (‹ P3 ›). Al pasar de periodo se abre el selector de quinteto.
