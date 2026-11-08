@@ -823,14 +823,19 @@ function gameSummary(g) {
 }
 
 function seasonSummary() {
-  let w = 0, l = 0, t = 0, pf = 0, pc = 0;
+  let w = 0, l = 0, t = 0, pf = 0, pc = 0, done = 0;
   const games = teamGames();
   for (const g of games) {
+    // Un partido sin finalizar aún no tiene resultado: no cuenta como victoria, derrota ni empate,
+    // ni entra en los promedios de puntos (un marcador a medias los rebajaría).
+    if (!g.finished) continue;
     const s = score(g);
+    done++;
     pf += s.us; pc += s.them;
     if (s.us > s.them) w++; else if (s.us < s.them) l++; else t++;
   }
-  const n = games.length || 1;
+  const open = games.length - done;
+  const avg = (v) => (done ? round1(v / done) : '–');
   const box = (v, lbl, cls = '') => `<div class="kpi ${cls}"><b>${v}</b><small>${lbl}</small></div>`;
   return `
   <section class="card summary kpis">
@@ -838,8 +843,9 @@ function seasonSummary() {
     ${box(w, 'Victorias', 'win')}
     ${box(l, 'Derrotas', 'loss')}
     ${t ? box(t, 'Empates') : ''}
-    ${box(round1(pf / n), 'Puntos a favor / partido')}
-    ${box(round1(pc / n), 'Puntos en contra / partido')}
+    ${open ? box(open, 'En juego') : ''}
+    ${box(avg(pf), 'Puntos a favor / partido')}
+    ${box(avg(pc), 'Puntos en contra / partido')}
   </section>`;
 }
 
@@ -1443,8 +1449,9 @@ function buildText(arg) {
   if (!data) return '';
   const out = [];
   if (data.season) {
-    out.push(`${team().name} · Estadísticas de temporada (${teamGames().length} partidos)${ui.avg ? ' · promedio por partido' : ''}`);
-    for (const g of sortedGames()) { const s = score(g); out.push(`  ${fmtDate(g.date)} vs ${g.opponent}: ${s.us}-${s.them}`); }
+    const n = teamGames().length;
+    out.push(`${team().name} · Estadísticas de temporada (${n} partido${n === 1 ? '' : 's'})${ui.avg ? ' · promedio por partido' : ''}`);
+    for (const g of sortedGames()) { const s = score(g); out.push(`  ${fmtDate(g.date)} vs ${g.opponent}: ${s.us}-${s.them}${g.finished ? '' : ' (en juego)'}`); }
   } else {
     const g = data.game, s = score(g), ps = periodScores(g);
     out.push(`${g.teamName} ${s.us} - ${s.them} ${g.opponent}`);
