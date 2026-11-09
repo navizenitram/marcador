@@ -1684,7 +1684,28 @@ actions.install = async () => {
   renderInstall();
 };
 
+/* ───────────────────── Pantalla siempre encendida ───────────────────── */
+
+/* Mientras la app está abierta y visible se pide al sistema que no apague la pantalla
+   (Screen Wake Lock API). El sistema libera el bloqueo al cambiar de app o apagar la
+   pantalla, así que se vuelve a pedir al volver. Si el navegador no lo soporta o lo
+   rechaza (batería baja, falta de gesto del usuario…), la app sigue funcionando igual. */
+let wakeLock = null;
+
+async function keepScreenOn() {
+  if (!('wakeLock' in navigator) || wakeLock || document.visibilityState !== 'visible') return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch (err) { wakeLock = null; }
+}
+
+document.addEventListener('visibilitychange', keepScreenOn);
+/* Algunos navegadores solo lo conceden tras un toque: se reintenta en cada uno si hace falta */
+document.addEventListener('pointerdown', keepScreenOn, true);
+
 /* ─────────────────────────── Inicio ─────────────────────────── */
 
 render();
 renderInstall();
+keepScreenOn();
