@@ -75,7 +75,23 @@ test('en el partido caben los 5 jugadores con sus 15 botones, sin scroll y fáci
   expect(layout.minHeight).toBeGreaterThanOrEqual(44);  // tamaño mínimo recomendado para tocar con el dedo
 });
 
-test('funciona sin conexión una vez abierta', async ({ page, context }) => {
+test('el service worker toma el control y guarda lo necesario para usarla sin conexión', async ({ page }) => {
+  await page.goto(APP);
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  const cached = await page.evaluate(async () => {
+    const name = (await caches.keys()).find((n) => n.startsWith('mbstats-'));
+    return (await (await caches.open(name)).keys()).map((r) => new URL(r.url).pathname);
+  });
+  const base = '/minibasket-stats/';
+  expect(cached).toEqual(expect.arrayContaining(
+    ['', 'index.html', 'app.js', 'styles.css', 'manifest.webmanifest', 'fonts/rajdhani-latin-700-normal.woff2'].map((f) => base + f),
+  ));
+});
+
+test('funciona sin conexión una vez abierta', async ({ page, context, browserName }) => {
+  // En WebKit, Playwright no consigue recargar con la conexión cortada aunque el service worker controle la página
+  // («WebKit encountered an internal error»). El test anterior comprueba allí que la app queda guardada.
+  test.skip(browserName === 'webkit', 'La recarga sin conexión con service worker no funciona en el WebKit de Playwright');
   await seed(page, liveGame());
   await page.goto(`${APP}#/partido/g1`);
   // La primera visita instala el service worker, que guarda la app y toma el control de la página

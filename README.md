@@ -57,6 +57,10 @@ toques en pantalla, el modo sin conexión con el service worker, las recargas, l
 móvil en vertical y las páginas de la web tras el build. Están en `e2e/` y no dependen de internet: se corta cualquier
 petición que no vaya al servidor local.
 
+La recarga sin conexión solo se prueba en Chrome: en el WebKit de Playwright falla con un error interno aunque el
+service worker controle la página. En Safari se comprueba que el service worker toma el control y guarda la app; el
+funcionamiento sin conexión en un iPhone real conviene comprobarlo a mano (modo avión y abrir la app).
+
 ### Integración continua
 
 `.github/workflows/tests.yml` pasa los tests unitarios y los e2e en cada push, en paralelo. Si fallan los e2e, el
