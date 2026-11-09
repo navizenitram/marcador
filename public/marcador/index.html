@@ -1137,6 +1137,21 @@ document.getElementById('setup').classList.add('active');
 
 document.getElementById('nameA').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('nameB').focus(); });
 document.getElementById('nameB').addEventListener('keydown', e => { if (e.key === 'Enter') startGame(); });
+
+// Pantalla siempre encendida mientras el marcador está abierto (Screen Wake Lock API).
+// El sistema lo libera al cambiar de app o apagar la pantalla: se vuelve a pedir al volver
+// o tras un toque. Si el navegador no lo soporta o lo rechaza, todo sigue funcionando igual.
+let wakeLock = null;
+async function keepScreenOn() {
+  if (!('wakeLock' in navigator) || wakeLock || document.visibilityState !== 'visible') return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch (err) { wakeLock = null; }
+}
+document.addEventListener('visibilitychange', keepScreenOn);
+document.addEventListener('pointerdown', keepScreenOn, true);
+keepScreenOn();
 </script>
 </body>
 </html>
