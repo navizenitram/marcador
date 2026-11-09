@@ -24,6 +24,48 @@ npm run build     # genera dist/
 npm run preview   # sirve dist/
 ```
 
+## Tests
+
+```bash
+npm test               # una pasada (unos segundos)
+npm run test:watch     # se repiten al guardar
+npm run test:coverage  # informe de cobertura en coverage/
+```
+
+Usan [Vitest](https://vitest.dev) y [jsdom](https://github.com/jsdom/jsdom). Las apps no se modifican para probarlas:
+los helpers de `tests/helpers/` cargan su `index.html` y su `app.js` reales en un DOM simulado y llaman a sus funciones
+o pulsan sus botones. Si la app lanza una excepción durante un test, el test falla aunque sus comprobaciones pasen.
+
+| Carpeta | Qué cubre |
+| --- | --- |
+| `tests/app/` | App de estadísticas: cálculos y valoración, datos (migración v1→v2, carga, importación), exportación (texto, CSV, JSON) y flujos de uso (equipos, plantilla, partido en directo, ajustes, estadísticas) |
+| `tests/marcador/` | Marcador: puntos, faltas y periodos, estadísticas y gráficas (Chart.js se sustituye por un doble), reinicio y tema |
+| `tests/web/` | `site.config.mjs`, `scripts/postbuild.mjs`, mismos textos en castellano y catalán, y archivos de la PWA (service worker, manifest, fuentes) |
+
+### Tests e2e
+
+```bash
+npx playwright install chromium webkit   # solo la primera vez
+npm run test:e2e                          # compila el sitio, lo sirve y pasa los tests
+npx playwright test --project=android     # solo un navegador
+```
+
+Usan [Playwright](https://playwright.dev) en dos perfiles de móvil en horizontal: Chrome en un Pixel 7 (`android`) y
+Safari en un iPhone 13 (`iphone`). Prueban el sitio compilado (`npm run build` y `astro preview`), así que cubren lo
+que jsdom no puede: el diseño real (los 5 jugadores con sus 15 botones caben sin scroll y se pueden tocar), los
+toques en pantalla, el modo sin conexión con el service worker, las recargas, la descarga del CSV, el aviso de girar el
+móvil en vertical y las páginas de la web tras el build. Están en `e2e/` y no dependen de internet: se corta cualquier
+petición que no vaya al servidor local.
+
+La recarga sin conexión solo se prueba en Chrome: en el WebKit de Playwright falla con un error interno aunque el
+service worker controle la página. En Safari se comprueba que el service worker toma el control y guarda la app; el
+funcionamiento sin conexión en un iPhone real conviene comprobarlo a mano (modo avión y abrir la app).
+
+### Integración continua
+
+`.github/workflows/tests.yml` pasa los tests unitarios y los e2e en cada push, en paralelo. Si fallan los e2e, el
+informe de Playwright queda como artefacto de la ejecución.
+
 ## Configuración
 
 | Variable | Para qué | Por defecto |

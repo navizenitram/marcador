@@ -54,6 +54,23 @@ function enabledOthers() { return OTHER_ACTIONS.filter(actEnabled); }
 
 /* ─────────────────────────── Datos ─────────────────────────── */
 
+/* normalize() solo corrige lo que podría romper la app o colar HTML en la página. Lo que esta versión no entiende
+   pero es inofensivo (una jugada de un tipo nuevo, un periodo de prórroga, una fecha mal tecleada) se conserva.
+
+   Los identificadores se pintan sin escapar en atributos HTML, en la ruta (#/partido/…) y en selectores CSS, y se
+   usan como claves de objetos. Solo se aceptan letras, números, «-» y «_» (lo que genera uid()) y nunca el nombre de
+   una propiedad de los objetos (__proto__, constructor, toString…). Otra cosa solo puede venir de una copia de
+   seguridad manipulada: se cambia por un identificador nuevo, el mismo en todas sus referencias.
+   (Van antes de load(), que los usa al arrancar.) */
+const SAFE_ID = /^[\w-]{1,64}$/;
+const safeKey = (s) => SAFE_ID.test(s) && !(s in Object.prototype);
+const SAFE_DATE = /^[\d./-]{1,24}$/;   // la app guarda aaaa-mm-dd; basta con que sean dígitos y separadores
+const MAX_PERIODS = 12;
+
+const objects = (v) => (Array.isArray(v) ? v.filter(x => x && typeof x === 'object') : []);
+/* Entero entre min y max; si no es un número (o es 0), el valor por defecto */
+const intIn = (v, min, max, def) => Math.min(Math.max(Math.round(+v) || def, min), max);
+
 let db = load();
 
 const ui = {
@@ -67,9 +84,10 @@ const ui = {
   lastKey: null,         // pantalla pintada la última vez (para conservar el scroll)
 };
 
+/* Deja los datos (guardados o importados) en el formato actual. Los datos que crea la app pasan sin cambios. */
 function normalize(d) {
   d = d && typeof d === 'object' ? d : {};
-  d.games = Array.isArray(d.games) ? d.games : [];
+  d.games = objects(d.games);
   // v1 → v2: antes había un único equipo en d.team y los botones en d.settings.hidden
   if (!Array.isArray(d.teams)) {
     d.teams = [];
@@ -88,25 +106,68 @@ function normalize(d) {
   }
   delete d.team;
   delete d.settings;
+
+  const newIds = new Map();
+  const fixId = (v) => {
+    if (v == null || v === '') return v;
+    const s = String(v);
+    if (safeKey(s)) return s;
+    if (!newIds.has(s)) newIds.set(s, uid());
+    return newIds.get(s);
+  };
+  const players = (list) => {
+    list = objects(list);
+    for (const p of list) {
+      p.id = fixId(p.id) || uid();
+      p.number = String(p.number ?? '');
+      p.name = String(p.name ?? '');
+    }
+    return list;
+  };
+
+  d.teams = objects(d.teams);
   for (const t of d.teams) {
-    t.id = t.id || uid();
-    t.name = t.name || 'Mi equipo';
-    t.email = t.email || '';
-    t.players = Array.isArray(t.players) ? t.players : [];
+    t.id = fixId(t.id) || uid();
+    t.name = String(t.name || 'Mi equipo');
+    t.email = String(t.email || '');
+    t.players = players(t.players);
     t.hidden = Array.isArray(t.hidden) ? t.hidden : [];
   }
   const teamIds = new Set(d.teams.map(t => t.id));
   for (const g of d.games) {
+    g.id = fixId(g.id) || uid();
+    g.teamId = fixId(g.teamId);
     if (!teamIds.has(g.teamId) && d.teams.length) g.teamId = d.teams[0].id;
-    g.events = Array.isArray(g.events) ? g.events : [];
-    g.onCourt = Array.isArray(g.onCourt) ? g.onCourt : [];
-    g.roster = Array.isArray(g.roster) ? g.roster : [];
-    g.played = g.played && typeof g.played === 'object' ? g.played : {};
-    g.periods = +g.periods || 8;
-    g.period = Math.min(Math.max(+g.period || 1, 1), g.periods);
+    g.periods = intIn(g.periods, 1, MAX_PERIODS, 8);
+    g.period = intIn(g.period, 1, g.periods, 1);
+    if (typeof g.date !== 'string' || !SAFE_DATE.test(g.date)) g.date = '';
+    g.roster = players(g.roster);
+    g.onCourt = Array.isArray(g.onCourt) ? g.onCourt.filter(x => x != null && x !== '').map(fixId) : [];
+    // Los periodos (de cada jugador y de cada jugada) tienen que ser números; no se recortan a g.periods
+    const played = g.played && typeof g.played === 'object' ? Object.entries(g.played) : [];
+    g.played = Object.fromEntries(played
+      .filter(([, list]) => Array.isArray(list))
+      .map(([pid, list]) => [fixId(pid), list.filter(n => Number.isInteger(n) && n >= 1)]));
+    // Los tipos de jugada desconocidos se conservan (no cuentan en las estadísticas) si son un nombre simple;
+    // los puntos del rival tienen que ser un número
+    const events = [];
+    for (const e of objects(g.events)) {
+      if (e.type === 'opp') {
+        e.pts = +e.pts;
+        if (!Number.isFinite(e.pts)) continue;
+      } else {
+        if (typeof e.type !== 'string' || !safeKey(e.type)) continue;
+        if (e.pid != null) e.pid = fixId(e.pid);
+      }
+      e.id = fixId(e.id) || uid();
+      e.period = intIn(e.period, 1, 99, 1);
+      events.push(e);
+    }
+    g.events = events;
     const t = d.teams.find(t => t.id === g.teamId);
-    g.teamName = g.teamName || (t ? t.name : 'Mi equipo');
+    g.teamName = String(g.teamName || (t ? t.name : 'Mi equipo'));
   }
+  d.currentTeamId = fixId(d.currentTeamId);
   if (!teamIds.has(d.currentTeamId)) d.currentTeamId = d.teams.length ? d.teams[0].id : null;
   d.version = 2;
   return d;
@@ -121,11 +182,12 @@ function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw);
-      const migrate = parsed && parsed.version !== 2;
-      const d = normalize(parsed);
-      // Guardar ya el formato nuevo para que los identificadores migrados no cambien entre cargas
-      if (migrate) localStorage.setItem(STORE_KEY, JSON.stringify(d));
+      const d = normalize(JSON.parse(raw));
+      // Si normalize ha cambiado algo (formato antiguo o datos saneados), se guarda ya el resultado para que los
+      // identificadores nuevos no cambien entre cargas. save() escribe con JSON.stringify, así que basta con
+      // comparar con el texto leído. Si no se puede guardar, se sigue con los datos leídos.
+      const out = JSON.stringify(d);
+      if (out !== raw) { try { localStorage.setItem(STORE_KEY, out); } catch (e) { /* se guardará en el próximo cambio */ } }
       return d;
     }
   } catch (e) { console.warn('No se pudieron leer los datos', e); }
@@ -445,7 +507,12 @@ function viewTeams() {
   const cards = db.teams.map(t => {
     const games = db.games.filter(g => g.teamId === t.id);
     let w = 0, l = 0;
-    for (const g of games) { const sc = score(g); if (sc.us > sc.them) w++; else if (sc.us < sc.them) l++; }
+    // Como en la temporada: un partido sin finalizar aún no tiene resultado
+    for (const g of games) {
+      if (!g.finished) continue;
+      const sc = score(g);
+      if (sc.us > sc.them) w++; else if (sc.us < sc.them) l++;
+    }
     const live = games.some(g => !g.finished);
     return `
     <li class="team-card ${t.id === db.currentTeamId ? 'current' : ''}">
@@ -1016,7 +1083,7 @@ function renderMenu(m) {
 function eventText(g, e) {
   if (e.type === 'opp') return `<span class="them">${esc(g.opponent)}</span> ${e.pts > 0 ? '+' + e.pts : e.pts}`;
   const p = g.roster.find(x => x.id === e.pid);
-  return `<b>${esc(pLabel(p))}</b> · ${EV[e.type] ? EV[e.type].text : e.type}`;
+  return `<b>${esc(pLabel(p))}</b> · ${EV[e.type] ? EV[e.type].text : esc(e.type)}`;
 }
 
 function renderLog(m) {
@@ -1100,7 +1167,12 @@ function record(g, type, pid) {
 }
 
 function recordOpp(g, pts) {
-  if (pts < 0 && score(g).them + pts < 0) { toast('El rival tiene 0 puntos'); return; }
+  // Una corrección no puede dejar en negativo el parcial del periodo actual (como en el marcador).
+  // Para quitar puntos de otro periodo se borra la jugada en el listado.
+  if (pts < 0 && periodScores(g).them[g.period - 1] + pts < 0) {
+    toast(`El rival no tiene puntos en ${perAbbr(g, g.period)} · para corregir otro periodo: ☰ › Jugadas`);
+    return;
+  }
   const e = { id: uid(), ts: Date.now(), period: g.period, type: 'opp', pts };
   g.events.push(e);
   markPlayed(g);
@@ -1525,7 +1597,8 @@ function downloadCSV(arg) {
   const line = (r) => [r.number, r.name, ...(data.season ? [r.gp] : []), r.nper, r.pts, r.t1m, r.t1a, r.t2m, r.t2a, r.t3m, r.t3a, r.ro, r.rd, r.reb, r.ast, r.blk, r.blkr, r.rec, r.lost, r.fc, r.fr, r.val];
   const rows = [head, ...sortedPlayers(data.rows).map(line), line(data.total)];
   const csv = rows.map(r => r.map(v => {
-    const s = String(v ?? '').replace('.', ',');
+    // Coma decimal solo en los números (los promedios); los textos, como los nombres, van tal cual
+    const s = typeof v === 'number' ? String(v).replace('.', ',') : String(v ?? '');
     return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   }).join(';')).join('\r\n');
   const g = getGame(arg);

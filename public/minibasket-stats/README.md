@@ -56,6 +56,8 @@ python3 -m http.server 8000
 
 También se sirve con el resto del sitio usando `npm run dev` desde la raíz del repositorio.
 
+Los tests están en `tests/app/` y se lanzan con `npm test` desde la raíz (ver el README de la raíz).
+
 ## Despliegue
 
 La app vive en `public/minibasket-stats/` y Astro la copia tal cual al compilar la web (ver el README de la raíz),
