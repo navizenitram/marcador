@@ -54,12 +54,17 @@ function enabledOthers() { return OTHER_ACTIONS.filter(actEnabled); }
 
 /* ─────────────────────────── Datos ─────────────────────────── */
 
-/* Los identificadores se pintan sin escapar en atributos HTML, en la ruta (#/partido/…) y en selectores CSS, así que
-   solo se aceptan letras, números, «-» y «_», que es lo que genera uid(). Otra cosa solo puede venir de una copia de
+/* normalize() solo corrige lo que podría romper la app o colar HTML en la página. Lo que esta versión no entiende
+   pero es inofensivo (una jugada de un tipo nuevo, un periodo de prórroga, una fecha mal tecleada) se conserva.
+
+   Los identificadores se pintan sin escapar en atributos HTML, en la ruta (#/partido/…) y en selectores CSS, y se
+   usan como claves de objetos. Solo se aceptan letras, números, «-» y «_» (lo que genera uid()) y nunca el nombre de
+   una propiedad de los objetos (__proto__, constructor, toString…). Otra cosa solo puede venir de una copia de
    seguridad manipulada: se cambia por un identificador nuevo, el mismo en todas sus referencias.
    (Van antes de load(), que los usa al arrancar.) */
 const SAFE_ID = /^[\w-]{1,64}$/;
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const safeKey = (s) => SAFE_ID.test(s) && !(s in Object.prototype);
+const SAFE_DATE = /^[\d./-]{1,24}$/;   // la app guarda aaaa-mm-dd; basta con que sean dígitos y separadores
 const MAX_PERIODS = 12;
 
 const objects = (v) => (Array.isArray(v) ? v.filter(x => x && typeof x === 'object') : []);
@@ -106,7 +111,7 @@ function normalize(d) {
   const fixId = (v) => {
     if (v == null || v === '') return v;
     const s = String(v);
-    if (SAFE_ID.test(s)) return s;
+    if (safeKey(s)) return s;
     if (!newIds.has(s)) newIds.set(s, uid());
     return newIds.get(s);
   };
@@ -135,25 +140,27 @@ function normalize(d) {
     if (!teamIds.has(g.teamId) && d.teams.length) g.teamId = d.teams[0].id;
     g.periods = intIn(g.periods, 1, MAX_PERIODS, 8);
     g.period = intIn(g.period, 1, g.periods, 1);
-    if (typeof g.date !== 'string' || !ISO_DATE.test(g.date)) g.date = '';
+    if (typeof g.date !== 'string' || !SAFE_DATE.test(g.date)) g.date = '';
     g.roster = players(g.roster);
     g.onCourt = Array.isArray(g.onCourt) ? g.onCourt.filter(x => x != null && x !== '').map(fixId) : [];
+    // Los periodos (de cada jugador y de cada jugada) tienen que ser números; no se recortan a g.periods
     const played = g.played && typeof g.played === 'object' ? Object.entries(g.played) : [];
     g.played = Object.fromEntries(played
       .filter(([, list]) => Array.isArray(list))
-      .map(([pid, list]) => [fixId(pid), list.filter(n => Number.isInteger(n) && n >= 1 && n <= g.periods)]));
-    // Solo jugadas de un tipo conocido; los puntos del rival, numéricos
+      .map(([pid, list]) => [fixId(pid), list.filter(n => Number.isInteger(n) && n >= 1)]));
+    // Los tipos de jugada desconocidos se conservan (no cuentan en las estadísticas) si son un nombre simple;
+    // los puntos del rival tienen que ser un número
     const events = [];
     for (const e of objects(g.events)) {
       if (e.type === 'opp') {
         e.pts = +e.pts;
         if (!Number.isFinite(e.pts)) continue;
       } else {
-        if (!Object.prototype.hasOwnProperty.call(EV, e.type)) continue;
+        if (typeof e.type !== 'string' || !safeKey(e.type)) continue;
         if (e.pid != null) e.pid = fixId(e.pid);
       }
       e.id = fixId(e.id) || uid();
-      e.period = intIn(e.period, 1, g.periods, 1);
+      e.period = intIn(e.period, 1, 99, 1);
       events.push(e);
     }
     g.events = events;
@@ -175,13 +182,12 @@ function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw);
-      const before = JSON.stringify(parsed);
-      const d = normalize(parsed);
+      const d = normalize(JSON.parse(raw));
       // Si normalize ha cambiado algo (formato antiguo o datos saneados), se guarda ya el resultado para que los
-      // identificadores nuevos no cambien entre cargas. Si no se puede guardar, se sigue con los datos leídos.
-      const after = JSON.stringify(d);
-      if (after !== before) { try { localStorage.setItem(STORE_KEY, after); } catch (e) { /* se guardará en el próximo cambio */ } }
+      // identificadores nuevos no cambien entre cargas. save() escribe con JSON.stringify, así que basta con
+      // comparar con el texto leído. Si no se puede guardar, se sigue con los datos leídos.
+      const out = JSON.stringify(d);
+      if (out !== raw) { try { localStorage.setItem(STORE_KEY, out); } catch (e) { /* se guardará en el próximo cambio */ } }
       return d;
     }
   } catch (e) { console.warn('No se pudieron leer los datos', e); }
@@ -1077,7 +1083,7 @@ function renderMenu(m) {
 function eventText(g, e) {
   if (e.type === 'opp') return `<span class="them">${esc(g.opponent)}</span> ${e.pts > 0 ? '+' + e.pts : e.pts}`;
   const p = g.roster.find(x => x.id === e.pid);
-  return `<b>${esc(pLabel(p))}</b> · ${EV[e.type] ? EV[e.type].text : e.type}`;
+  return `<b>${esc(pLabel(p))}</b> · ${EV[e.type] ? EV[e.type].text : esc(e.type)}`;
 }
 
 function renderLog(m) {

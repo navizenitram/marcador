@@ -1,8 +1,10 @@
 name: Tests
 
-# Se ejecuta en cada push a cualquier rama: los PR desde ramas de este repositorio muestran el resultado de ese push.
+# Se ejecuta en cada push a cualquier rama, y en los PR que vienen de un fork (que no hacen push aquí). Los PR desde
+# ramas de este repositorio ya muestran el resultado del push, así que no se repiten (ver el `if` de cada job).
 on:
   push:
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -16,6 +18,7 @@ concurrency:
 jobs:
   unit:
     name: Unitarios
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -29,6 +32,7 @@ jobs:
 
   e2e:
     name: E2E (Chrome en Android y Safari en iPhone)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

@@ -9,7 +9,10 @@ export default defineConfig({
   testDir: 'e2e',
   fullyParallel: true,
   forbidOnly: CI,
+  // En CI se reintenta una vez para guardar el trace del fallo, pero un test que solo pasa al reintentarlo
+  // (inestable) hace fallar igualmente la ejecución
   retries: CI ? 1 : 0,
+  failOnFlakyTests: CI,
   reporter: CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: `http://localhost:${PORT}`,

@@ -133,6 +133,38 @@ describe('copia de seguridad manipulada', () => {
     expect(d.teams[0].players[1]).toMatchObject({ number: '9', name: '42' });
   });
 
+  it('cambia los identificadores que coinciden con propiedades de los objetos (__proto__, constructor…)', async () => {
+    for (const id of ['__proto__', 'constructor', 'toString', 'hasOwnProperty']) {
+      const players = [{ id, number: '4', name: 'Ana' }];
+      const app = await openApp({ data: makeData({ teams: [makeTeam({ players })], games: [makeGame({ roster: players, onCourt: [id] })] }), hash: '#/partido/g1' });
+      const pid = app.db.teams[0].players[0].id;
+      expect(pid, id).not.toBe(id);
+      expect(app.db.games[0].roster[0].id, id).toBe(pid);
+      // Con el id original, apuntar una canasta rompía el partido
+      await app.act('ev', { pid, type: 't2_ok' });
+      expect(app.text('.board .score.us'), id).toBe('2');
+      await app.go('#/stats/g1');
+    }
+  });
+
+  it('conserva lo que esta versión no entiende pero es inofensivo', async () => {
+    const game = makeGame({
+      date: '20266-11-09',                                         // año mal tecleado: el selector de fecha lo admite
+      played: { p4: [1, 9] },                                      // periodo 9 en un partido de 8 (¿una prórroga?)
+      events: [{ ...ev('t2_ok', 'p4', 9) }, { ...ev('to', 'p4', 2) }],  // «to»: tipo de una versión futura
+    });
+    const json = JSON.stringify(makeData({ games: [game] }));
+    const app = await openApp({ data: json, hash: '#/partidos' });
+    expect(app.window.localStorage.getItem(STORE_KEY)).toBe(json);  // no se reescribe nada
+    expect(app.db.games[0].events.map((e) => [e.type, e.period])).toEqual([['t2_ok', 9], ['to', 2]]);
+    expect(app.fn.score(app.db.games[0])).toEqual({ us: 2, them: 0 });  // el tipo desconocido no cuenta
+
+    await app.go('#/partido/g1');
+    await app.act('menu');
+    await app.act('log');
+    expect(app.text(app.$$('.log-row')[0])).toContain('#4 Ana · to');
+  });
+
   it('limita el número de periodos de un partido', async () => {
     const app = await openApp();
     const d = app.fn.normalize(makeData({ games: [makeGame({ id: 'a', periods: 1e9 }), makeGame({ id: 'b', periods: 2.6 })] }));
@@ -178,7 +210,7 @@ describe('carga y guardado en localStorage', () => {
   });
 
   it('no reescribe los datos que ya están en formato v2', async () => {
-    const raw = JSON.stringify(makeData(), null, 2);
+    const raw = JSON.stringify(makeData({ games: [makeGame({ events: [ev('t2_ok', 'p4')], played: { p4: [1] } })] }));
     const app = await openApp({ data: raw, hash: '#/equipo' });
     expect(app.window.localStorage.getItem(STORE_KEY)).toBe(raw);
   });
