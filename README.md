@@ -42,6 +42,26 @@ o pulsan sus botones. Si la app lanza una excepción durante un test, el test fa
 | `tests/marcador/` | Marcador: puntos, faltas y periodos, estadísticas y gráficas (Chart.js se sustituye por un doble), reinicio y tema |
 | `tests/web/` | `site.config.mjs`, `scripts/postbuild.mjs`, mismos textos en castellano y catalán, y archivos de la PWA (service worker, manifest, fuentes) |
 
+### Tests e2e
+
+```bash
+npx playwright install chromium webkit   # solo la primera vez
+npm run test:e2e                          # compila el sitio, lo sirve y pasa los tests
+npx playwright test --project=android     # solo un navegador
+```
+
+Usan [Playwright](https://playwright.dev) en dos perfiles de móvil en horizontal: Chrome en un Pixel 7 (`android`) y
+Safari en un iPhone 13 (`iphone`). Prueban el sitio compilado (`npm run build` y `astro preview`), así que cubren lo
+que jsdom no puede: el diseño real (los 5 jugadores con sus 15 botones caben sin scroll y se pueden tocar), los
+toques en pantalla, el modo sin conexión con el service worker, las recargas, la descarga del CSV, el aviso de girar el
+móvil en vertical y las páginas de la web tras el build. Están en `e2e/` y no dependen de internet: se corta cualquier
+petición que no vaya al servidor local.
+
+### Integración continua
+
+`.github/workflows/tests.yml` pasa los tests unitarios y los e2e en cada push, en paralelo. Si fallan los e2e, el
+informe de Playwright queda como artefacto de la ejecución.
+
 ## Configuración
 
 | Variable | Para qué | Por defecto |
