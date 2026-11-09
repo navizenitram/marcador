@@ -29,6 +29,7 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
 - **Copia de seguridad**: exportar / importar todos los datos en JSON (útil para cambiar de dispositivo).
 - **Modo claro / oscuro** (botón 🌙/☀️ en la barra superior o en el menú ☰ del partido). Se comparte con el marcador.
 - PWA: se puede "Añadir a pantalla de inicio", funciona sin conexión y en Android se abre en horizontal y pantalla completa.
+- La pantalla no se apaga mientras la app está abierta (Screen Wake Lock, en los navegadores que lo soportan).
 
 ### Valoración
 
