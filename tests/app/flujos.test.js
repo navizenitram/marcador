@@ -1,7 +1,7 @@
 // Flujos de uso sobre el DOM real de la app: se pulsan sus botones y se envían sus formularios.
 import { describe, expect, it } from 'vitest';
 import { openApp, THEME_KEY } from '../helpers/app.js';
-import { ev, makeData, makeGame, makeTeam, PLAYERS, sampleGame } from '../helpers/fixtures.js';
+import { ev, makeData, makeGame, makeTeam, opp, PLAYERS, sampleGame } from '../helpers/fixtures.js';
 
 const FIVE = ['p4', 'p7', 'p10', 'p12', 'p15'];
 
@@ -83,6 +83,16 @@ describe('equipos', () => {
     await app.act('pick-team', { id: 't2' });
     expect(app.db.currentTeamId).toBe('t2');
     expect(app.hash).toBe('#/equipo');
+  });
+
+  it('la tarjeta solo cuenta como victoria o derrota los partidos finalizados', async () => {
+    const games = [
+      sampleGame(),                                                                     // 8-4, en juego
+      makeGame({ id: 'g2', finished: true, events: [ev('t2_ok', 'p4')] }),              // 2-0
+      makeGame({ id: 'g3', finished: true, events: [opp(3)] }),                         // 0-3
+    ];
+    const app = await openApp({ data: makeData({ teams: [makeTeam(), makeTeam({ id: 't2' })], games }) });
+    expect(app.text(app.$$('.team-card')[0])).toContain('3 partidos · 1V 1D');
   });
 
   it('muestra jugadores, partidos y si hay uno en juego', async () => {
@@ -284,13 +294,22 @@ describe('partido en directo', () => {
   it('los puntos del rival se suman con +1/+2/+3 y se corrigen con −1, sin bajar de 0', async () => {
     const app = await live();
     await app.act('opp', { pts: -1 });
-    expect(app.toast).toBe('El rival tiene 0 puntos');
+    expect(app.toast).toContain('El rival no tiene puntos en P1');
     expect(app.db.games[0].events).toHaveLength(0);
 
     await app.act('opp', { pts: 3 });
     await app.act('opp', { pts: 2 });
     await app.act('opp', { pts: -1 });
     expect(scoreboard(app)).toBe('0-4');
+  });
+
+  it('el −1 del rival no deja en negativo el parcial del periodo actual', async () => {
+    const app = await live({ period: 2, events: [opp(2, 1)] });
+    await app.act('opp', { pts: -1 });
+    expect(app.toast).toContain('El rival no tiene puntos en P2');
+    expect(app.toast).toContain('Jugadas');  // indica dónde corregir otro periodo
+    expect(app.db.games[0].events).toHaveLength(1);
+    expect([...app.fn.periodScores(app.db.games[0]).them.slice(0, 2)]).toEqual([2, 0]);
   });
 
   it('deshacer quita la última jugada', async () => {

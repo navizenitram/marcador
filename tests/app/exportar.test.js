@@ -101,6 +101,14 @@ describe('CSV', () => {
     expect(lines[1].startsWith('4;"Ana; ""Ani""";')).toBe(true);
   });
 
+  it('la coma decimal solo se aplica a los números, no a los nombres', async () => {
+    const team = makeTeam({ players: [{ id: 'p4', number: '4', name: 'J. Pablo' }] });
+    const app = await openApp({ data: makeData({ teams: [team], games: [makeGame({ roster: team.players })] }), hash: '#/stats/g1' });
+    await app.act('csv', { arg: 'g1' });
+    const { lines } = await csvOf(app.downloads[0]);
+    expect(lines[1].startsWith('4;J. Pablo;')).toBe(true);
+  });
+
   it('limpia el nombre del archivo', async () => {
     const app = await openApp({ data: makeData({ games: [sampleGame({ opponent: 'C.B. Sant Josep / B' })] }), hash: '#/stats/g1' });
     await app.act('csv', { arg: 'g1' });

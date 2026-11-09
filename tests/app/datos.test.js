@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { openApp, STORE_KEY } from '../helpers/app.js';
-import { ev, makeData, makeGame, makeTeam, PLAYERS } from '../helpers/fixtures.js';
+import { ev, makeData, makeGame, makeTeam, PLAYERS, sampleGame } from '../helpers/fixtures.js';
 
 /** Copia de seguridad del formato antiguo (v1): un único equipo en `team` y los botones en `settings` */
 const v1Backup = () => ({
@@ -59,6 +59,109 @@ describe('normalize', () => {
   it('elige el primer equipo si el equipo actual no existe', () => {
     const d = app.fn.normalize(makeData({ teams: [makeTeam({ id: 'a' }), makeTeam({ id: 'b' })], currentTeamId: 'borrado' }));
     expect(d.currentTeamId).toBe('a');
+  });
+});
+
+describe('copia de seguridad manipulada', () => {
+  // Cada campo que la app pinta en el HTML sin escapar lleva una etiqueta <img>. La app no pinta ninguna imagen,
+  // así que cualquier <img> en la página es HTML colado (el id ayuda a saber de qué campo viene, aunque puede
+  // llegar recortado: fmtDate, por ejemplo, parte la fecha por los guiones).
+  const evil = (n) => `"><img id="xss-${n}">`;
+  const tampered = () => ({
+    version: 2,
+    currentTeamId: evil('team'),
+    teams: [{
+      id: evil('team'), name: 'Alevín A', email: '', hidden: [],
+      players: [{ id: evil('player'), number: '4', name: 'Ana' }, { id: 'p9', number: 9, name: 42 }],
+    }],
+    games: [{
+      id: evil('game'), teamId: evil('team'), teamName: 'Alevín A', opponent: 'Rival',
+      date: '<img id="xss-date">', periods: 8, period: 1, finished: false,
+      roster: [{ id: evil('player'), number: '4', name: 'Ana' }],
+      onCourt: [evil('player')],
+      played: { [evil('player')]: [1, '<img id="xss-played">'] },
+      events: [
+        { id: evil('event'), ts: 1, period: '<img id="xss-period">', type: 't2_ok', pid: evil('player') },
+        { id: 'e2', ts: 2, period: 1, type: 'opp', pts: '<img id="xss-pts">' },
+        { id: 'e3', ts: 3, period: 1, type: '<img id="xss-type">', pid: evil('player') },
+        { id: 'e4', ts: 4, period: 1, type: 'toString', pid: evil('player') },
+      ],
+    }],
+  });
+  const injected = (app) => app.$$('img').map((el) => el.outerHTML);
+
+  it('no se cuela HTML en ninguna pantalla', async () => {
+    const app = await openApp({ data: tampered() });
+    const gid = app.db.games[0].id;
+    for (const hash of ['#/equipos', '#/equipo', '#/partidos', `#/partido/${gid}`, `#/stats/${gid}`, '#/stats/temporada', '#/ajustes']) {
+      await app.go(hash);
+      expect(injected(app), hash).toEqual([]);
+    }
+    await app.go(`#/partido/${gid}`);
+    await app.act('menu');
+    await app.act('log');
+    expect(injected(app), 'jugadas registradas').toEqual([]);
+  });
+
+  it('sustituye los identificadores no válidos manteniendo todas sus referencias', async () => {
+    const app = await openApp();
+    const d = app.fn.normalize(tampered());
+    const [team] = d.teams;
+    const [game] = d.games;
+    const pid = team.players[0].id;
+    expect(pid).toMatch(/^[\w-]+$/);
+    expect(d.currentTeamId).toBe(team.id);
+    expect(game.teamId).toBe(team.id);
+    expect(game.id).toMatch(/^[\w-]+$/);
+    expect(game.roster[0].id).toBe(pid);
+    expect([...game.onCourt]).toEqual([pid]);
+    expect(Object.keys(game.played)).toEqual([pid]);
+    expect(game.events[0]).toMatchObject({ pid, type: 't2_ok' });
+    expect(game.events[0].id).toMatch(/^[\w-]+$/);
+    // La canasta sigue contando para la jugadora
+    expect(app.fn.gameRows(game)[0]).toMatchObject({ id: pid, pts: 2, nper: 1 });
+  });
+
+  it('descarta jugadas que no se pueden interpretar y corrige periodos, dorsales y nombres', async () => {
+    const app = await openApp();
+    const d = app.fn.normalize(tampered());
+    const [game] = d.games;
+    expect(game.events).toHaveLength(1);
+    expect(game.events[0].period).toBe(1);
+    expect(Object.values(game.played)[0]).toEqual([1]);
+    expect(game.date).toBe('');
+    expect(d.teams[0].players[1]).toMatchObject({ number: '9', name: '42' });
+  });
+
+  it('limita el número de periodos de un partido', async () => {
+    const app = await openApp();
+    const d = app.fn.normalize(makeData({ games: [makeGame({ id: 'a', periods: 1e9 }), makeGame({ id: 'b', periods: 2.6 })] }));
+    expect(d.games.map((g) => g.periods)).toEqual([12, 3]);
+  });
+
+  it('deja intactos los datos válidos', async () => {
+    const app = await openApp();
+    const data = makeData({ games: [sampleGame(), sampleGame({ id: 'g2', periods: 4, period: 4, finished: true })] });
+    const json = JSON.stringify(data);
+    expect(JSON.stringify(app.fn.normalize(JSON.parse(json)))).toBe(json);
+  });
+
+  it('al importarla guarda los datos ya saneados', async () => {
+    const app = await openApp({ data: makeData(), hash: '#/ajustes' });
+    const done = app.fn.importJSON(new app.window.File([JSON.stringify(tampered())], 'copia.json'));
+    await app.settle();
+    await app.act('confirm-yes');
+    await done;
+    expect(JSON.stringify(app.stored())).not.toContain('<img');
+    expect(injected(app)).toEqual([]);
+  });
+
+  it('si ya estaba guardada, la sanea al abrir y conserva los identificadores nuevos', async () => {
+    const first = await openApp({ data: tampered() });
+    const stored = first.stored();
+    expect(JSON.stringify(stored)).not.toContain('<img');
+    const second = await openApp({ data: stored });
+    expect(second.db.games[0].id).toBe(stored.games[0].id);
   });
 });
 
