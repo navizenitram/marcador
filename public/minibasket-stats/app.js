@@ -251,6 +251,68 @@ function pct(m, a) { return a ? Math.round((m / a) * 100) + '%' : '–'; }
 
 function round1(n) { return Math.round(n * 10) / 10; }
 
+const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+/* Día y mes abreviado de una fecha aaaa-mm-dd, para el calendario de la lista de partidos */
+function dateParts(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  return m && MONTHS[m[2] - 1] ? { day: String(+m[3]), month: MONTHS[m[2] - 1] } : { day: '–', month: '' };
+}
+
+/* ─────────────────────────── Iconos ─────────────────────────── */
+
+/* Iconos de trazo dibujados para la app (rejilla de 24, heredan el color del texto). Van en línea para que
+   se vean igual en todos los dispositivos y la app siga sin cargar nada de terceros. */
+const ICONS = {
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  left: '<path d="M15 5l-7 7 7 7"/>',
+  right: '<path d="M9 5l7 7-7 7"/>',
+  back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  updown: '<path d="M8 9l4-4 4 4M8 15l4 4 4-4"/>',
+  undo: '<path d="M8 4L3 9l5 5"/><path d="M3 9h11a5.5 5.5 0 0 1 0 11h-4"/>',
+  swap: '<path d="M4 8h14M14 4l4 4-4 4"/><path d="M20 16H6M10 12l-4 4 4 4"/>',
+  chart: '<path d="M4 20h16"/><path d="M7 16v-5M12 16V5M17 16v-8"/>',
+  trash: '<path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M10 11v6M14 11v6"/>',
+  edit: '<path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1z"/><path d="M14.5 6.5l3 3"/>',
+  moon: '<path d="M20 13.5A8 8 0 1 1 10.5 4a7 7 0 0 0 9.5 9.5z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  expand: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+  compress: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7.5l8.5 6 8.5-6"/>',
+  download: '<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>',
+  upload: '<path d="M12 16V5M7 9.5l5-5 5 5M5 20h14"/>',
+  share: '<path d="M12 15V4M8 7.5l4-4 4 4"/><path d="M7 11H6a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2h-1"/>',
+  copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/>',
+  lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  flag: '<path d="M5 21V4M5 4h13l-2.5 4.5L18 13H5"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  play: '<path d="M8 5.5l10.5 6.5L8 18.5z"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  exit: '<path d="M10 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M15 8l4 4-4 4M19 12H9"/>',
+  list: '<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
+  reopen: '<path d="M4 5v5h5"/><path d="M4.5 10a8 8 0 1 1 1.5 7.5"/>',
+  coffee: '<path d="M5 9h12v5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5zM17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 3v2M12 3v2"/>',
+  phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/>',
+};
+
+function icon(name, cls = '') {
+  return `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+}
+
+/* El balón de la marca (el mismo dibujo que el icono de la app) */
+const BALL = '<svg class="ball" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="#ff8a00"/><circle cx="37" cy="33" r="30" fill="#fff" opacity=".16"/>'
+  + '<g fill="none" stroke="#2a1300" stroke-width="4.4" stroke-linecap="round"><circle cx="50" cy="50" r="46"/><path d="M4 50h92M50 4v92"/><path d="M18 18c14 14 14 50 0 64M82 18c-14 14-14 50 0 64"/></g></svg>';
+
+/* Escudo de un equipo: sus iniciales sobre un color que sale del nombre (siempre el mismo para el mismo nombre) */
+function crest(name) {
+  // [...palabra] separa por caracteres completos (una letra con acento compuesto o un emoji no se parten)
+  const words = String(name).trim().split(/\s+/).filter(Boolean).map(w => [...w]);
+  const initials = (words.length > 1 ? words[0][0] + words[1][0] : (words[0] || ['?']).slice(0, 2).join('')).toUpperCase();
+  let h = 0;
+  for (const ch of String(name)) h = (h * 31 + ch.codePointAt(0)) % 360;
+  return `<span class="crest" style="--h:${h}" aria-hidden="true">${esc(initials)}</span>`;
+}
+
 /* ───────────────────────── Estadísticas ───────────────────────── */
 
 function blankLine() {
@@ -436,7 +498,19 @@ function postRender() {
     if (el) el.focus();
     ui.focus = null;
   }
+  fitTable();
 }
+
+/* Si la tabla de estadísticas cabe a lo ancho no necesita desplazamiento horizontal, y entonces su cabecera
+   puede quedarse fija al bajar por la página (ver .table-wrap.fits en los estilos) */
+function fitTable() {
+  const wrap = appEl.querySelector('.table-wrap');
+  if (!wrap) return;
+  wrap.classList.remove('fits');
+  wrap.classList.toggle('fits', wrap.scrollWidth <= wrap.clientWidth + 1);
+}
+window.addEventListener('resize', fitTable);
+
 
 window.addEventListener('hashchange', () => { closeModal(true); toastEl.hidden = true; render(); });
 
@@ -469,13 +543,15 @@ function toggleTheme() {
 }
 
 function themeButton() {
-  return `<button class="icon-btn" data-action="theme" title="${isLight() ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}">${isLight() ? '☀️' : '🌙'}</button>`;
+  const title = isLight() ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro';
+  return `<button class="icon-btn" data-action="theme" title="${title}" aria-label="${title}">${icon(isLight() ? 'sun' : 'moon')}</button>`;
 }
 
 function fsButton() {
   if (!document.fullscreenEnabled) return '';
   const on = !!document.fullscreenElement;
-  return `<button class="icon-btn" data-action="fullscreen" title="${on ? 'Salir de pantalla completa' : 'Pantalla completa'}">${on ? '🗗' : '⛶'}</button>`;
+  const title = on ? 'Salir de pantalla completa' : 'Pantalla completa';
+  return `<button class="icon-btn" data-action="fullscreen" title="${title}" aria-label="${title}">${icon(on ? 'compress' : 'expand')}</button>`;
 }
 
 function shell(active, content) {
@@ -486,13 +562,15 @@ function shell(active, content) {
   <div class="page">
     <nav class="nav">
       <a class="brand ${active === 'equipos' ? 'on' : ''}" href="#/equipos" title="Cambiar de equipo">
-        <span class="ball">🏀</span><span class="brand-name">${t ? esc(t.name) : 'Cantera Stats'}</span>${t ? '<span class="brand-swap">⇅</span>' : ''}
+        ${BALL}<span class="brand-name">${t ? esc(t.name) : 'Cantera Stats'}</span>${t ? `<span class="brand-swap">${icon('updown')}</span>` : ''}
       </a>
       ${t ? `
-      ${tab('equipo', '#/equipo', 'Equipo')}
-      ${tab('partidos', '#/partidos', 'Partidos')}
-      ${tab('stats', '#/stats', 'Estadísticas')}
-      ${tab('ajustes', '#/ajustes', 'Ajustes')}` : ''}
+      <div class="tabs">
+        ${tab('equipo', '#/equipo', 'Equipo')}
+        ${tab('partidos', '#/partidos', 'Partidos')}
+        ${tab('stats', '#/stats', 'Estadísticas')}
+        ${tab('ajustes', '#/ajustes', 'Ajustes')}
+      </div>` : ''}
       <span class="grow"></span>
       ${live ? `<a class="btn live-link" href="#/partido/${live.id}"><span class="dot"></span>vs ${esc(live.opponent)}</a>` : ''}
       ${themeButton()}
@@ -517,27 +595,30 @@ function viewTeams() {
     return `
     <li class="team-card ${t.id === db.currentTeamId ? 'current' : ''}">
       <button class="team-pick" data-action="pick-team" data-id="${t.id}">
-        <span class="team-name">${esc(t.name)}</span>
-        <small>${t.players.length} jugador${t.players.length === 1 ? '' : 'es'} · ${games.length} partido${games.length === 1 ? '' : 's'}${games.length ? ` · ${w}V ${l}D` : ''}</small>
-        ${live ? '<span class="team-live"><span class="dot"></span>Partido en juego</span>' : ''}
+        ${crest(t.name)}
+        <span class="team-info">
+          <span class="team-name">${esc(t.name)}</span>
+          <small>${t.players.length} jugador${t.players.length === 1 ? '' : 'es'} · ${games.length} partido${games.length === 1 ? '' : 's'}${games.length ? ` · ${w}V ${l}D` : ''}</small>
+          ${live ? '<span class="team-live"><span class="dot"></span>Partido en juego</span>' : ''}
+        </span>
       </button>
-      <button class="icon-btn danger" data-action="del-team" data-id="${t.id}" title="Eliminar equipo">🗑</button>
+      <button class="icon-btn danger" data-action="del-team" data-id="${t.id}" title="Eliminar equipo" aria-label="Eliminar equipo ${esc(t.name)}">${icon('trash')}</button>
     </li>`;
   }).join('');
   return shell('equipos', `
   <div class="cols">
     <section class="card grow">
       <h2>${db.teams.length ? '¿Con qué equipo vas a recoger estadísticas?' : 'Bienvenido/a 👋'}</h2>
-      ${db.teams.length ? `<ul class="teams">${cards}</ul>` : '<p class="empty">Crea tu primer equipo para empezar.<br>Después podrás añadir más (por ejemplo, uno por categoría).</p>'}
+      ${db.teams.length ? `<ul class="teams">${cards}</ul>` : `<p class="empty">${BALL}Crea tu primer equipo para empezar.<br>Después podrás añadir más (por ejemplo, uno por categoría).</p>`}
     </section>
     <section class="card side">
       <h2>Nuevo equipo</h2>
       <form data-form="team-new" class="stack" autocomplete="off">
         <label>Nombre del equipo<input name="name" maxlength="24" required placeholder="Ej.: Alevín A" autocapitalize="words"></label>
-        <button class="btn primary big" type="submit">＋ Crear equipo</button>
+        <button class="btn primary big" type="submit">${icon('plus')} Crear equipo</button>
       </form>
       <p class="muted small">Cada equipo tiene su propia plantilla, partidos, estadísticas y botones del partido.</p>
-      <p class="privacy-note">🔒 Sin registro ni seguimiento: todo se guarda solo en este dispositivo. <a href="#/privacidad">Privacidad</a></p>
+      <p class="privacy-note">${icon('lock')}<span>Sin registro ni seguimiento: todo se guarda solo en este dispositivo. <a href="#/privacidad">Privacidad</a></span></p>
     </section>
   </div>`);
 }
@@ -546,8 +627,8 @@ function viewTeams() {
 function viewPrivacy() {
   return shell('privacidad', `
   <section class="card privacy">
-    <button class="btn" data-action="back">← Volver</button>
-    <h1>🔒 Tu privacidad</h1>
+    <button class="btn" data-action="back">${icon('back')} Volver</button>
+    <h1>${icon('lock')} Tu privacidad</h1>
     <p class="lead">Cantera Stats no recoge, no envía y no rastrea ningún dato. Lo que apuntas es tuyo y se queda en tu dispositivo.</p>
 
     <h2>Qué no hace la app</h2>
@@ -555,7 +636,7 @@ function viewPrivacy() {
       <li>No tiene cuentas ni registro: no te pide email, contraseña ni ningún dato personal.</li>
       <li>No usa cookies, publicidad, analítica ni herramientas de seguimiento.</li>
       <li>No envía a ningún servidor los equipos, jugadores, partidos ni estadísticas que introduces.</li>
-      <li>No carga recursos de terceros: la fuente y los iconos van incluidos en la propia app.</li>
+      <li>No carga recursos de terceros: las fuentes y los iconos van incluidos en la propia app.</li>
     </ul>
 
     <h2>Dónde se guardan tus datos</h2>
@@ -575,8 +656,8 @@ function viewPrivacy() {
     y quería una forma sencilla de seguir lo que hace cada jugador en la pista. Funcionaba tan bien que decidí compartirla de forma gratuita
     con la comunidad: entrenadores, familias y clubes.</p>
     <p>Es un proyecto personal, sin ánimo de lucro, sin anuncios y sin intereses detrás. Si te resulta útil y quieres apoyarlo,
-    puedes <a href="${KOFI_URL}" target="_blank" rel="noopener">invitarme a un café ☕</a>.</p>
-    <button class="btn" data-action="back">← Volver</button>
+    puedes <a href="${KOFI_URL}" target="_blank" rel="noopener">invitarme a un café</a>.</p>
+    <button class="btn" data-action="back">${icon('back')} Volver</button>
   </section>`);
 }
 
@@ -592,7 +673,7 @@ function viewTeam() {
         <label class="f-num">Dorsal<input name="number" inputmode="numeric" maxlength="3" required value="${ed ? esc(ed.number) : ''}"></label>
         <label class="f-name">Nombre<input name="name" maxlength="24" required value="${ed ? esc(ed.name) : ''}" autocapitalize="words"></label>
         <div class="form-actions">
-          <button class="btn primary" type="submit">${ed ? 'Guardar' : '＋ Añadir'}</button>
+          <button class="btn primary" type="submit">${ed ? `${icon('check')} Guardar` : `${icon('plus')} Añadir`}</button>
           ${ed ? '<button type="button" class="btn" data-action="cancel-edit">Cancelar</button>' : ''}
         </div>
       </form>
@@ -613,8 +694,8 @@ function viewTeam() {
           <li class="${ed && ed.id === p.id ? 'editing' : ''}">
             <span class="num">${esc(p.number)}</span>
             <span class="name">${esc(p.name)}</span>
-            <button class="icon-btn" data-action="edit-player" data-id="${p.id}" title="Editar">✎</button>
-            <button class="icon-btn danger" data-action="del-player" data-id="${p.id}" title="Eliminar">🗑</button>
+            <button class="icon-btn" data-action="edit-player" data-id="${p.id}" title="Editar" aria-label="Editar a ${esc(p.name)}">${icon('edit')}</button>
+            <button class="icon-btn danger" data-action="del-player" data-id="${p.id}" title="Eliminar" aria-label="Eliminar a ${esc(p.name)}">${icon('trash')}</button>
           </li>`).join('')}
       </ul>` : `<p class="empty">Aún no hay jugadores.<br>Añade dorsal y nombre de cada jugador.</p>`}
     </section>
@@ -622,6 +703,8 @@ function viewTeam() {
 }
 
 /* ── Partidos ── */
+const RESULT = { win: 'Victoria', loss: 'Derrota', tie: 'Empate' };
+
 function viewGames() {
   const games = sortedGames();
   const hasPlayers = team().players.length > 0;
@@ -641,7 +724,7 @@ function viewGames() {
               <label><input type="radio" name="periods" value="${n}" ${n === (lastPeriods === 4 ? 4 : 8) ? 'checked' : ''}><span><b>${t}</b><small>${d}</small></span></label>`).join('')}
           </div>
         </div>
-        <button class="btn primary big" type="submit" ${hasPlayers ? '' : 'disabled'}>▶ Empezar partido</button>
+        <button class="btn primary big" type="submit" ${hasPlayers ? '' : 'disabled'}>${icon('play', 'solid')} Empezar partido</button>
       </form>
     </section>
 
@@ -650,14 +733,19 @@ function viewGames() {
       ${games.length ? `<ul class="games">${games.map(g => {
         const s = score(g);
         const res = s.us > s.them ? 'win' : s.us < s.them ? 'loss' : 'tie';
+        const d = dateParts(g.date);
+        const mark = g.finished
+          ? `<span class="g-res ${res}" title="${RESULT[res]}">${RESULT[res][0]}</span>`
+          : '<span class="g-res now" title="En juego"><span class="dot"></span></span>';
         return `
         <li>
-          <span class="g-date">${fmtDate(g.date, true)}</span>
-          <span class="g-main"><b>vs ${esc(g.opponent)}</b><small><span class="g-date-inline">${fmtDate(g.date, true)} · </span>${g.finished ? 'Finalizado' : `<span class="dot"></span>En juego · ${perAbbr(g, g.period)}`} · ${perCount(g)}</small></span>
+          <span class="g-date" title="${fmtDate(g.date)}"><b>${d.day}</b><small>${d.month}</small></span>
+          <span class="g-main"><b>vs ${esc(g.opponent)}</b><small>${g.finished ? 'Finalizado' : `En juego · ${perAbbr(g, g.period)}`} · ${perCount(g)}</small></span>
+          ${mark}
           <span class="g-score ${g.finished ? res : ''}">${s.us}<i>–</i>${s.them}</span>
           <a class="btn" href="#/partido/${g.id}">${g.finished ? 'Abrir' : 'Continuar'}</a>
-          <a class="btn" href="#/stats/${g.id}" title="Estadísticas">📊</a>
-          <button class="icon-btn danger" data-action="del-game" data-id="${g.id}" title="Borrar">🗑</button>
+          <a class="icon-btn" href="#/stats/${g.id}" title="Estadísticas" aria-label="Estadísticas del partido contra ${esc(g.opponent)}">${icon('chart')}</a>
+          <button class="icon-btn danger" data-action="del-game" data-id="${g.id}" title="Borrar" aria-label="Borrar el partido contra ${esc(g.opponent)}">${icon('trash')}</button>
         </li>`;
       }).join('')}</ul>` : `<p class="empty">Todavía no hay partidos.</p>`}
     </section>
@@ -674,17 +762,17 @@ function viewLive(g) {
     const pid = g.onCourt[i];
     const p = pid && rosterById[pid];
     if (!p) {
-      rows.push(`<div class="prow empty-row"><button class="add-player" data-action="swap" data-pid="">＋ Añadir jugador a pista</button></div>`);
+      rows.push(`<div class="prow empty-row"><button class="add-player" data-action="swap" data-pid="">${icon('plus')} Añadir jugador a pista</button></div>`);
       continue;
     }
     const l = lines[pid] || finish(blankLine());
     const fouls = l.fc;
     const fcls = fouls >= MAX_FOULS ? 'f-out' : fouls === MAX_FOULS - 1 ? 'f-warn' : '';
-    const btn = (t) => `<button class="act ${EV[t].cls}" data-action="ev" data-type="${t}" data-pid="${pid}"><b>${EV[t].label}</b><i>${EV[t].sub}</i></button>`;
+    const btn = (t) => `<button class="act ${EV[t].cls}" data-action="ev" data-type="${t}" data-pid="${pid}" aria-label="${EV[t].text}">${actLabel(t)}</button>`;
     rows.push(`
       <div class="prow ${fcls}">
         <button class="pid" data-action="swap" data-pid="${pid}" title="Cambiar jugador">
-          <span class="num">${esc(p.number)}</span>
+          <span class="num">${esc(p.number)}${foulDots(fouls)}</span>
           <span class="pinfo"><span class="pname">${esc(p.name)}</span>
           <span class="pline"><b>${l.pts}</b> pts · <span class="fouls">${fouls} F</span>${fouls >= MAX_FOULS ? ' · ELIM.' : ''}</span></span>
         </button>
@@ -694,11 +782,11 @@ function viewLive(g) {
   return `
   <div class="live">
     <header class="live-top">
-      <button class="icon-btn" data-action="menu" title="Menú">☰</button>
-      <div class="period">
-        <button data-action="period" data-d="-1" ${g.period <= 1 ? 'disabled' : ''}>‹</button>
+      <button class="icon-btn" data-action="menu" title="Menú" aria-label="Menú">${icon('menu')}</button>
+      <div class="period" style="--p:${round1(g.period / g.periods * 100) / 100}">
+        <button data-action="period" data-d="-1" aria-label="${perName(g)} anterior" ${g.period <= 1 ? 'disabled' : ''}>${icon('left')}</button>
         <div><b>${perAbbr(g, g.period)}</b><small>de ${g.periods}</small></div>
-        <button data-action="period" data-d="1">›</button>
+        <button data-action="period" data-d="1" aria-label="${perName(g)} siguiente">${icon('right')}</button>
       </div>
       <div class="board">
         <span class="tname us">${esc(g.teamName)}</span>
@@ -713,12 +801,23 @@ function viewLive(g) {
         <button data-action="opp" data-pts="3">+3</button>
         <button data-action="opp" data-pts="-1" class="minus">−1</button>
       </div>
-      <button class="icon-btn" data-action="undo" title="Deshacer última acción">↶</button>
-      <button class="icon-btn" data-action="lineup" title="Quinteto en pista">⇄</button>
-      <a class="icon-btn" href="#/stats/${g.id}" title="Estadísticas">📊</a>
+      <button class="icon-btn" data-action="undo" title="Deshacer última acción" aria-label="Deshacer última acción">${icon('undo')}</button>
+      <button class="icon-btn" data-action="lineup" title="Quinteto en pista" aria-label="Quinteto en pista">${icon('swap')}</button>
+      <a class="icon-btn" href="#/stats/${g.id}" title="Estadísticas" aria-label="Estadísticas">${icon('chart')}</a>
     </header>
     <main class="court">${rows.join('')}</main>
   </div>`;
+}
+
+/* Contenido de un botón de acción: en los tiros, la marca de anotado o fallado es un icono */
+function actLabel(t) {
+  const { label, sub, cls } = EV[t];
+  return `<b>${label}</b><i>${cls === 'made' ? icon('check') : cls === 'miss' ? icon('x') : sub}</i>`;
+}
+
+/* Faltas de un jugador como puntos bajo su dorsal (uno por falta, hasta las 5 de la eliminación) */
+function foulDots(n) {
+  return `<span class="fouls-dots" aria-hidden="true">${Array.from({ length: MAX_FOULS }, (_, i) => `<i${i < n ? ' class="on"' : ''}></i>`).join('')}</span>`;
 }
 
 /* Botones de acción de una fila, según los ajustes */
@@ -737,7 +836,7 @@ function actsHTML(btn) {
 
 /* ── Ajustes ── */
 function viewSettings() {
-  const sample = (t) => `<span class="act ${EV[t].cls}"><b>${EV[t].label}</b><i>${EV[t].sub}</i></span>`;
+  const sample = (t) => `<span class="act ${EV[t].cls}">${actLabel(t)}</span>`;
   const item = (o) => {
     const on = optEnabled(o.id);
     return `
@@ -755,7 +854,7 @@ function viewSettings() {
     <h2>Vista previa de un jugador en pista</h2>
     <div class="preview">
       <div class="prow">
-        <span class="pid"><span class="num">7</span><span class="pinfo"><span class="pname">Jugador</span><span class="pline"><b>0</b> pts · 0 F</span></span></span>
+        <span class="pid"><span class="num">7${foulDots(0)}</span><span class="pinfo"><span class="pname">Jugador</span><span class="pline"><b>0</b> pts · 0 F</span></span></span>
         ${actsHTML(sample)}
       </div>
     </div>
@@ -778,42 +877,43 @@ function viewSettings() {
       <h2>Copia de seguridad</h2>
       <p class="muted small">Los datos se guardan solo en este navegador. Exporta una copia de vez en cuando o para pasarlos a otro dispositivo.</p>
       <div class="row">
-        <button class="btn" data-action="export-json">⬇ Exportar</button>
-        <label class="btn">⬆ Importar<input type="file" accept="application/json,.json" data-change="import-json" hidden></label>
+        <button class="btn" data-action="export-json">${icon('download')} Exportar</button>
+        <label class="btn">${icon('upload')} Importar<input type="file" accept="application/json,.json" data-change="import-json" hidden></label>
       </div>
 
       <h2>Privacidad</h2>
       <p class="muted small">Cantera Stats no recoge ni envía tus datos: no hay registro, ni publicidad, ni seguimiento. Todo se guarda solo en este dispositivo.</p>
-      <a class="btn" href="#/privacidad">🔒 Leer la política de privacidad</a>
+      <a class="btn" href="#/privacidad">${icon('lock')} Leer la política de privacidad</a>
 
       <h2>Apoya el proyecto</h2>
       <p class="muted small">La app es gratuita, sin anuncios y sin registro. Si te resulta útil en tus partidos, puedes invitarme a un café para que siga mejorando.</p>
-      <a class="btn kofi" href="${KOFI_URL}" target="_blank" rel="noopener">☕ Invítame a un café</a>
+      <a class="btn kofi" href="${KOFI_URL}" target="_blank" rel="noopener">${icon('coffee')} Invítame a un café</a>
     </section>
   </div>`);
 }
 
 /* ── Estadísticas ── */
+/* g: grupo de la columna; entre un grupo y el siguiente la tabla pinta una línea de separación */
 const COLS = [
-  { k: 'number', h: '#', cls: 'c-num' },
-  { k: 'name', h: 'Jugador', cls: 'c-name' },
-  { k: 'gp', h: 'PJ', t: 'Partidos jugados', season: true },
-  { k: 'nper', h: 'PER', t: 'Periodos jugados' },
-  { k: 'pts', h: 'PTS', t: 'Puntos', cls: 'hl' },
-  { k: 't1', h: 'T1', t: 'Tiros libres (anotados/intentados)', shot: 1, sortKey: 't1m' },
-  { k: 't2', h: 'T2', t: 'Tiros de 2 (anotados/intentados)', shot: 2, sortKey: 't2m' },
-  { k: 't3', h: 'T3', t: 'Triples (anotados/intentados)', shot: 3, sortKey: 't3m' },
-  { k: 'ro', h: 'RO', t: 'Rebotes de ataque' },
-  { k: 'rd', h: 'RD', t: 'Rebotes de defensa' },
-  { k: 'reb', h: 'RT', t: 'Rebotes totales' },
-  { k: 'ast', h: 'AS', t: 'Asistencias' },
-  { k: 'blk', h: 'TAP', t: 'Tapones puestos' },
-  { k: 'blkr', h: 'TR', t: 'Tapones recibidos' },
-  { k: 'rec', h: 'REC', t: 'Balones recuperados' },
-  { k: 'lost', h: 'PÉR', t: 'Balones perdidos' },
-  { k: 'fc', h: 'FC', t: 'Faltas cometidas' },
-  { k: 'fr', h: 'FR', t: 'Faltas recibidas' },
-  { k: 'val', h: 'VAL', t: 'Valoración', cls: 'hl' },
+  { k: 'number', h: '#', cls: 'c-num', g: 'id' },
+  { k: 'name', h: 'Jugador', cls: 'c-name', g: 'id' },
+  { k: 'gp', h: 'PJ', t: 'Partidos jugados', season: true, g: 'played' },
+  { k: 'nper', h: 'PER', t: 'Periodos jugados', g: 'played' },
+  { k: 'pts', h: 'PTS', t: 'Puntos', cls: 'hl', g: 'shots' },
+  { k: 't1', h: 'T1', t: 'Tiros libres (anotados/intentados)', shot: 1, sortKey: 't1m', g: 'shots' },
+  { k: 't2', h: 'T2', t: 'Tiros de 2 (anotados/intentados)', shot: 2, sortKey: 't2m', g: 'shots' },
+  { k: 't3', h: 'T3', t: 'Triples (anotados/intentados)', shot: 3, sortKey: 't3m', g: 'shots' },
+  { k: 'ro', h: 'RO', t: 'Rebotes de ataque', g: 'reb' },
+  { k: 'rd', h: 'RD', t: 'Rebotes de defensa', g: 'reb' },
+  { k: 'reb', h: 'RT', t: 'Rebotes totales', g: 'reb' },
+  { k: 'ast', h: 'AS', t: 'Asistencias', g: 'ball' },
+  { k: 'blk', h: 'TAP', t: 'Tapones puestos', g: 'ball' },
+  { k: 'blkr', h: 'TR', t: 'Tapones recibidos', g: 'ball' },
+  { k: 'rec', h: 'REC', t: 'Balones recuperados', g: 'ball' },
+  { k: 'lost', h: 'PÉR', t: 'Balones perdidos', g: 'ball' },
+  { k: 'fc', h: 'FC', t: 'Faltas cometidas', g: 'fouls' },
+  { k: 'fr', h: 'FR', t: 'Faltas recibidas', g: 'fouls' },
+  { k: 'val', h: 'VAL', t: 'Valoración', cls: 'hl c-val', g: 'val' },
 ];
 
 function statsData(arg) {
@@ -833,7 +933,7 @@ function statsData(arg) {
 function viewStats(arg) {
   const games = sortedGames();
   if (!games.length) {
-    return shell('stats', `<section class="card"><p class="empty">Aún no hay partidos registrados.<br><a href="#/partidos">Crea el primero</a>.</p></section>`);
+    return shell('stats', `<section class="card"><p class="empty">${BALL}Aún no hay partidos registrados.<br><a href="#/partidos">Crea el primero</a>.</p></section>`);
   }
   if (!arg) { arg = games[0].id; history.replaceState(null, '', `#/stats/${arg}`); }
   const data = statsData(arg);
@@ -841,29 +941,31 @@ function viewStats(arg) {
 
   const options = `<option value="temporada" ${data.season ? 'selected' : ''}>Temporada · ${games.length} partido${games.length === 1 ? '' : 's'}</option>` +
     games.map(g => { const s = score(g); return `<option value="${g.id}" ${!data.season && data.game.id === g.id ? 'selected' : ''}>${fmtDate(g.date, true)} · vs ${esc(g.opponent)} (${s.us}-${s.them})</option>`; }).join('');
+  const g = data.game;
 
   const head = `
     <div class="stats-head">
-      <select data-change="stats-select" class="stats-select">${options}</select>
+      <select data-change="stats-select" class="stats-select" aria-label="Partido o temporada">${options}</select>
       ${data.season ? `
         <div class="seg">
           <button class="${ui.avg ? '' : 'on'}" data-action="avg" data-v="0">Totales</button>
           <button class="${ui.avg ? 'on' : ''}" data-action="avg" data-v="1">Por partido</button>
         </div>` : ''}
       <span class="grow"></span>
-      ${!data.season ? `<a class="btn" href="#/partido/${data.game.id}">${data.game.finished ? 'Abrir partido' : '▶ Volver al partido'}</a>` : ''}
-      <button class="btn" data-action="share" data-arg="${esc(arg)}">✉ Enviar</button>
-      <button class="btn" data-action="csv" data-arg="${esc(arg)}">⬇ CSV</button>
+      ${!data.season && !g.finished ? `<button class="btn" data-action="finish" data-id="${g.id}" title="Finalizar partido">${icon('flag')} Finalizar</button>` : ''}
+      ${!data.season ? `<a class="btn" href="#/partido/${g.id}">${g.finished ? 'Abrir partido' : `${icon('play', 'solid')} Volver al partido`}</a>` : ''}
+      <button class="btn" data-action="share" data-arg="${esc(arg)}">${icon('mail')} Enviar</button>
+      <button class="btn" data-action="csv" data-arg="${esc(arg)}">${icon('download')} CSV</button>
     </div>`;
 
   return shell('stats', `
     ${head}
-    ${data.season ? seasonSummary() : gameSummary(data.game)}
+    ${data.season ? seasonSummary() : gameSummary(g)}
     ${leaders(data)}
     <section class="card table-card">${statsTable(data)}</section>
     <p class="muted small formula"><b>VAL</b> (valoración ACB) = puntos + rebotes + asistencias + recuperaciones + tapones + faltas recibidas − tiros fallados (cada uno resta 1) − tapones recibidos − pérdidas − faltas cometidas.
     Toca la cabecera de una columna para ordenar.</p>
-    <p class="support">¿Te es útil la app? <a href="${KOFI_URL}" target="_blank" rel="noopener">☕ Invítame a un café</a></p>
+    <p class="support">¿Te es útil la app? <a href="${KOFI_URL}" target="_blank" rel="noopener">${icon('coffee')} Invítame a un café</a></p>
   `);
 }
 
@@ -875,19 +977,154 @@ function gameSummary(g) {
   <section class="card summary">
     <div class="final">
       <div class="ft us"><small>${esc(g.teamName)}</small><b>${s.us}</b></div>
-      <div class="ft-mid"><span class="badge ${res}">${g.finished ? (res === 'win' ? 'Victoria' : res === 'loss' ? 'Derrota' : 'Empate') : 'En juego'}</span><small>${fmtDate(g.date)}</small></div>
+      <div class="ft-mid">${g.finished ? `<span class="badge ${res}">${RESULT[res]}</span>` : '<span class="badge"><span class="dot"></span>En juego</span>'}<small>${fmtDate(g.date)}</small></div>
       <div class="ft them"><small>${esc(g.opponent)}</small><b>${s.them}</b></div>
     </div>
     <div class="ptable-wrap">
       <table class="ptable">
-        <tr><th></th>${ps.us.map((_, i) => `<th>${perAbbr(g, i + 1)}</th>`).join('')}<th>Total</th></tr>
+        <tr><th></th>${ps.us.map((_, i) => `<th>${perAbbr(g, i + 1)}</th>`).join('')}<th class="t">Total</th></tr>
         <tr><td class="l us">${esc(g.teamName)}</td>${ps.us.map((v, i) => `<td class="${v > ps.them[i] ? 'w' : ''}">${v}</td>`).join('')}<td class="t">${s.us}</td></tr>
         <tr><td class="l them">${esc(g.opponent)}</td>${ps.them.map((v, i) => `<td class="${v > ps.us[i] ? 'w' : ''}">${v}</td>`).join('')}<td class="t">${s.them}</td></tr>
+        ${flowRow(g)}
       </table>
     </div>
-    ${g.finished ? '' : `<button class="btn" data-action="finish" data-id="${g.id}">🏁 Finalizar partido</button>`}
   </section>`;
 }
+
+/* Evolución del marcador: cómo queda tras cada anotación, en el orden del partido. Devuelve un punto por
+   anotación, { period, x, us, them }, con x entre 0 y g.periods: las anotaciones de un periodo se reparten
+   a lo ancho de su tramo, así el gráfico comparte columnas con la tabla de parciales. */
+function scoreFlow(g) {
+  const byPeriod = Array.from({ length: g.periods }, () => []);
+  for (const e of g.events) {
+    const pts = e.type === 'opp' ? e.pts : (EV[e.type] && EV[e.type].pts) || 0;
+    if (!pts) continue;
+    const i = Math.min(Math.max((e.period || 1) - 1, 0), g.periods - 1);
+    byPeriod[i].push(e.type === 'opp' ? [0, pts] : [pts, 0]);
+  }
+  const out = [];
+  let us = 0, them = 0;
+  byPeriod.forEach((list, i) => list.forEach(([a, b], k) => {
+    us += a; them += b;
+    out.push({ period: i + 1, x: i + (k + 1) / (list.length + 1), us, them });
+  }));
+  return out;
+}
+
+/* Hasta dónde llega la línea: el final del partido si está finalizado; si no, la última anotación
+   (o el inicio del periodo en curso, si aún no se ha anotado en él) */
+function flowEnd(g, flow) {
+  if (g.finished) return g.periods;
+  const last = flow.length ? flow[flow.length - 1].x : 0;
+  return Math.max(last, Math.min(g.period, g.periods) - 1);
+}
+
+/* Escala vertical del gráfico: siempre incluye el cero y deja un margen mínimo a cada lado */
+function flowScale(flow) {
+  const diffs = flow.map(p => p.us - p.them);
+  const hi = Math.max(2, ...diffs), lo = Math.min(-2, ...diffs);
+  return { hi, lo, y: (d) => round1((hi - d) / (hi - lo) * 100) };
+}
+
+const signed = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
+const sideOf = (n) => (n > 0 ? 'us' : n < 0 ? 'them' : '');
+
+/* Fila de la tabla de parciales con la diferencia de puntos a lo largo del partido: por encima de la línea
+   central vamos por delante (verde); por debajo, el rival (azul). Es una línea escalonada: la diferencia
+   solo cambia cuando alguien anota. */
+function flowRow(g) {
+  const flow = scoreFlow(g);
+  if (!flow.length) return '';
+  const { hi, lo, y } = flowScale(flow);
+  const end = flowEnd(g, flow);
+  const X = (x) => round1(x * 100);
+  const steps = flow.map(p => [X(p.x), p.us - p.them]);
+  const last = steps[steps.length - 1][1];
+
+  // Área y contorno de un lado (side = 1 nosotros, −1 rival): la misma escalera recortada en el cero
+  const half = (side) => {
+    const clamp = (d) => (side > 0 ? Math.max(d, 0) : Math.min(d, 0));
+    let area = `M0 ${y(0)}`, line = '', px = 0, pd = 0;
+    for (const [x, d] of [...steps, [X(end), last]]) {
+      area += `H${x}V${y(clamp(d))}`;
+      if (clamp(pd) !== 0) line += `M${px} ${y(pd)}H${x}`;
+      if (clamp(pd) !== clamp(d)) line += `M${x} ${y(clamp(pd))}V${y(clamp(d))}`;
+      px = x; pd = d;
+    }
+    return { area: `${area}V${y(0)}Z`, line };
+  };
+  const us = half(1), them = half(-1);
+  const grid = Array.from({ length: g.periods - 1 }, (_, i) => `M${(i + 1) * 100} 0V100`).join('');
+  const diffs = steps.map(([, d]) => d);
+  const best = Math.max(0, ...diffs), worst = Math.min(0, ...diffs);
+  const label = `Diferencia de puntos a lo largo del partido. Máxima ventaja de ${g.teamName}: ${best}. Máxima ventaja de ${g.opponent}: ${-worst}. ${g.finished ? 'Final' : 'Ahora'}: ${signed(last)}.`;
+  return `
+        <tr class="flow-row">
+          <td class="l flow-label" data-label="Diferencia">Diferencia</td>
+          <td class="flow-cell" colspan="${g.periods}">
+            <div class="flow" data-flow="${g.id}" role="img" aria-label="${esc(label)}">
+              <svg viewBox="0 0 ${g.periods * 100} 100" preserveAspectRatio="none" aria-hidden="true">
+                <path class="grid" d="${grid}"/>
+                <path class="area us" d="${us.area}"/><path class="area them" d="${them.area}"/>
+                <path class="base" d="M0 ${y(0)}H${g.periods * 100}"/>
+                <path class="line us" d="${us.line}"/><path class="line them" d="${them.line}"/>
+              </svg>
+              <i class="flow-cross" hidden></i>
+              <i class="flow-end ${sideOf(last)}" style="left:${round1(end / g.periods * 100)}%;top:${y(last)}%"></i>
+              <i class="flow-dot" hidden></i>
+            </div>
+          </td>
+          <td class="t flow-diff ${sideOf(last)}">${signed(last)}</td>
+        </tr>`;
+}
+
+/* Al pasar el dedo o el ratón por la evolución del marcador se ve cómo iba el partido en ese momento */
+function flowScrub(e) {
+  const el = e.target instanceof Element ? e.target.closest('.flow') : null;
+  for (const other of document.querySelectorAll('.flow.scrub')) if (other !== el || e.type === 'pointerup' || e.type === 'pointercancel') flowReset(other);
+  if (!el || e.type === 'pointerup' || e.type === 'pointercancel') return;
+  const g = getGame(el.dataset.flow);
+  const box = el.getBoundingClientRect();
+  if (!g || !box.width) return;
+  const flow = scoreFlow(g);
+  const end = flowEnd(g, flow);
+  const x = Math.min(Math.max((e.clientX - box.left) / box.width, 0), 1) * g.periods;
+  const at = Math.min(x, end);
+  let p = { us: 0, them: 0 };
+  for (const q of flow) { if (q.x > at) break; p = q; }
+  const period = Math.min(Math.floor(at) + 1, g.periods);
+  const d = p.us - p.them;
+  const left = `${round1(at / g.periods * 100)}%`;
+  const cross = el.querySelector('.flow-cross'), dot = el.querySelector('.flow-dot');
+  cross.hidden = dot.hidden = false;
+  cross.style.left = dot.style.left = left;
+  dot.style.top = `${flowScale(flow).y(d)}%`;
+  dot.className = `flow-dot ${sideOf(d)}`;
+  el.classList.add('scrub');
+  const row = el.closest('tr');
+  row.querySelector('.flow-label').innerHTML = `<b>${perAbbr(g, period)} · ${p.us}–${p.them}</b>`;
+  const diff = row.querySelector('.flow-diff');
+  diff.textContent = signed(d);
+  diff.className = `t flow-diff ${sideOf(d)}`;
+}
+
+function flowReset(el) {
+  el.classList.remove('scrub');
+  el.querySelector('.flow-cross').hidden = el.querySelector('.flow-dot').hidden = true;
+  const g = getGame(el.dataset.flow);
+  const row = el.closest('tr');
+  const label = row.querySelector('.flow-label');
+  label.textContent = label.dataset.label;
+  if (!g) return;
+  const flow = scoreFlow(g);
+  const last = flow.length ? flow[flow.length - 1].us - flow[flow.length - 1].them : 0;
+  const diff = row.querySelector('.flow-diff');
+  diff.textContent = signed(last);
+  diff.className = `t flow-diff ${sideOf(last)}`;
+}
+
+for (const type of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel']) document.addEventListener(type, flowScrub);
+document.documentElement.addEventListener('pointerleave', () => document.querySelectorAll('.flow.scrub').forEach(flowReset));
 
 function seasonSummary() {
   let w = 0, l = 0, t = 0, pf = 0, pc = 0, done = 0;
@@ -905,15 +1142,53 @@ function seasonSummary() {
   const avg = (v) => (done ? round1(v / done) : '–');
   const box = (v, lbl, cls = '') => `<div class="kpi ${cls}"><b>${v}</b><small>${lbl}</small></div>`;
   return `
-  <section class="card summary kpis">
-    ${box(games.length, 'Partidos')}
-    ${box(w, 'Victorias', 'win')}
-    ${box(l, 'Derrotas', 'loss')}
-    ${t ? box(t, 'Empates') : ''}
-    ${open ? box(open, 'En juego') : ''}
-    ${box(avg(pf), 'Puntos a favor / partido')}
-    ${box(avg(pc), 'Puntos en contra / partido')}
+  <section class="card summary">
+    <div class="kpis">
+      <div class="kpi-row">
+        ${box(games.length, 'Partidos')}
+        ${box(w, 'Victorias', 'win')}
+        ${box(l, 'Derrotas', 'loss')}
+        ${t ? box(t, 'Empates') : ''}
+        ${open ? box(open, 'En juego') : ''}
+      </div>
+      <div class="kpi-row">
+        ${box(avg(pf), 'Puntos a favor / partido')}
+        ${box(avg(pc), 'Puntos en contra / partido')}
+      </div>
+    </div>
+    ${seasonTrend()}
   </section>`;
+}
+
+/* Temporada de un vistazo: la diferencia de puntos de cada partido, del más antiguo al más reciente. Las victorias
+   suben desde la línea central y las derrotas bajan; cada columna lleva a las estadísticas de su partido.
+   Los partidos sin finalizar se dibujan solo con el contorno, y los que no tienen ninguna jugada no salen. */
+const TREND_MAX = 24;
+
+function seasonTrend() {
+  const all = teamGames()
+    .filter(g => g.finished || g.events.length)
+    .sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0));
+  const items = all.slice(-TREND_MAX).map(g => { const s = score(g); return { g, s, d: s.us - s.them }; });
+  if (!items.length) return '';
+  const hi = Math.max(0, ...items.map(i => i.d)), lo = Math.min(0, ...items.map(i => i.d));
+  const range = hi - lo || 1;
+  const n = items.length;
+  const every = Math.ceil(n / 8);   // con muchos partidos, la fecha solo cada varios
+  const cols = items.map(({ g, s, d }, i) => {
+    const dir = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
+    const state = !g.finished ? 'open' : d > 0 ? 'win' : d < 0 ? 'loss' : 'tie';
+    // Con pocos partidos se rotulan todos; con muchos, solo el mejor, el peor y el último
+    const labelled = n <= 10 || i === n - 1 || d === hi || d === lo;
+    const title = `${fmtDate(g.date, true)} · vs ${g.opponent}: ${s.us}–${s.them}${g.finished ? '' : ' (en juego)'}`;
+    return `<a class="tcol ${dir} ${state}" href="#/stats/${g.id}" style="--h:${round1(Math.abs(d) / range * 100)}%" title="${esc(title)}" aria-label="${esc(title)}">`
+      + `<i class="tbar"></i>${labelled ? `<b class="tval">${signed(d)}</b>` : ''}${(n - 1 - i) % every === 0 ? `<small class="tx">${fmtDate(g.date, true)}</small>` : ''}</a>`;
+  }).join('');
+  return `
+    <figure class="trend">
+      <figcaption>Diferencia de puntos por partido${all.length > n ? ` · últimos ${n}` : ''}</figcaption>
+      <div class="trend-plot ${lo < 0 ? 'has-neg' : ''}" style="--base:${round1(hi / range * 100)}%">${cols}</div>
+    </figure>`;
 }
 
 function leaders(data) {
@@ -924,7 +1199,7 @@ function leaders(data) {
     if (!colVisible(k, data)) return '';
     const r = best(k);
     if (!r || r[k] <= 0) return `<div class="leader"><small>${lbl}</small><b>–</b></div>`;
-    return `<div class="leader"><small>${lbl}</small><b>${r[k]}</b><span>#${esc(r.number)} ${esc(r.name)}</span></div>`;
+    return `<div class="leader"><small>${lbl}</small><b>${r[k]}</b><span><i>#${esc(r.number)}</i> ${esc(r.name)}</span></div>`;
   };
   return `<section class="leaders">
     ${card('val', 'Mejor valoración')}${card('pts', 'Máx. anotador')}${card('reb', 'Más rebotes')}${card('ast', 'Más asistencias')}${card('rec', 'Más recuperaciones')}${card('blk', 'Más tapones')}
@@ -934,11 +1209,13 @@ function leaders(data) {
 function cellValue(r, c) {
   if (c.shot) {
     const m = r[`t${c.shot}m`], a = r[`t${c.shot}a`];
-    return `${m}/${a}<small>${pct(m, a)}</small>`;
+    const meter = a ? `<i class="meter" style="--p:${Math.min(round1(m / a * 100) / 100, 1)}"><i></i></i>` : '';
+    return `<span class="shot">${m}/${a}<small>${meter}${pct(m, a)}</small></span>`;
   }
   if (c.k === 'name') return esc(r.name);
   if (c.k === 'number') return esc(r.number);
   if (c.k === 'nper' && r.perList && r.perList.length) return `<span title="Periodos: ${r.perList.join(', ')}">${r.nper}</span>`;
+  if (c.k === 'val') return `<span class="val ${r.val > 0 ? 'pos' : r.val < 0 ? 'neg' : ''}">${r.val}</span>`;
   return r[c.k];
 }
 
@@ -966,14 +1243,19 @@ function statsTable(data) {
     if (typeof va === 'string') return dir * va.localeCompare(vb);
     return dir * (va - vb) || byNumber(a, b);
   });
+  // Clases comunes a toda la columna: la suya, el inicio de un grupo de columnas y si es la ordenada
+  const colCls = cols.map((c, i) => `${c.cls || ''}${i && cols[i - 1].g !== c.g && c.g !== 'played' ? ' gs' : ''}${key === c.k ? ' sorted' : ''}`);
+  // Los ceros se atenúan para que destaque lo que sí ha pasado (en los tiros, no haber tirado)
+  const isZero = (r, c) => (c.shot ? r[`t${c.shot}a`] === 0 : c.k !== 'val' && r[c.k] === 0);
+  const cell = (r, c, i) => `<td class="${colCls[i]}${isZero(r, c) ? ' zero' : ''}${c.k === 'fc' && !data.season && r.fc >= MAX_FOULS ? ' neg' : ''}">${cellValue(r, c)}</td>`;
   return `
   <div class="table-wrap">
     <table class="stats">
-      <thead><tr>${cols.map(c => `<th class="${c.cls || ''} ${key === c.k ? 'sorted' : ''}" data-action="sort" data-k="${c.k}" title="${c.t || ''}">${c.h}${key === c.k ? (dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead>
+      <thead><tr>${cols.map((c, i) => `<th class="${colCls[i]}" data-action="sort" data-k="${c.k}" title="${c.t || ''}"${key === c.k ? ` aria-sort="${dir > 0 ? 'ascending' : 'descending'}"` : ''}>${c.h}${key === c.k ? `<i class="sort-ind ${dir > 0 ? 'asc' : 'desc'}"></i>` : ''}</th>`).join('')}</tr></thead>
       <tbody>
-        ${rows.map(r => `<tr class="${r.gp ? '' : 'dnp'}">${cols.map(c => `<td class="${c.cls || ''} ${c.k === 'val' ? (r.val > 0 ? 'pos' : r.val < 0 ? 'neg' : '') : ''} ${c.k === 'fc' && !data.season && r.fc >= MAX_FOULS ? 'neg' : ''}">${cellValue(r, c)}</td>`).join('')}</tr>`).join('')}
+        ${rows.map(r => `<tr class="${r.gp ? '' : 'dnp'}">${cols.map((c, i) => cell(r, c, i)).join('')}</tr>`).join('')}
       </tbody>
-      <tfoot><tr>${cols.map(c => `<td class="${c.cls || ''}">${c.k === 'number' ? '' : cellValue(data.total, c)}</td>`).join('')}</tr></tfoot>
+      <tfoot><tr>${cols.map((c, i) => (c.k === 'number' ? `<td class="${colCls[i]}"></td>` : cell(data.total, c, i))).join('')}</tr></tfoot>
     </table>
   </div>`;
 }
@@ -1068,15 +1350,15 @@ function renderMenu(m) {
   return `
   <div class="modal-head"><h3>vs ${esc(g.opponent)} · ${fmtDate(g.date)}</h3></div>
   <div class="menu-list">
-    <button class="btn" data-action="lineup">⇄ Jugadores en pista</button>
-    <button class="btn" data-action="log">📝 Jugadas registradas (${g.events.length})</button>
-    <a class="btn" href="#/stats/${g.id}">📊 Estadísticas del partido</a>
-    <button class="btn" data-action="theme">${isLight() ? '🌙 Modo oscuro' : '☀️ Modo claro'}</button>
-    ${document.fullscreenEnabled ? `<button class="btn" data-action="fullscreen">⛶ Pantalla completa</button>` : ''}
+    <button class="btn" data-action="lineup">${icon('swap')} Jugadores en pista</button>
+    <button class="btn" data-action="log">${icon('list')} Jugadas registradas (${g.events.length})</button>
+    <a class="btn" href="#/stats/${g.id}">${icon('chart')} Estadísticas del partido</a>
+    <button class="btn" data-action="theme">${isLight() ? `${icon('moon')} Modo oscuro` : `${icon('sun')} Modo claro`}</button>
+    ${document.fullscreenEnabled ? `<button class="btn" data-action="fullscreen">${icon(document.fullscreenElement ? 'compress' : 'expand')} Pantalla completa</button>` : ''}
     ${g.finished
-      ? `<button class="btn" data-action="reopen" data-id="${g.id}">↺ Reabrir partido</button>`
-      : `<button class="btn" data-action="finish" data-id="${g.id}">🏁 Finalizar partido</button>`}
-    <a class="btn" href="#/partidos">⌂ Salir a partidos</a>
+      ? `<button class="btn" data-action="reopen" data-id="${g.id}">${icon('reopen')} Reabrir partido</button>`
+      : `<button class="btn finish" data-action="finish" data-id="${g.id}">${icon('flag')} Finalizar partido</button>`}
+    <a class="btn" href="#/partidos">${icon('exit')} Salir a partidos</a>
   </div>`;
 }
 
@@ -1096,7 +1378,7 @@ function renderLog(m) {
       <div class="log-row ${e.type === 'opp' ? 'opp' : (EV[e.type] && EV[e.type].cls) || ''}">
         <span class="lp">${perAbbr(g, e.period)}</span>
         <span class="lt">${eventText(g, e)}</span>
-        <button class="icon-btn danger" data-action="del-event" data-id="${e.id}" title="Eliminar">✕</button>
+        <button class="icon-btn danger" data-action="del-event" data-id="${e.id}" title="Eliminar" aria-label="Eliminar jugada">${icon('x')}</button>
       </div>`).join('') : '<p class="empty">Aún no hay jugadas.</p>'}
   </div>
   <div class="modal-actions"><button class="btn primary" data-action="modal-close">Cerrar</button></div>`;
@@ -1265,7 +1547,7 @@ const actions = {
     const d = parseInt(el.dataset.d, 10);
     if (d > 0 && g.period >= g.periods) {
       if (g.finished) { toast('El partido está finalizado'); return; }
-      if (await confirmBox(`Es el último periodo. ¿Finalizar el partido?`, '🏁 Finalizar')) finishGame(g);
+      if (await confirmBox(`Es el último periodo. ¿Finalizar el partido?`, `${icon('flag')} Finalizar`)) finishGame(g);
       return;
     }
     g.period = Math.min(Math.max(g.period + d, 1), g.periods);
@@ -1336,7 +1618,7 @@ const actions = {
     const g = getGame(el.dataset.id);
     if (!g) return;
     if (ui.modal) closeModal(true);
-    if (await confirmBox(`¿Finalizar el partido contra <b>${esc(g.opponent)}</b>?<br><small class="muted">Podrás reabrirlo desde el menú del partido.</small>`, '🏁 Finalizar')) finishGame(g);
+    if (await confirmBox(`¿Finalizar el partido contra <b>${esc(g.opponent)}</b>?<br><small class="muted">Podrás reabrirlo desde el menú del partido.</small>`, `${icon('flag')} Finalizar`)) finishGame(g);
   },
   reopen(el) {
     const g = getGame(el.dataset.id);
@@ -1396,7 +1678,7 @@ async function offerFinishPending() {
     : `Hay ${pending.length} partidos sin finalizar:<br>${pending.map(g => `· ${label(g)}`).join('<br>')}<br>¿Los finalizas antes de empezar el nuevo?`;
   const ok = await confirmBox(
     `${msg}<br><small class="muted">Solo los partidos finalizados cuentan como victoria, derrota o empate. Podrás reabrir${one ? 'lo' : 'los'} desde el menú del partido.</small>`,
-    one ? '🏁 Finalizarlo' : '🏁 Finalizarlos', false, 'Dejar sin finalizar');
+    `${icon('flag')} ${one ? 'Finalizarlo' : 'Finalizarlos'}`, false, 'Dejar sin finalizar');
   if (!ok) return;
   for (const g of pending) g.finished = true;
   save();
@@ -1583,9 +1865,9 @@ function renderShare(m) {
   <div class="modal-head"><h3>Enviar estadísticas</h3></div>
   <pre class="share-preview">${esc(m.text)}</pre>
   <div class="modal-actions">
-    <button class="btn" data-action="copy-text">📋 Copiar</button>
-    ${navigator.share ? '<button class="btn" data-action="native-share">↗ Compartir</button>' : ''}
-    <a class="btn primary" href="${esc(m.mailto)}">✉ Email${team().email ? ` a ${esc(team().email)}` : ''}</a>
+    <button class="btn" data-action="copy-text">${icon('copy')} Copiar</button>
+    ${navigator.share ? `<button class="btn" data-action="native-share">${icon('share')} Compartir</button>` : ''}
+    <a class="btn primary" href="${esc(m.mailto)}">${icon('mail')} Email${team().email ? ` a ${esc(team().email)}` : ''}</a>
     <button class="btn" data-action="modal-close">Cerrar</button>
   </div>`;
 }
@@ -1646,18 +1928,18 @@ function renderInstall() {
   if (isInstalled() || (plat === 'other' && !installPrompt)) { el.hidden = true; return; }
   let body;
   if (installPrompt) {
-    body = `<button class="btn primary big install-btn" data-action="install">📲 Instalar Cantera Stats</button>`;
+    body = `<button class="btn primary big install-btn" data-action="install">${icon('download')} Instalar Cantera Stats</button>`;
   } else if (plat === 'ios') {
     body = `<ol>
       <li>Toca ${SHARE_ICON} <b>Compartir</b> en la barra de Safari</li>
       <li>Elige <b>“Añadir a pantalla de inicio”</b></li>
-      <li>Ábrela desde el icono 🏀</li>
+      <li>Ábrela desde el icono ${BALL}</li>
     </ol>`;
   } else {
     body = `<ol>
       <li>Abre el menú <b>⋮</b> del navegador</li>
       <li>Elige <b>“Instalar aplicación”</b> o <b>“Añadir a pantalla de inicio”</b></li>
-      <li>Ábrela desde el icono 🏀</li>
+      <li>Ábrela desde el icono ${BALL}</li>
     </ol>`;
   }
   el.innerHTML = `<h2>Añádela a tu pantalla de inicio</h2>${body}

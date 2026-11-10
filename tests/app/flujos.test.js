@@ -50,7 +50,7 @@ describe('arranque y navegación', () => {
 
   it('la página de privacidad se abre desde la pantalla de equipos', async () => {
     const app = await openApp({ hash: '#/privacidad' });
-    expect(app.text('h1')).toBe('🔒 Tu privacidad');
+    expect(app.text('h1')).toBe('Tu privacidad');
     expect(app.text()).toContain('No envía a ningún servidor');
   });
 
@@ -147,6 +147,20 @@ describe('lista de partidos', () => {
     expect(items[1]).toContain('vs Rival');
     expect(items[1]).toContain('Finalizado');
     expect(app.text(app.$$('.games .g-score')[1])).toBe('8–4');
+  });
+
+  it('cada partido lleva su fecha y, si está finalizado, su resultado', async () => {
+    const games = [
+      sampleGame({ finished: true }),                                                                        // 8-4
+      makeGame({ id: 'g2', date: '2026-10-10', finished: true, events: [opp(2)] }),                          // 0-2
+      makeGame({ id: 'g3', date: '2026-11-07', finished: true }),                                            // 0-0
+      makeGame({ id: 'g4', date: '2026-11-14' }),                                                            // en juego
+    ];
+    const app = await openApp({ data: makeData({ games }), hash: '#/partidos' });
+    const rows = app.$$('.games li');
+    expect(rows.map((li) => app.text(li.querySelector('.g-date')))).toEqual(['14nov', '7nov', '10oct', '3oct']);
+    expect(rows.map((li) => app.text(li.querySelector('.g-res')))).toEqual(['', 'E', 'D', 'V']);
+    expect(rows.map((li) => li.querySelector('.g-res').title)).toEqual(['En juego', 'Empate', 'Derrota', 'Victoria']);
   });
 
   it('borra un partido tras confirmar', async () => {
@@ -339,6 +353,17 @@ describe('partido en directo', () => {
     expect(app.toast).toContain('5 faltas: eliminado/a');
   });
 
+  it('las faltas de cada jugador se ven también como puntos bajo su dorsal', async () => {
+    const app = await live();
+    const dots = (pid) => rowOf(app, pid).querySelectorAll('.fouls-dots i.on').length;
+    expect(rowOf(app, 'p4').querySelectorAll('.fouls-dots i')).toHaveLength(5);
+    expect(dots('p4')).toBe(0);
+    await tap(app, 'p4', 'fc', 3);
+    await tap(app, 'p7', 'fc');
+    expect([dots('p4'), dots('p7'), dots('p10')]).toEqual([3, 1, 0]);
+    expect(app.text(rowOf(app, 'p4').querySelector('.num'))).toBe('4');  // el dorsal sigue siendo solo el dorsal
+  });
+
   it('cambia a un jugador por otro del banquillo en el mismo hueco', async () => {
     const app = await live({ period: 3 });
     await app.act('swap', { pid: 'p4' });
@@ -527,6 +552,86 @@ describe('estadísticas', () => {
     expect(cells(app.$$('.ptable tr')[2])).toEqual(['Rival', '2', '2', '0', '0', '0', '0', '0', '0', '4']);
     const leader = app.$('.leader');
     expect([...leader.children].map((el) => el.textContent)).toEqual(['Mejor valoración', '5', '#7 Bruno']);
+  });
+
+  it('el resumen del partido dibuja la evolución del marcador bajo los parciales', async () => {
+    const app = await openApp({ data: makeData({ games: [sampleGame({ finished: true })] }), hash: '#/stats/g1' });
+    const flow = app.$('.ptable .flow');
+    expect(flow.getAttribute('aria-label')).toBe('Diferencia de puntos a lo largo del partido. Máxima ventaja de Alevín A: 4. Máxima ventaja de Rival: 0. Final: +4.');
+    expect(app.$('.flow-cell').colSpan).toBe(8);                           // ocupa las columnas de los periodos
+    expect(app.text('.flow-diff')).toBe('+4');
+    expect(app.$('.flow-end').classList.contains('us')).toBe(true);
+    expect(app.$('.flow .line.them').getAttribute('d')).toBe('');          // el rival no ha ido nunca por delante
+  });
+
+  it('la evolución del marcador muestra cómo iba el partido en el punto que se señala', async () => {
+    const app = await openApp({ data: makeData({ games: [sampleGame({ finished: true })] }), hash: '#/stats/g1' });
+    const flow = app.$('.flow');
+    flow.getBoundingClientRect = () => ({ left: 100, top: 0, width: 800, height: 60 });  // jsdom no calcula el diseño
+    const point = (type, clientX = 0) => flow.dispatchEvent(new app.window.MouseEvent(type, { bubbles: true, clientX }));
+
+    point('pointermove', 100 + 150);   // a mitad del P2: el rival acaba de anotar su +3
+    expect(app.text('.flow-label')).toBe('P2 · 6–5');
+    expect(app.text('.flow-diff')).toBe('+1');
+    expect(app.$('.flow-cross').hidden).toBe(false);
+
+    point('pointermove', 100 + 10);    // antes de la primera canasta
+    expect(app.text('.flow-label')).toBe('P1 · 0–0');
+    expect(app.text('.flow-diff')).toBe('0');
+
+    point('pointerup');                // al soltar vuelve el resultado final
+    expect(app.text('.flow-label')).toBe('Diferencia');
+    expect(app.text('.flow-diff')).toBe('+4');
+    expect(app.$('.flow-cross').hidden).toBe(true);
+  });
+
+  it('un partido sin puntos no dibuja la evolución', async () => {
+    const app = await openApp({ data: makeData({ games: [makeGame({ events: [ev('rd', 'p4')] })] }), hash: '#/stats/g1' });
+    expect(app.$('.ptable')).not.toBeNull();
+    expect(app.$('.flow')).toBeNull();
+  });
+
+  it('la temporada dibuja la diferencia de puntos de cada partido, del más antiguo al más reciente', async () => {
+    const games = [
+      ...twoGames().games,                                                                                    // g1 en juego (8-4) y g2 finalizado (4-0)
+      makeGame({ id: 'g3', date: '2026-10-17', finished: true, events: [opp(3), ev('t1_ok', 'p4')] }),       // 1-3
+      makeGame({ id: 'g4', date: '2026-10-24', finished: true, events: [opp(2), ev('t2_ok', 'p4')] }),       // 2-2
+      makeGame({ id: 'g5', date: '2026-10-31' }),                                                            // sin jugadas: no sale
+    ];
+    const app = await openApp({ data: makeData({ games }), hash: '#/stats/temporada' });
+    const cols = app.$$('.trend .tcol');
+    expect(cols.map((a) => a.getAttribute('href'))).toEqual(['#/stats/g1', '#/stats/g2', '#/stats/g3', '#/stats/g4']);
+    expect(cols.map((a) => app.text(a.querySelector('.tval')))).toEqual(['+4', '+4', '−2', '0']);
+    expect(cols.map((a) => a.className.replace('tcol ', ''))).toEqual(['up open', 'up win', 'down loss', 'flat tie']);
+    expect(cols[0].title).toBe('03/10 · vs Rival: 8–4 (en juego)');
+    expect(cols[2].title).toBe('17/10 · vs Rival: 1–3');
+  });
+
+  it('con muchos partidos la temporada dibuja los últimos 24 y solo rotula el mejor, el peor y el último', async () => {
+    const games = Array.from({ length: 30 }, (_, i) => makeGame({
+      id: `g${i}`, createdAt: i, date: `2026-${String(1 + Math.floor(i / 28)).padStart(2, '0')}-${String(1 + (i % 28)).padStart(2, '0')}`, finished: true,
+      events: i === 10 ? [opp(3)] : i === 20 ? [ev('t3_ok', 'p4'), ev('t3_ok', 'p4')] : [ev('t1_ok', 'p4')],
+    }));
+    const app = await openApp({ data: makeData({ games }), hash: '#/stats/temporada' });
+    expect(app.text('.trend figcaption')).toBe('Diferencia de puntos por partido · últimos 24');
+    expect(app.$$('.trend .tcol')).toHaveLength(24);
+    expect(app.$('.trend .tcol').getAttribute('href')).toBe('#/stats/g6');
+    expect(app.$$('.trend .tval').map((b) => b.textContent)).toEqual(['−3', '+6', '+1']);
+  });
+
+  it('la tabla atenúa los ceros y marca la columna por la que está ordenada', async () => {
+    const app = await openApp({ data: makeData({ games: [sampleGame()] }), hash: '#/stats/g1' });
+    const cell = (name, k) => { const tr = app.$$('table.stats tbody tr').find((r) => r.textContent.includes(name)); return tr.cells[app.$$('table.stats thead th').findIndex((th) => th.dataset.k === k)]; };
+    expect(cell('Bruno', 'rd').classList.contains('zero')).toBe(false);   // 1 rebote defensivo
+    expect(cell('Bruno', 'ro').classList.contains('zero')).toBe(true);
+    expect(cell('Bruno', 't1').classList.contains('zero')).toBe(true);    // no ha tirado tiros libres
+    expect(cell('Ana', 't3').classList.contains('zero')).toBe(false);     // 0/1: ha tirado, aunque no haya anotado
+
+    expect(app.$('th[data-k="number"]').getAttribute('aria-sort')).toBe('ascending');
+    await app.click('th[data-k="val"]');
+    expect(app.$('th[data-k="val"]').getAttribute('aria-sort')).toBe('descending');
+    expect(app.$('th[data-k="number"]').hasAttribute('aria-sort')).toBe(false);
+    expect(cell('Bruno', 'val').classList.contains('sorted')).toBe(true);
   });
 
   it('un partido sin finalizar aparece «En juego» y se puede finalizar desde aquí', async () => {
