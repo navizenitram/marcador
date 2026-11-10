@@ -175,6 +175,7 @@ p, li { text-wrap: pretty; }
 .site-footer h2 { font-size: 1.15rem; margin-bottom: .6rem; }
 .site-footer ul { list-style: none; padding: 0; margin: 0; display: grid; gap: .45rem; }
 .site-footer nav a { color: var(--ink); }
+.footer-version { margin-top: 2.5rem; font-size: .95rem; color: var(--ink-soft); }
 
 /* ── Artículos (guías) ── */
 .article { padding: 1.5rem 0 4rem; }

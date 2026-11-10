@@ -9,4 +9,11 @@ export const UMAMI_WEBSITE_ID: string = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID 
 // Verificación de Google Search Console por etiqueta meta (opcional: mejor por DNS).
 export const GSC_VERIFICATION: string = import.meta.env.PUBLIC_GSC_VERIFICATION ?? '';
 
+// Versión de la app y fecha de publicación (AAAA-MM-DD). Salen de public/minibasket-stats/app.js
+// a través de astro.config.mjs.
+declare const __APP_VERSION__: string;
+declare const __APP_DATE__: string;
+export const APP_VERSION: string = __APP_VERSION__;
+export const APP_DATE: string = __APP_DATE__;
+
 export type Lang = 'es' | 'ca';

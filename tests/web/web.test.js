@@ -29,6 +29,16 @@ describe('site.config.mjs', () => {
   });
 });
 
+describe('versión de la app', () => {
+  it('la versión coincide con la caché del service worker y la fecha es válida y no futura', async () => {
+    const { APP_VERSION, APP_DATE } = await import('../../site.config.mjs');
+    const sw = readFileSync(join(APP, 'sw.js'), 'utf8');
+    expect(sw).toContain(`const CACHE = 'mbstats-v${APP_VERSION}';`);
+    expect(new Date(`${APP_DATE}T00:00:00Z`).toISOString().slice(0, 10)).toBe(APP_DATE);
+    expect(Date.parse(`${APP_DATE}T00:00:00Z`)).toBeLessThanOrEqual(Date.now());
+  });
+});
+
 describe('scripts/postbuild.mjs', () => {
   const run = (cwd, siteUrl) => execFileSync(process.execPath, [join(ROOT, 'scripts/postbuild.mjs')], {
     cwd, env: { ...process.env, SITE_URL: siteUrl }, encoding: 'utf8', stdio: 'pipe',

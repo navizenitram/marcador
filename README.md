@@ -76,6 +76,13 @@ informe de Playwright queda como artefacto de la ejecución.
 
 Ver `.env.example`.
 
+### Publicar una versión nueva de la app
+
+Al cambiar la app de estadísticas, sube a la vez `CACHE` en `public/minibasket-stats/sw.js` y `APP_VERSION` y
+`APP_DATE` en `public/minibasket-stats/app.js` (un test comprueba que coinciden). De ahí salen la versión que se ve en
+Ajustes, la del pie de la web, `softwareVersion` y `dateModified` de los datos estructurados y el `<lastmod>` del
+sitemap de la portada y de la app. El `<lastmod>` de las guías sale de su `updated="AAAA-MM-DD"`.
+
 ### Eventos que se miden en Umami
 
 | Evento | Cuándo | Propiedad |

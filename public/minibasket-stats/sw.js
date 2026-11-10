@@ -1,4 +1,5 @@
-/* Service worker: red primero y copia en caché para funcionar sin conexión en el pabellón. */
+/* Service worker: red primero y copia en caché para funcionar sin conexión en el pabellón.
+   Al subir CACHE, sube también APP_VERSION y APP_DATE en app.js. */
 const CACHE = 'mbstats-v16';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest', './icon.svg', './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png',
   './fonts/rajdhani-latin-500-normal.woff2', './fonts/rajdhani-latin-600-normal.woff2', './fonts/rajdhani-latin-700-normal.woff2',

@@ -1,9 +1,10 @@
 ---
 import Ball from './Ball.astro';
-import { APP_URL, SCOREBOARD_URL, KOFI_URL, type Lang } from '../consts';
+import { APP_URL, SCOREBOARD_URL, KOFI_URL, APP_VERSION, APP_DATE, type Lang } from '../consts';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const ca = lang === 'ca';
+const released = new Date(`${APP_DATE}T12:00:00Z`).toLocaleDateString(ca ? 'ca-ES' : 'es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 ---
 <footer class="site-footer">
   <div class="wrap footer-grid">
@@ -37,4 +38,7 @@ const ca = lang === 'ca';
       </ul>
     </nav>
   </div>
+  <p class="wrap footer-version">
+    {ca ? "Última versió de l'app" : 'Última versión de la app'}: {APP_VERSION} · <time datetime={APP_DATE}>{released}</time>
+  </p>
 </footer>

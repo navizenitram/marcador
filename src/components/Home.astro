@@ -5,7 +5,7 @@ import Phone from './Phone.astro';
 import ActionLegend from './ActionLegend.astro';
 import FinalCta from './FinalCta.astro';
 import { home } from '../i18n/home';
-import { APP_URL, KOFI_URL, SITE_NAME, TEMPLATE_PDF, type Lang } from '../consts';
+import { APP_URL, APP_DATE, APP_VERSION, KOFI_URL, SITE_NAME, TEMPLATE_PDF, type Lang } from '../consts';
 
 interface Props { lang: Lang }
 const { lang } = Astro.props;
@@ -30,6 +30,8 @@ const jsonLd = {
       isAccessibleForFree: true,
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
       screenshot: `${site}/img/app-partido.webp`,
+      softwareVersion: APP_VERSION,
+      dateModified: APP_DATE,
     },
     {
       '@type': 'FAQPage',

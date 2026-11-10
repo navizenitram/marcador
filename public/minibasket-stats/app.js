@@ -4,6 +4,11 @@
    Cantera Stats — SPA sin dependencias. Datos en localStorage.
    ════════════════════════════════════════════════════════════════ */
 
+/* Versión publicada y su fecha (AAAA-MM-DD). Súbelas a la vez que CACHE en sw.js: un test comprueba que coinciden.
+   La web las lee de aquí para el pie de página, los datos estructurados y el sitemap (site.config.mjs). */
+const APP_VERSION = '16';
+const APP_DATE = '2026-11-10';
+
 const STORE_KEY = 'mbstats.v1';
 const MAX_ON_COURT = 5;
 const MAX_FOULS = 5;
@@ -888,8 +893,14 @@ function viewSettings() {
       <h2>Apoya el proyecto</h2>
       <p class="muted small">La app es gratuita, sin anuncios y sin registro. Si te resulta útil en tus partidos, puedes invitarme a un café para que siga mejorando.</p>
       <a class="btn kofi" href="${KOFI_URL}" target="_blank" rel="noopener">${icon('coffee')} Invítame a un café</a>
+
+      <p class="muted small app-version">Versión ${APP_VERSION} · ${fmtReleaseDate(APP_DATE)}</p>
     </section>
   </div>`);
+}
+
+function fmtReleaseDate(iso) {
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
 /* ── Estadísticas ── */

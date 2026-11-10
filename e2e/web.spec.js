@@ -62,3 +62,18 @@ test('marcador: puntos, faltas y periodos', async ({ page }) => {
   await expect(page.locator('#qScoreA')).toHaveText('0');
   await expect(page.locator('#totalA')).toHaveText('5');
 });
+
+test('el pie muestra la versión de la app y el sitemap lleva su fecha', async ({ page, request }) => {
+  await page.goto('/');
+  const released = await page.locator('.footer-version time').getAttribute('datetime');
+  expect(released).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  await expect(page.locator('.footer-version')).toContainText(/Última versión de la app: \d+ · \d{1,2} de \S+ de \d{4}/);
+
+  const robots = await (await request.get('/robots.txt')).text();
+  expect(robots).toMatch(/^Sitemap: https:\/\/\S+\/sitemap-index\.xml$/m);
+  const sitemap = await (await request.get('/sitemap-0.xml')).text();
+  const urls = [...sitemap.matchAll(/<url><loc>https:\/\/[^/]+([^<]*)<\/loc>(?:<lastmod>([^<]+)<\/lastmod>)?/g)].map((m) => [m[1], m[2]?.slice(0, 10)]);
+  expect(Object.fromEntries(urls)).toMatchObject({ '/': released, '/ca/': released, '/minibasket-stats/': released, '/marcador/': undefined });
+  expect(urls.map(([path]) => path)).not.toContain('/404/');
+  expect(urls).toHaveLength(9);
+});

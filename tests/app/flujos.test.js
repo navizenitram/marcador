@@ -467,6 +467,13 @@ describe('partido en directo', () => {
   });
 });
 
+describe('ajustes: versión', () => {
+  it('muestra la versión de la app y su fecha', async () => {
+    const app = await openApp({ data: makeData({ teams: [makeTeam()] }), hash: '#/ajustes' });
+    expect(app.text('.app-version')).toMatch(/^Versión \d+ · \d{1,2} de [a-záéíóú]+ de \d{4}$/);
+  });
+});
+
 describe('ajustes: botones del partido', () => {
   it('desactivar una acción la quita de la pista y de la vista previa', async () => {
     const app = await live();
