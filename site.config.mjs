@@ -11,8 +11,10 @@ import { readFileSync } from 'node:fs';
 const appJs = readFileSync(new URL('./public/minibasket-stats/app.js', import.meta.url), 'utf8');
 const read = (name, pattern) => {
   const value = appJs.match(new RegExp(`^const ${name} = '(${pattern})';`, 'm'))?.[1];
-  if (!value) throw new Error(`No encuentro ${name} en public/minibasket-stats/app.js`);
+  if (value === undefined) throw new Error(`No encuentro ${name} en public/minibasket-stats/app.js`);
   return value;
 };
 export const APP_VERSION = read('APP_VERSION', '\\d+(?:\\.\\d+)*');
 export const APP_DATE = read('APP_DATE', '\\d{4}-\\d{2}-\\d{2}');
+// Formulario externo de opiniones. Vacío: no se enlaza en ningún sitio.
+export const FEEDBACK_URL = read('FEEDBACK_URL', "(?:https://[^']+)?");

@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-import { APP_URL, UMAMI_WEBSITE_ID } from '../consts';
+import { APP_URL, FEEDBACK_URL, UMAMI_WEBSITE_ID } from '../consts';
 ---
 <Base
   title="Privacidad · Cantera Stats"
@@ -42,6 +42,12 @@ import { APP_URL, UMAMI_WEBSITE_ID } from '../consts';
           Los enlaces para compartir por WhatsApp o para invitarme a un café en Ko-fi llevan a servicios externos con su propia
           política de privacidad. Solo se abren si los pulsas.
         </p>
+        {FEEDBACK_URL && (
+          <p>
+            El formulario de opiniones también es un servicio externo. Solo recibe lo que tú escribas en él; no hace falta dar
+            el nombre ni el correo, y lo que cuentes se usa únicamente para mejorar la app.
+          </p>
+        )}
       </div>
     </div>
   </section>

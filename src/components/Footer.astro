@@ -1,6 +1,6 @@
 ---
 import Ball from './Ball.astro';
-import { APP_URL, SCOREBOARD_URL, KOFI_URL, APP_VERSION, APP_DATE, type Lang } from '../consts';
+import { APP_URL, SCOREBOARD_URL, KOFI_URL, APP_VERSION, APP_DATE, FEEDBACK_URL, type Lang } from '../consts';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const ca = lang === 'ca';
@@ -34,6 +34,7 @@ const released = new Date(`${APP_DATE}T12:00:00Z`).toLocaleDateString(ca ? 'ca-E
       <ul>
         <li><a href="/privacidad/">{ca ? 'Privacitat (castellà)' : 'Privacidad'}</a></li>
         <li><a href={KOFI_URL} target="_blank" rel="noopener" data-umami-event="kofi">{ca ? "Convida'm a un cafè" : 'Invítame a un café'}</a></li>
+        {FEEDBACK_URL && <li><a href={FEEDBACK_URL} target="_blank" rel="noopener" data-umami-event="opinion">{ca ? 'Dona la teva opinió' : 'Danos tu opinión'}</a></li>}
         <li>{ca ? <a href="/" hreflang="es" lang="es">Castellano</a> : <a href="/ca/" hreflang="ca" lang="ca">Català</a>}</li>
       </ul>
     </nav>

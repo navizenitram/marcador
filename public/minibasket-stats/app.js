@@ -13,6 +13,9 @@ const STORE_KEY = 'mbstats.v1';
 const MAX_ON_COURT = 5;
 const MAX_FOULS = 5;
 const KOFI_URL = 'https://ko-fi.com/navizenitram';
+/* Formulario externo de opiniones (Tally, Google Forms…). Pega aquí su URL; mientras esté vacía, ni la app
+   ni la web enseñan el enlace. La web lo lee de aquí (site.config.mjs). */
+const FEEDBACK_URL = '';
 
 /* Acciones que se pueden registrar para un jugador */
 const EV = {
@@ -654,7 +657,8 @@ function viewPrivacy() {
     <h2>Lo que queda fuera de la app</h2>
     <p>Como cualquier página web, el servicio que la aloja (Vercel) puede registrar datos técnicos de las visitas, como la dirección IP,
     para su funcionamiento y seguridad. La app no utiliza ni consulta esos datos.
-    El enlace "Invítame a un café" lleva a Ko-fi, una web externa con su propia política de privacidad; solo se abre si lo pulsas.</p>
+    El enlace "Invítame a un café" lleva a Ko-fi, una web externa con su propia política de privacidad; solo se abre si lo pulsas.${FEEDBACK_URL ? `
+    Lo mismo ocurre con el formulario de opiniones de Ajustes: es un servicio externo y solo recibe lo que tú escribas en él.` : ''}</p>
 
     <h2>Por qué existe Cantera Stats</h2>
     <p>Construí Cantera Stats como una herramienta para mi propio uso, porque en el baloncesto formativo hay mucho más que los puntos
@@ -893,6 +897,10 @@ function viewSettings() {
       <h2>Apoya el proyecto</h2>
       <p class="muted small">La app es gratuita, sin anuncios y sin registro. Si te resulta útil en tus partidos, puedes invitarme a un café para que siga mejorando.</p>
       <a class="btn kofi" href="${KOFI_URL}" target="_blank" rel="noopener">${icon('coffee')} Invítame a un café</a>
+      ${FEEDBACK_URL ? `
+      <h2>Tu opinión</h2>
+      <p class="muted small">¿Qué te gusta, qué echas en falta o qué falla? El formulario es externo y no envía nada de lo que has apuntado en la app.</p>
+      <a class="btn" href="${FEEDBACK_URL}" target="_blank" rel="noopener" data-feedback>${icon('share')} Dar mi opinión</a>` : ''}
 
       <p class="muted small app-version">Versión ${APP_VERSION} · ${fmtReleaseDate(APP_DATE)}</p>
     </section>

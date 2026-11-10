@@ -16,4 +16,8 @@ declare const __APP_DATE__: string;
 export const APP_VERSION: string = __APP_VERSION__;
 export const APP_DATE: string = __APP_DATE__;
 
+// Formulario externo de opiniones (FEEDBACK_URL en public/minibasket-stats/app.js). Vacío: no se enlaza.
+declare const __FEEDBACK_URL__: string;
+export const FEEDBACK_URL: string = __FEEDBACK_URL__;
+
 export type Lang = 'es' | 'ca';

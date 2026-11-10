@@ -39,6 +39,13 @@ describe('versión de la app', () => {
   });
 });
 
+describe('formulario de opiniones', () => {
+  it('FEEDBACK_URL está vacía o es una URL https', async () => {
+    const { FEEDBACK_URL } = await import('../../site.config.mjs');
+    if (FEEDBACK_URL) expect(new URL(FEEDBACK_URL).protocol).toBe('https:');
+  });
+});
+
 describe('scripts/postbuild.mjs', () => {
   const run = (cwd, siteUrl) => execFileSync(process.execPath, [join(ROOT, 'scripts/postbuild.mjs')], {
     cwd, env: { ...process.env, SITE_URL: siteUrl }, encoding: 'utf8', stdio: 'pipe',

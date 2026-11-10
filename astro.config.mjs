@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
-import { SITE_URL, APP_VERSION, APP_DATE } from './site.config.mjs';
+import { SITE_URL, APP_VERSION, APP_DATE, FEEDBACK_URL } from './site.config.mjs';
 
 // Fecha de última modificación de cada página para el sitemap. Google solo se fía de <lastmod> si es
 // verdad, así que sale de fechas que se mantienen a mano: la de la versión de la app (la portada la
@@ -25,8 +25,8 @@ export default defineConfig({
   // La compresión de Astro se come los espacios entre texto y etiquetas en línea al cambiar de línea.
   compressHTML: false,
   build: { format: 'directory' },
-  // La versión de la app llega a las páginas como constantes de compilación (ver src/consts.ts).
-  vite: { define: { __APP_VERSION__: JSON.stringify(APP_VERSION), __APP_DATE__: JSON.stringify(APP_DATE) } },
+  // La versión de la app y el formulario de opiniones llegan a las páginas como constantes de compilación (ver src/consts.ts).
+  vite: { define: { __APP_VERSION__: JSON.stringify(APP_VERSION), __APP_DATE__: JSON.stringify(APP_DATE), __FEEDBACK_URL__: JSON.stringify(FEEDBACK_URL) } },
   integrations: [
     sitemap({
       filter: (page) => !page.includes('/404'),

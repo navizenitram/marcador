@@ -76,6 +76,12 @@ informe de Playwright queda como artefacto de la ejecución.
 
 Ver `.env.example`.
 
+### Formulario de opiniones
+
+Las opiniones se recogen con un formulario externo (Tally, Google Forms…). Pega su URL en `FEEDBACK_URL`, en
+`public/minibasket-stats/app.js`: aparece un enlace en Ajustes dentro de la app, otro en el pie de la web y una mención
+en las dos páginas de privacidad. Mientras esté vacía no se muestra nada. Como cambia la app, sube también la versión.
+
 ### Publicar una versión nueva de la app
 
 Al cambiar la app de estadísticas, sube a la vez `CACHE` en `public/minibasket-stats/sw.js` y `APP_VERSION` y
@@ -91,6 +97,7 @@ sitemap de la portada y de la app. El `<lastmod>` de las guías sale de su `upda
 | `compartir-whatsapp` | Clic en «Compartirla por WhatsApp» | `origen` |
 | `descargar-plantilla` | Descarga del PDF | `origen` |
 | `kofi` | Clic en «Invítame a un café» | — |
+| `opinion` | Clic en «Danos tu opinión» (solo si hay formulario) | — |
 
 La conversión que importa de verdad (crear un equipo, terminar el primer partido) ocurre dentro de la app, que hoy no
 mide nada para cumplir su promesa de «sin seguimiento».
