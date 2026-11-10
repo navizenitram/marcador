@@ -48,7 +48,7 @@ export const home = {
     ],
     statsVal: 'Valoración con la fórmula de la ACB.',
     statsValLink: 'Así se calcula',
-    statsAlt: 'Estadísticas de un partido en Cantera Stats: victoria 57 a 47, parciales por periodo y líderes del partido',
+    statsAlt: 'Estadísticas de un partido en Cantera Stats: victoria 57 a 47, parciales por periodo, evolución del marcador y líderes del partido',
     privacyTitle: 'Sin registro ni seguimiento',
     privacy: [
       'La app no tiene cuentas, cookies, publicidad ni analítica. Todo lo que apuntas se guarda solo en tu móvil y únicamente sale de él si tú lo compartes o lo exportas.',
@@ -124,7 +124,7 @@ export const home = {
     ],
     statsVal: "Valoració amb la fórmula de l'ACB.",
     statsValLink: 'Així es calcula (en castellà)',
-    statsAlt: "Estadístiques d'un partit a Cantera Stats: victòria 57 a 47, parcials per període i líders del partit",
+    statsAlt: "Estadístiques d'un partit a Cantera Stats: victòria 57 a 47, parcials per període, evolució del marcador i líders del partit",
     privacyTitle: 'Sense registre ni seguiment',
     privacy: [
       "L'app no té comptes, galetes, publicitat ni analítica. Tot el que apuntes es desa només al teu mòbil i només en surt si tu ho comparteixes o ho exportes.",

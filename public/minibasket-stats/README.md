@@ -19,11 +19,17 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
     (recuperación, pérdida, rebote de ataque, rebote defensivo, asistencia, tapón, tapón recibido, falta cometida, falta recibida).
   - Los botones se eligen en **Ajustes** (cada entrenador activa solo lo que quiere apuntar).
   - Tocar el nombre del jugador → cambio con alguien del banquillo.
-  - Aviso visual a las 4 faltas y jugador eliminado a las 5.
+  - Las faltas de cada jugador se ven de un vistazo (un punto por falta bajo su dorsal), con aviso visual a las 4 y jugador eliminado a las 5.
   - ↶ deshacer la última acción y listado de jugadas para borrar cualquier error.
   - Registro automático de los periodos jugados por cada jugador.
 - **Estadísticas**: por partido o de temporada (totales o promedio por partido), parciales por periodo,
   líderes, tabla ordenable y valoración.
+  - **Evolución del marcador**: bajo los parciales, y con sus mismas columnas, la diferencia de puntos a lo largo del
+    partido. Al pasar el dedo (o el ratón) se ve cómo iba el partido en ese momento.
+  - **Temporada de un vistazo**: la diferencia de puntos de cada partido, del más antiguo al más reciente. Cada columna
+    lleva a las estadísticas de su partido.
+  - En la tabla, los ceros se atenúan, los tiros llevan su porcentaje con una barra y, si la tabla cabe a lo ancho,
+    la cabecera se queda fija al bajar.
   - **Enviar**: email (`mailto:`), copiar o compartir (menú nativo del móvil). También descarga en **CSV**.
 - **Ajustes**: botones del partido que se quieren usar (con vista previa), copia de seguridad y enlace de apoyo (Ko-fi).
 - **Copia de seguridad**: exportar / importar todos los datos en JSON (útil para cambiar de dispositivo).
@@ -43,7 +49,8 @@ Es la valoración de la ACB / Euroliga. Cada tiro fallado resta 1, sea de 1, 2 o
 ## Privacidad
 
 Cantera Stats no recoge, no envía y no rastrea ningún dato: no hay cuentas, cookies, publicidad ni analítica,
-y no se cargan recursos de terceros (la fuente Rajdhani va incluida en `fonts/`, licencia SIL OFL 1.1).
+y no se cargan recursos de terceros (las fuentes Rajdhani y Barlow van incluidas en `fonts/`, licencia SIL OFL 1.1,
+y los iconos se dibujan en el propio código).
 Todo se guarda en el `localStorage` del navegador y solo sale del dispositivo si el usuario lo comparte o exporta.
 El texto completo está en la propia app (`#/privacidad`, enlazado desde Ajustes y desde la pantalla de equipos).
 
@@ -74,8 +81,17 @@ styles.css            Estilos (layout horizontal)
 sw.js                 Service worker (modo sin conexión)
 manifest.webmanifest  Manifest PWA (orientación horizontal)
 icon.svg              Icono (y PNG para iOS/Android)
-fonts/                Fuente Rajdhani incluida (sin Google Fonts)
+fonts/                Fuentes incluidas (sin Google Fonts): Rajdhani para rótulos y cifras, Barlow para los textos
 ```
 
 Los datos viven en `localStorage` con la clave `mbstats.v1`. Borrar los datos del navegador los elimina:
 exporta una copia de seguridad de vez en cuando.
+
+## Diseño
+
+- **Colores**: verde para el equipo propio y la acción principal, azul para el rival y ámbar para lo destacado. Están
+  definidos como variables al principio de `styles.css`, una vez por tema (oscuro y claro).
+- **Botones del partido**: cada familia de acciones tiene su color (`--c`), del que salen el fondo, el borde y el texto.
+- **Iconos**: son SVG en línea (`ICONS` en `app.js`); para añadir uno basta con su trazo en una rejilla de 24.
+- **Gráficos**: usan tonos propios (`--c-us`, `--c-them`, `--c-win`, `--c-loss`), elegidos para distinguirse también
+  con daltonismo; además, la posición (arriba o abajo de la línea central) y el signo dicen lo mismo que el color.

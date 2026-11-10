@@ -86,6 +86,53 @@ describe('score y periodScores', () => {
   });
 });
 
+describe('scoreFlow (evolución del marcador)', () => {
+  it('da el marcador tras cada anotación, en el orden del partido', () => {
+    const flow = app.fn.scoreFlow(sampleGame());
+    expect(flow.map((p) => [p.period, p.us, p.them])).toEqual([
+      [1, 2, 0], [1, 3, 0], [1, 3, 2], [1, 6, 2],   // P1: 2✓ y 1✓ de Ana, +2 del rival, triple de Bruno
+      [2, 6, 5], [2, 6, 4],                           // P2: +3 del rival y su corrección −1
+      [3, 8, 4],                                      // P3: 2✓ de Carla
+    ]);
+  });
+
+  it('coloca cada anotación dentro del tramo de su periodo, de izquierda a derecha', () => {
+    const flow = app.fn.scoreFlow(sampleGame());
+    for (const p of flow) {
+      expect(p.x).toBeGreaterThan(p.period - 1);
+      expect(p.x).toBeLessThan(p.period);
+    }
+    expect(flow.map((p) => p.x)).toEqual([...flow.map((p) => p.x)].sort((a, b) => a - b));
+  });
+
+  it('ordena por periodo aunque una jugada de un periodo anterior se apunte después', () => {
+    const g = makeGame({ events: [ev('t2_ok', 'p4', 2), opp(3, 1)] });
+    expect(app.fn.scoreFlow(g).map((p) => [p.period, p.us, p.them])).toEqual([[1, 0, 3], [2, 2, 3]]);
+  });
+
+  it('ignora las jugadas que no dan puntos y lleva al último periodo las que están fuera de rango', () => {
+    const g = makeGame({ periods: 4, events: [ev('rd', 'p4', 1), ev('t2_ko', 'p4', 1), ev('t3_ok', 'p4', 9)] });
+    expect(app.fn.scoreFlow(g).map((p) => [p.period, p.us, p.them])).toEqual([[4, 3, 0]]);
+    expect(app.fn.scoreFlow(makeGame())).toEqual([]);
+  });
+
+  it('flowEnd: la línea llega al final si el partido está finalizado; si no, hasta donde va el partido', () => {
+    const g = sampleGame({ period: 3 });
+    const flow = app.fn.scoreFlow(g);
+    expect(app.fn.flowEnd({ ...g, finished: true }, flow)).toBe(8);
+    expect(app.fn.flowEnd(g, flow)).toBe(flow.at(-1).x);           // última anotación, en el P3
+    expect(app.fn.flowEnd({ ...g, period: 6 }, flow)).toBe(5);     // en el P6 aún no se ha anotado: su inicio
+  });
+
+  it('flowScale incluye siempre el cero, con margen a los dos lados', () => {
+    const { hi, lo, y } = app.fn.flowScale([{ us: 10, them: 0 }, { us: 10, them: 3 }]);
+    expect([hi, lo]).toEqual([10, -2]);
+    expect(y(10)).toBe(0);
+    expect(y(-2)).toBe(100);
+    expect(y(0)).toBeCloseTo(83.3, 1);
+  });
+});
+
 describe('playerLines y gameRows (estadísticas de un partido)', () => {
   it('da una línea a cada jugador convocado, aunque no haya hecho nada', () => {
     const lines = app.fn.playerLines(sampleGame());

@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { openApp } from '../helpers/app.js';
+import { APP_DIR, openApp } from '../helpers/app.js';
 import { makeGame } from '../helpers/fixtures.js';
 
 let app;
@@ -23,6 +25,15 @@ describe('fechas', () => {
     expect(app.fn.fmtDate('2026-11-08')).toBe('08/11/2026');
     expect(app.fn.fmtDate('2026-11-08', true)).toBe('08/11');
     expect(app.fn.fmtDate('')).toBe('');
+  });
+
+  it('dateParts da el día y el mes abreviado para el calendario de la lista de partidos', () => {
+    expect(app.fn.dateParts('2026-11-08')).toEqual({ day: '8', month: 'nov' });
+    expect(app.fn.dateParts('2026-01-31')).toEqual({ day: '31', month: 'ene' });
+  });
+
+  it('dateParts no falla con una fecha vacía o que no es aaaa-mm-dd', () => {
+    for (const date of ['', undefined, '08/11/2026', '2026-13-01']) expect(app.fn.dateParts(date), date).toEqual({ day: '–', month: '' });
   });
 
   it('todayISO devuelve la fecha local en formato aaaa-mm-dd', () => {
@@ -98,5 +109,47 @@ describe('varios', () => {
     expect(route('#/equipos')).toEqual({ view: 'equipos', arg: '' });
     expect(route('#stats')).toEqual({ view: 'stats', arg: '' });
     expect(route('#')).toEqual({ view: '', arg: '' });
+  });
+});
+
+describe('iconos y escudo', () => {
+  const icons = () => vm.runInContext('ICONS', app.ctx);
+
+  it('icon devuelve un SVG decorativo (oculto a los lectores de pantalla)', () => {
+    const svg = app.fn.icon('trash');
+    expect(svg).toMatch(/^<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path /);
+    expect(app.fn.icon('play', 'solid')).toContain('class="ic solid"');
+  });
+
+  it('existen todos los iconos que usa la app', () => {
+    // Nombres entre comillas del primer argumento de cada llamada a icon(…), p. ej. icon(on ? 'compress' : 'expand')
+    const src = readFileSync(`${APP_DIR}app.js`, 'utf8');
+    const used = new Set();
+    for (const { index } of src.matchAll(/(?<![\w.])icon\(/g)) {
+      let depth = 0, end = index + 4;
+      for (; end < src.length; end++) {
+        if (src[end] === '(') depth++;
+        else if (src[end] === ')' && --depth === 0) break;
+        else if (src[end] === ',' && depth === 1) break;
+      }
+      for (const [, name] of src.slice(index, end).matchAll(/'([a-z]+)'/g)) used.add(name);
+    }
+    expect(used.size).toBeGreaterThan(20);
+    expect(used).toContain('moon');
+    expect([...used].filter((name) => !(name in icons()))).toEqual([]);
+  });
+
+  it('crest pone las iniciales del equipo: de las dos primeras palabras, o las dos primeras letras', () => {
+    const initials = (name) => { const el = app.document.createElement('div'); el.innerHTML = app.fn.crest(name); return el.textContent; };
+    expect(initials('Alevín A')).toBe('AA');
+    expect(initials('infantil femenino b')).toBe('IF');
+    expect(initials('Benjamín')).toBe('BE');
+    expect(initials('7')).toBe('7');
+  });
+
+  it('crest da siempre el mismo color al mismo nombre y escapa el HTML', () => {
+    expect(app.fn.crest('Alevín A')).toBe(app.fn.crest('Alevín A'));
+    expect(app.fn.crest('Alevín A')).toMatch(/style="--h:\d{1,3}"/);
+    expect(app.fn.crest('<b>')).toContain('&lt;B');
   });
 });

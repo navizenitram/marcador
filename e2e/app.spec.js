@@ -1,5 +1,5 @@
 // App de estadísticas en un navegador real: toques, recargas, service worker y diseño en horizontal.
-import { makeData, makeGame, sampleGame } from '../tests/helpers/fixtures.js';
+import { ev, makeData, makeGame, makeTeam, opp, sampleGame } from '../tests/helpers/fixtures.js';
 import { expect, seed, test } from './fixtures.js';
 
 const APP = '/minibasket-stats/';
@@ -116,6 +116,83 @@ test('descarga las estadísticas en CSV', async ({ page }) => {
   expect(lines.at(-1)).toBe(';Equipo;4;8;1;2;2;3;1;2;1;1;2;1;0;1;1;1;1;0;6');
 });
 
+test('la evolución del marcador comparte columnas con los parciales y se puede recorrer', async ({ page }) => {
+  await seed(page, makeData({ games: [sampleGame({ finished: true })] }));
+  await page.goto(`${APP}#/stats/g1`);
+  const flow = page.locator('.ptable .flow');
+  await expect(flow).toBeVisible();
+  const box = await flow.boundingBox();
+  expect(box.height).toBeGreaterThanOrEqual(36);
+
+  // El gráfico empieza donde empieza la columna del P1 y acaba donde acaba la del P8
+  const columns = await page.evaluate(() => {
+    const th = [...document.querySelectorAll('.ptable th')].map((el) => el.getBoundingClientRect());
+    return { left: th[1].left, right: th[8].right };
+  });
+  expect(Math.abs(box.x - columns.left)).toBeLessThan(1.5);
+  expect(Math.abs(box.x + box.width - columns.right)).toBeLessThan(1.5);
+
+  // A mitad del P2 el rival acaba de anotar su +3 (ver sampleGame)
+  await page.mouse.move(box.x + box.width * (1.5 / 8), box.y + box.height / 2);
+  await expect(page.locator('.flow-label')).toHaveText('P2 · 6–5');
+  await expect(page.locator('.flow-diff')).toHaveText('+1');
+  await expect(page.locator('.flow-cross')).toBeVisible();
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height + 60);
+  await expect(page.locator('.flow-label')).toHaveText('Diferencia');
+  await expect(page.locator('.flow-diff')).toHaveText('+4');
+});
+
+test('en la temporada, cada columna del gráfico lleva a las estadísticas de su partido', async ({ page }) => {
+  const games = [
+    sampleGame({ finished: true }),
+    makeGame({ id: 'g2', date: '2026-10-10', opponent: 'Celtics', finished: true, events: [opp(2), opp(3), ev('t2_ok', 'p4')] }),
+  ];
+  await seed(page, makeData({ games }));
+  await page.goto(`${APP}#/stats/temporada`);
+  const columns = page.locator('.trend .tcol');
+  await expect(columns).toHaveCount(2);
+  await expect(columns.locator('.tval')).toHaveText(['+4', '−3']);
+  // Las barras salen de la línea central: la victoria hacia arriba y la derrota hacia abajo
+  const [win, loss] = await columns.locator('.tbar').evaluateAll((bars) => bars.map((b) => b.getBoundingClientRect()));
+  expect(win.height).toBeGreaterThan(8);
+  expect(loss.height).toBeGreaterThan(8);
+  expect(Math.abs(win.bottom - loss.top)).toBeLessThan(1.5);
+
+  await columns.nth(1).tap();
+  await expect(page).toHaveURL(/#\/stats\/g2$/);
+  await expect(page.locator('.badge')).toHaveText('Derrota');
+});
+
+test.describe('en una tablet', () => {
+  test.use({ viewport: { width: 1180, height: 600 } });
+
+  test('la tabla de estadísticas cabe a lo ancho y su cabecera se queda fija al bajar', async ({ page }) => {
+    const players = Array.from({ length: 14 }, (_, i) => ({ id: `j${i}`, number: String(i + 4), name: `Jugador ${i + 4}` }));
+    const game = makeGame({ roster: players, finished: true, played: { j0: [1] }, events: [ev('t2_ok', 'j0'), ev('rd', 'j0'), opp(2)] });
+    await seed(page, makeData({ teams: [makeTeam({ players })], games: [game] }));
+    await page.goto(`${APP}#/stats/g1`);
+    await expect(page.locator('table.stats tbody tr')).toHaveCount(14);
+
+    const layout = await page.evaluate(() => {
+      const content = document.querySelector('.content');
+      const wrap = document.querySelector('.table-wrap');
+      content.scrollTop = content.scrollHeight;
+      const head = document.querySelector('table.stats th').getBoundingClientRect();
+      return {
+        overflow: wrap.scrollWidth - wrap.clientWidth,
+        scrolled: content.scrollTop,
+        headTop: head.top - content.getBoundingClientRect().top,
+        firstRowTop: document.querySelector('table.stats tbody tr').getBoundingClientRect().top - content.getBoundingClientRect().top,
+      };
+    });
+    expect(layout.overflow).toBeLessThanOrEqual(0);
+    expect(layout.scrolled).toBeGreaterThan(300);           // la página se ha desplazado más allá de la cabecera…
+    expect(layout.firstRowTop).toBeLessThan(0);              // …la primera fila ya ha salido por arriba…
+    expect(Math.abs(layout.headTop)).toBeLessThan(1.5);      // …y la cabecera sigue pegada al borde superior
+  });
+});
+
 test.describe('en vertical', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
@@ -123,5 +200,29 @@ test.describe('en vertical', () => {
     await page.goto(APP);
     await expect(page.locator('#rotate')).toBeVisible();
     await expect(page.locator('#rotate')).toContainText('Gira el dispositivo');
+  });
+
+  test('los textos de la bienvenida quedan centrados', async ({ page }) => {
+    await page.goto(APP);
+    await expect(page.locator('.splash-privacy')).toBeVisible();
+    // Se mide lo que se ve (el icono y cada línea de texto), no la caja: una caja centrada con el texto
+    // alineado a la izquierda dentro se ve descentrada
+    const centers = await page.evaluate(() => {
+      const ink = (el) => {
+        const rects = [];
+        for (const icon of el.querySelectorAll('svg')) rects.push(icon.getBoundingClientRect());
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          rects.push(...range.getClientRects());
+        }
+        const visible = rects.filter((r) => r.width > 0);
+        return (Math.min(...visible.map((r) => r.left)) + Math.max(...visible.map((r) => r.right))) / 2;
+      };
+      return Object.fromEntries(['.splash-name', '.splash-tag', '.splash-privacy', '.rotate-hint p', '.rotate-hint small']
+        .map((sel) => [sel, Math.round(ink(document.querySelector(sel)) - innerWidth / 2)]));
+    });
+    for (const [selector, offset] of Object.entries(centers)) expect(Math.abs(offset), `${selector} se desvía ${offset}px del centro`).toBeLessThanOrEqual(3);
   });
 });
