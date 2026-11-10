@@ -747,11 +747,9 @@ table.stats tfoot td.zero { color: var(--muted); }
   .install small { font-family: var(--font-text); color: var(--muted); font-size: 13px; text-align: center; }
   .install .install-btn { width: 100%; }
   .ios-share { width: 20px; height: 20px; vertical-align: -4px; color: var(--blue); }
-  .splash-privacy {
-    margin: 4px 0 0; color: var(--muted); font-size: 13px; font-weight: 500; max-width: 300px; text-wrap: balance;
-    display: flex; align-items: center; gap: 8px; text-align: left;
-  }
-  .splash-privacy .ic { color: var(--green); width: 18px; height: 18px; }
+  /* El candado va en línea con el texto para que las dos líneas queden centradas, como el resto de la pantalla */
+  .splash-privacy { margin: 4px 0 0; color: var(--muted); font-size: 13px; font-weight: 500; max-width: 300px; text-align: center; text-wrap: balance; }
+  .splash-privacy .ic { color: var(--green); width: 16px; height: 16px; margin-right: 5px; vertical-align: -3px; }
   .rotate-hint { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .rotate-hint p { margin: 0; font-family: var(--font); font-size: 22px; font-weight: 700; }
   .rotate-hint small { font-family: var(--font-text); color: var(--muted); font-size: 14px; }

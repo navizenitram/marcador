@@ -201,4 +201,28 @@ test.describe('en vertical', () => {
     await expect(page.locator('#rotate')).toBeVisible();
     await expect(page.locator('#rotate')).toContainText('Gira el dispositivo');
   });
+
+  test('los textos de la bienvenida quedan centrados', async ({ page }) => {
+    await page.goto(APP);
+    await expect(page.locator('.splash-privacy')).toBeVisible();
+    // Se mide lo que se ve (el icono y cada línea de texto), no la caja: una caja centrada con el texto
+    // alineado a la izquierda dentro se ve descentrada
+    const centers = await page.evaluate(() => {
+      const ink = (el) => {
+        const rects = [];
+        for (const icon of el.querySelectorAll('svg')) rects.push(icon.getBoundingClientRect());
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          rects.push(...range.getClientRects());
+        }
+        const visible = rects.filter((r) => r.width > 0);
+        return (Math.min(...visible.map((r) => r.left)) + Math.max(...visible.map((r) => r.right))) / 2;
+      };
+      return Object.fromEntries(['.splash-name', '.splash-tag', '.splash-privacy', '.rotate-hint p', '.rotate-hint small']
+        .map((sel) => [sel, Math.round(ink(document.querySelector(sel)) - innerWidth / 2)]));
+    });
+    for (const [selector, offset] of Object.entries(centers)) expect(Math.abs(offset), `${selector} se desvía ${offset}px del centro`).toBeLessThanOrEqual(3);
+  });
 });
