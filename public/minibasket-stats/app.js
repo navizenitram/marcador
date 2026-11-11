@@ -5,19 +5,21 @@
    ════════════════════════════════════════════════════════════════ */
 
 const STORE_KEY = 'mbstats.v1';
+/* Versión del formato de los datos (y de la copia de seguridad). v3: registro de quintetos (seq, lineups, lineupFrom) */
+const FORMAT_VERSION = 3;
 const MAX_ON_COURT = 5;
 const MAX_FOULS = 5;
 const KOFI_URL = 'https://ko-fi.com/navizenitram';
 /* Direcciones antiguas de la app. Ahí se ofrece llevar los datos a la dirección actual (ver «Mudanza») */
 const OLD_HOSTS = ['marcador-kohl.vercel.app'];
 
-/* Acciones que se pueden registrar para un jugador */
+/* Acciones que se pueden registrar para un jugador (los puntos de cada tiro están en MBCore.EV_PTS, core.js) */
 const EV = {
-  t1_ok: { label: '1', sub: '✓', cls: 'made', text: 'Tiro libre anotado', pts: 1 },
+  t1_ok: { label: '1', sub: '✓', cls: 'made', text: 'Tiro libre anotado' },
   t1_ko: { label: '1', sub: '✗', cls: 'miss', text: 'Tiro libre fallado' },
-  t2_ok: { label: '2', sub: '✓', cls: 'made', text: 'Canasta de 2', pts: 2 },
+  t2_ok: { label: '2', sub: '✓', cls: 'made', text: 'Canasta de 2' },
   t2_ko: { label: '2', sub: '✗', cls: 'miss', text: 'Tiro de 2 fallado' },
-  t3_ok: { label: '3', sub: '✓', cls: 'made', text: 'Triple', pts: 3 },
+  t3_ok: { label: '3', sub: '✓', cls: 'made', text: 'Triple' },
   t3_ko: { label: '3', sub: '✗', cls: 'miss', text: 'Triple fallado' },
   rec:   { label: 'REC', sub: 'Recup.', cls: 'pos', text: 'Balón recuperado' },
   lost:  { label: 'PÉR', sub: 'Pierde', cls: 'neg', text: 'Balón perdido' },
@@ -124,6 +126,7 @@ function normalize(d) {
   }
   delete d.team;
   delete d.settings;
+  delete d.exportedAt;   // fecha de la copia de seguridad: no forma parte de los datos
 
   const newIds = new Map();
   const fixId = (v) => {
@@ -188,13 +191,40 @@ function normalize(d) {
       events.push(e);
     }
     g.events = events;
+    normalizeLineups(g, fixId);
     const t = d.teams.find(t => t.id === g.teamId);
     g.teamName = String(g.teamName || (t ? t.name : 'Mi equipo'));
   }
   d.currentTeamId = fixId(d.currentTeamId);
   if (!teamIds.has(d.currentTeamId)) d.currentTeamId = d.teams.length ? d.teams[0].id : null;
-  d.version = 2;
+  d.version = FORMAT_VERSION;
   return d;
+}
+
+/* v3: orden de jugadas y quintetos. Cada jugada lleva un seq (las de datos anteriores lo reciben en el orden de la
+   lista, después del mayor que ya haya) y g.seq es el mayor de todos. Los quintetos (g.lineups) se validan: como mucho
+   MAX_ON_COURT jugadores distintos con identificadores seguros, periodo entero y seq entero; se ordenan por seq.
+   Sin registro (partidos anteriores a la v3) no hay lineupFrom: su +/- y sus quintetos no están disponibles. */
+function normalizeLineups(g, fixId) {
+  const isSeq = (v) => Number.isInteger(v) && v >= 1;
+  const lineups = [];
+  for (const l of objects(g.lineups)) {
+    if (!isSeq(l.seq) || !Array.isArray(l.on) || l.on.length > MAX_ON_COURT) continue;
+    const on = l.on.filter(x => x != null && x !== '').map(x => fixId(String(x)));
+    if (on.length !== l.on.length || new Set(on).size !== on.length) continue;
+    lineups.push({ seq: l.seq, period: intIn(l.period, 1, 99, 1), on });
+  }
+  lineups.sort((a, b) => a.seq - b.seq);
+  g.lineups = lineups;
+
+  let top = Math.max(isSeq(g.seq) ? g.seq : 0, ...g.events.filter(e => isSeq(e.seq)).map(e => e.seq), ...lineups.map(l => l.seq));
+  for (const e of g.events) if (!isSeq(e.seq)) e.seq = ++top;
+  g.seq = top;
+
+  if (!isSeq(g.lineupFrom)) {
+    if (lineups.length) g.lineupFrom = lineups[0].seq;
+    else delete g.lineupFrom;
+  }
 }
 
 /* Equipo seleccionado y sus partidos */
@@ -370,69 +400,14 @@ function crest(name) {
 
 /* ───────────────────────── Estadísticas ───────────────────────── */
 
-function blankLine() {
-  return { t1m: 0, t1a: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ro: 0, rd: 0, ast: 0, blk: 0, blkr: 0, rec: 0, lost: 0, fc: 0, fr: 0 };
-}
-
-function addEvent(l, type) {
-  switch (type) {
-    case 't1_ok': l.t1m++; l.t1a++; break;
-    case 't1_ko': l.t1a++; break;
-    case 't2_ok': l.t2m++; l.t2a++; break;
-    case 't2_ko': l.t2a++; break;
-    case 't3_ok': l.t3m++; l.t3a++; break;
-    case 't3_ko': l.t3a++; break;
-    default: if (type in l) l[type]++;
-  }
-}
-
-function sumLines(target, src) {
-  for (const k of Object.keys(blankLine())) target[k] += src[k] || 0;
-  return target;
-}
-
-/* Valoración (fórmula ACB / Euroliga):
-   (PTS + rebotes + asistencias + robos + tapones + faltas recibidas)
-   − (tiros de campo fallados + tiros libres fallados + tapones recibidos + pérdidas + faltas cometidas)
-   Cada tiro fallado resta 1, sea de 1, 2 o 3. */
-function finish(l) {
-  l.pts = l.t1m + 2 * l.t2m + 3 * l.t3m;
-  l.reb = l.ro + l.rd;
-  l.miss = (l.t1a - l.t1m) + (l.t2a - l.t2m) + (l.t3a - l.t3m);
-  l.val = l.pts + l.reb + l.ast + l.blk + l.rec + l.fr - l.miss - l.blkr - l.lost - l.fc;
-  return l;
-}
-
-function score(g) {
-  let us = 0, them = 0;
-  for (const e of g.events) {
-    if (e.type === 'opp') them += e.pts;
-    else us += (EV[e.type] && EV[e.type].pts) || 0;
-  }
-  return { us, them };
-}
-
-function periodScores(g) {
-  const us = Array(g.periods).fill(0), them = Array(g.periods).fill(0);
-  for (const e of g.events) {
-    const i = Math.min(Math.max((e.period || 1) - 1, 0), g.periods - 1);
-    if (e.type === 'opp') them[i] += e.pts;
-    else us[i] += (EV[e.type] && EV[e.type].pts) || 0;
-  }
-  return { us, them };
-}
-
-function playerLines(g) {
-  const map = {};
-  for (const p of g.roster) map[p.id] = blankLine();
-  for (const e of g.events) {
-    if (!e.pid) continue;
-    if (!map[e.pid]) map[e.pid] = blankLine();
-    addEvent(map[e.pid], e.type);
-  }
-  for (const k in map) finish(map[k]);
-  return map;
-}
+/* El cálculo vive en core.js (MBCore). Estas funciones lo exponen con los nombres de siempre. */
+function blankLine() { return MBCore.blankLine(); }
+function addEvent(l, type) { MBCore.addEvent(l, type); }
+function sumLines(target, src) { return MBCore.sumLines(target, src); }
+function finish(l) { return MBCore.finish(l); }
+function score(g) { return MBCore.score(g); }
+function periodScores(g) { return MBCore.periodScores(g); }
+function playerLines(g) { return MBCore.playerLines(g); }
 
 function gameRows(g) {
   const lines = playerLines(g);
@@ -1132,25 +1107,8 @@ function gameSummary(g) {
   </section>`;
 }
 
-/* Evolución del marcador: cómo queda tras cada anotación, en el orden del partido. Devuelve un punto por
-   anotación, { period, x, us, them }, con x entre 0 y g.periods: las anotaciones de un periodo se reparten
-   a lo ancho de su tramo, así el gráfico comparte columnas con la tabla de parciales. */
-function scoreFlow(g) {
-  const byPeriod = Array.from({ length: g.periods }, () => []);
-  for (const e of g.events) {
-    const pts = e.type === 'opp' ? e.pts : (EV[e.type] && EV[e.type].pts) || 0;
-    if (!pts) continue;
-    const i = Math.min(Math.max((e.period || 1) - 1, 0), g.periods - 1);
-    byPeriod[i].push(e.type === 'opp' ? [0, pts] : [pts, 0]);
-  }
-  const out = [];
-  let us = 0, them = 0;
-  byPeriod.forEach((list, i) => list.forEach(([a, b], k) => {
-    us += a; them += b;
-    out.push({ period: i + 1, x: i + (k + 1) / (list.length + 1), us, them });
-  }));
-  return out;
-}
+/* Evolución del marcador (core.js): un punto por anotación, { period, x, us, them } */
+function scoreFlow(g) { return MBCore.scoreFlow(g); }
 
 /* Hasta dónde llega la línea: el final del partido si está finalizado; si no, la última anotación
    (o el inicio del periodo en curso, si aún no se ha anotado en él) */
@@ -1596,8 +1554,27 @@ function syncRoster(g) {
   }
 }
 
+/* Registro de quintetos (formato v3): una foto de quién está en pista cada vez que cambia el quinteto o el periodo,
+   con los toques de siempre. Si desde la última foto no se ha apuntado ninguna jugada, se corrige esa foto en vez de
+   añadir otra: tocar varias veces en el selector de quinteto o pasar un periodo sin jugadas deja una sola entrada.
+   Así, cada foto salvo la última tiene al menos una jugada. En un partido sin registro (anterior a la v3, o
+   finalizado antes de actualizar y reabierto) el registro empieza aquí. */
+function logLineup(g) {
+  const on = [...g.onCourt];
+  const last = g.lineups[g.lineups.length - 1];
+  if (last && !g.events.some(e => e.seq > last.seq)) {
+    last.period = g.period;
+    last.on = on;
+    return;
+  }
+  if (last && last.period === g.period && last.on.length === on.length && last.on.every(x => on.includes(x))) return;
+  const seq = ++g.seq;
+  g.lineups.push({ seq, period: g.period, on });
+  if (!Number.isInteger(g.lineupFrom)) g.lineupFrom = seq;
+}
+
 function record(g, type, pid) {
-  const e = { id: uid(), ts: Date.now(), period: g.period, type, pid };
+  const e = { id: uid(), seq: ++g.seq, ts: Date.now(), period: g.period, type, pid };
   g.events.push(e);
   markPlayed(g);
   save();
@@ -1621,7 +1598,7 @@ function recordOpp(g, pts) {
     toast(`El rival no tiene puntos en ${perAbbr(g, g.period)} · para corregir otro periodo: ☰ › Jugadas`);
     return;
   }
-  const e = { id: uid(), ts: Date.now(), period: g.period, type: 'opp', pts };
+  const e = { id: uid(), seq: ++g.seq, ts: Date.now(), period: g.period, type: 'opp', pts };
   g.events.push(e);
   markPlayed(g);
   save();
@@ -1653,7 +1630,7 @@ const actions = {
     save(); render();
   },
   'export-json'() {
-    const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ ...db, exportedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' });
     download(blob, `minibasket-stats-${todayISO()}.json`);
   },
 
@@ -1716,7 +1693,9 @@ const actions = {
       if (await confirmBox(`Es el último periodo. ¿Finalizar el partido?`, `${icon('flag')} Finalizar`)) finishGame(g);
       return;
     }
+    const was = g.period;
     g.period = Math.min(Math.max(g.period + d, 1), g.periods);
+    if (g.period !== was) logLineup(g);
     save();
     render();
     if (d > 0) {
@@ -1736,11 +1715,13 @@ const actions = {
     if (g.onCourt.includes(id)) g.onCourt = g.onCourt.filter(x => x !== id);
     else if (g.onCourt.length >= MAX_ON_COURT) { toast(`Máximo ${MAX_ON_COURT} jugadores en pista`); vibrate(40); return; }
     else g.onCourt.push(id);
+    logLineup(g);
     save(); vibrate(8); refreshModal();
   },
   'clear-court'() {
     const g = getGame(ui.modal.gid);
     g.onCourt = [];
+    logLineup(g);
     save(); refreshModal();
   },
   'lineup-done'() { closeModal(); },
@@ -1758,6 +1739,7 @@ const actions = {
       const idx = g.onCourt.indexOf(m.outId);
       if (idx >= 0) g.onCourt[idx] = inId; else if (g.onCourt.length < MAX_ON_COURT) g.onCourt.push(inId);
     } else if (g.onCourt.length < MAX_ON_COURT) g.onCourt.push(inId);
+    logLineup(g);
     markPlayed(g);
     save(); vibrate(); closeModal(true); render();
   },
@@ -1765,6 +1747,7 @@ const actions = {
     const m = ui.modal;
     const g = getGame(m.gid);
     g.onCourt = g.onCourt.filter(x => x !== m.outId);
+    logLineup(g);
     save(); closeModal(true); render();
   },
   menu() {
@@ -1961,7 +1944,10 @@ document.addEventListener('submit', async (e) => {
       finished: false,
       phase: team().phase,
       venue: asVenue(fd.get('venue')),
+      seq: 0,
+      lineups: [],
     };
+    logLineup(g);   // el registro de quintetos empieza con el partido
     db.games.push(g);
     save();
     ui.pendingModal = { kind: 'lineup', gid: g.id, title: `Quinteto inicial · ${perName(g)} 1` };
@@ -2021,7 +2007,11 @@ async function importJSON(file) {
   try {
     const data = JSON.parse(await file.text());
     if (!isBackup(data)) throw new Error('Formato no válido');
-    const ok = await confirmBox(`¿Importar <b>${esc(file.name)}</b>?<br><small class="muted">Se reemplazarán todos los datos actuales (${db.teams.length} equipo${db.teams.length === 1 ? '' : 's'} y ${db.games.length} partidos) por los del archivo.</small>`, 'Importar', true);
+    // Una copia de una versión más nueva se puede importar, pero esta versión puede no entender todo lo que trae
+    const newer = +data.version > FORMAT_VERSION
+      ? '<br><small class="muted">⚠️ La copia se hizo con una versión más nueva de la app. Actualízala (recarga con conexión) antes de importarla para no perder datos.</small>'
+      : '';
+    const ok = await confirmBox(`¿Importar <b>${esc(file.name)}</b>?<br><small class="muted">Se reemplazarán todos los datos actuales (${db.teams.length} equipo${db.teams.length === 1 ? '' : 's'} y ${db.games.length} partidos) por los del archivo.</small>${newer}`, 'Importar', true);
     if (!ok) return;
     db = normalize(data);
     save(); render();

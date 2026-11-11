@@ -81,7 +81,8 @@ así que sigue disponible en `/minibasket-stats/` sin proceso de build propio. L
 
 ```
 index.html            Shell de la SPA
-app.js                Lógica, vistas y almacenamiento
+core.js               Núcleo de cálculo: funciones puras sin DOM (MBCore). Se carga antes que app.js
+app.js                Vistas, acciones y almacenamiento
 styles.css            Estilos (layout horizontal)
 sw.js                 Service worker (modo sin conexión)
 manifest.webmanifest  Manifest PWA (orientación horizontal)
@@ -91,6 +92,22 @@ fonts/                Fuentes incluidas (sin Google Fonts): Rajdhani para rótul
 
 Los datos viven en `localStorage` con la clave `mbstats.v1`. Borrar los datos del navegador los elimina:
 exporta una copia de seguridad de vez en cuando.
+
+### Formato de los datos (versión 3)
+
+La clave se sigue llamando `mbstats.v1`, pero el formato lleva su propia versión (`version`, hoy 3). Al abrir datos o
+importar una copia de una versión anterior, `normalize()` los pasa al formato actual y los guarda.
+
+- **v2:** varios equipos, fases y local/visitante.
+- **v3:** registro de quintetos, para el +/- y los mejores quintetos. Cada partido tiene un contador `seq` que
+  numera, en el orden en que ocurren, sus jugadas (`events[].seq`) y las fotos de quién está en pista
+  (`lineups: [{ seq, period, on: [ids] }]`). Una foto se añade al cambiar el quinteto o el periodo, con los toques de
+  siempre; si desde la anterior no se apuntó ninguna jugada, se corrige esa en vez de añadir otra. `lineupFrom` es
+  el `seq` de la primera foto: los partidos anteriores a la v3 no lo tienen, y su +/- y sus quintetos no están
+  disponibles. Un partido sin finalizar de antes de la v3 empieza a registrar en su siguiente cambio o periodo.
+
+La copia de seguridad es el mismo JSON con `exportedAt` (fecha de la exportación). Si una copia es de un formato más
+nuevo que el de la app, se avisa antes de importarla.
 
 ## Diseño
 

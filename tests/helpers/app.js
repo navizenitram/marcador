@@ -1,6 +1,7 @@
 // Carga la app de estadísticas real (public/minibasket-stats) en un DOM simulado con jsdom, sin modificar su código.
 //
-// app.js es un script clásico, no un módulo: sus funciones quedan como globales de la ventana (app.fn.score…)
+// core.js y app.js son scripts clásicos, no módulos: se ejecutan en el orden de index.html y sus funciones quedan como
+// globales de la ventana (app.fn.score…, app.window.MBCore)
 // y sus variables `let`/`const` (db, ui) se leen evaluando código en el mismo contexto (app.db, app.ui).
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -13,7 +14,9 @@ export const STORE_KEY = 'mbstats.v1';
 export const THEME_KEY = 'mb_theme';
 
 const HTML = readFileSync(APP_DIR + 'index.html', 'utf8');
-const SCRIPT = new vm.Script(readFileSync(APP_DIR + 'app.js', 'utf8'), { filename: APP_DIR + 'app.js' });
+// Los scripts locales de index.html (core.js, app.js…), en el orden en que los carga el navegador
+const SCRIPTS = [...HTML.matchAll(/<script src="([^"]+)"><\/script>/g)]
+  .map(([, src]) => new vm.Script(readFileSync(APP_DIR + src, 'utf8'), { filename: APP_DIR + src }));
 
 /**
  * Abre la app con los datos indicados en localStorage y espera a que termine de navegar.
@@ -47,7 +50,7 @@ export async function openApp({ data, hash = '', storage = {}, origin = 'https:/
   if (data !== undefined) window.localStorage.setItem(STORE_KEY, typeof data === 'string' ? data : JSON.stringify(data));
   for (const [k, v] of Object.entries(storage)) window.localStorage.setItem(k, v);
 
-  SCRIPT.runInContext(dom.getInternalVMContext());
+  for (const script of SCRIPTS) script.runInContext(dom.getInternalVMContext());
   const app = new App(dom, errors, logs, downloads);
   try {
     onTestFinished(() => app.close());

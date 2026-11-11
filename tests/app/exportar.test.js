@@ -122,8 +122,9 @@ describe('copia de seguridad', () => {
     const app = await openApp({ data, hash: '#/ajustes' });
     await app.act('export-json');
     expect(app.downloads[0].name).toBe(`minibasket-stats-${app.fn.todayISO()}.json`);
-    const exported = JSON.parse(await app.downloads[0].blob.text());
+    const { exportedAt, ...exported } = JSON.parse(await app.downloads[0].blob.text());
     expect(exported).toEqual(JSON.parse(JSON.stringify(app.db)));
+    expect(exportedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(exported.teams.map((t) => t.name)).toEqual(['Alevín A', 'Infantil']);
   });
 });

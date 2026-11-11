@@ -1,6 +1,8 @@
 # Plan de mejoras — My Own Basketball Stats
 
-> Estado: **propuesta pendiente de aprobación** (revisada con tus decisiones del 11/11). No se ha escrito código de producción.
+> Estado: **aprobado el 11/11/2026**. Para las preguntas abiertas se toman de momento las propuestas del plan.
+> Avance: **fase 0 y fase 1A hechas** (ver «Avance» al final). La tarea 0.4 (base de i18n) pasa al inicio de la fase 2,
+> que es la primera con textos nuevos en pantalla. No se ha escrito código de producción.
 > Fecha: 11/11/2026 · Rama: `claude/stoic-hopper-4rsg3g`
 > Las referencias `archivo:línea` apuntan al commit `3454784`.
 
@@ -190,8 +192,12 @@ Una lista **aparte** de `g.events`, para no tocar `undo`, el listado de jugadas,
   no medir tiempo.
 - **Quinteto de una jugada:** la última foto con `seq` menor que el de la jugada.
 - **Al cargar en v3** (`normalize`): los eventos sin `seq` reciben uno en el orden de la lista. Un partido sin
-  `lineupFrom` es antiguo (no disponible). A un partido que estaba **a medias** durante la actualización se le añade
-  una foto de su `onCourt` actual y `lineupFrom` = ese `seq`. Lo jugado antes no cuenta y lo de después, sí.
+  `lineupFrom` es antiguo (no disponible). `normalize` no se inventa ninguna foto: un partido que estaba **a medias**
+  durante la actualización (o uno finalizado que se reabre) empieza a registrar en su **siguiente cambio o periodo**.
+  Lo jugado antes no cuenta.
+- **Agrupación también entre periodos** (decidido al implementar): si desde la última foto no se apuntó ninguna
+  jugada, se corrige esa foto aunque cambie el periodo. Así, cada foto salvo la última tiene al menos una jugada y no
+  quedan periodos con un quinteto «vacío».
 - **Tamaño:** de 10 a 40 fotos por partido, unos 80 bytes cada una, más unos 10 bytes de `seq` por evento. Son unos
   3–5 KB por partido (+20–25 %). Hay margen de sobra en `localStorage` y en el traspaso (lo comprobará un test).
 
@@ -268,7 +274,7 @@ En cada tarea, primero se escriben los tests, se comprueba que fallan y después
 
 | # | Tarea | Archivos | Tests primero | Aceptación |
 | --- | --- | --- | --- | --- |
-| 1A.1 | `normalize` v2→v3: `seq` para los eventos, `lineups`, `lineupFrom`, foto inicial de los partidos a medias y validación | `app.js` | `datos.test.js`: un v2 sin quintetos, un partido a medias, `lineups` manipulados (ids raros, 6 jugadores, repetidos, `seq` desordenado) y que sea idempotente (normalizar dos veces da lo mismo) | Los datos v2 guardados siguen cargando. `load()` vuelve a guardar una sola vez |
+| 1A.1 | `normalize` v2→v3: `seq` para los eventos, `lineups`, `lineupFrom` y validación | `app.js` | `datos.test.js`: un v2 sin quintetos, un partido a medias, `lineups` manipulados (ids raros, 6 jugadores, repetidos, `seq` desordenado) y que sea idempotente (normalizar dos veces da lo mismo) | Los datos v2 guardados siguen cargando. `load()` vuelve a guardar una sola vez |
 | 1A.2 | `logLineup(g)` con agrupación, llamado desde las acciones de cambio y de periodo. `record` y `recordOpp` asignan `seq` | `app.js` | `flujos.test.js`: crear un partido, elegir quinteto, hacer un cambio, cambiar de periodo y sentar sin cambio dan la lista de `lineups` esperada. 10 toques en el selector sin jugadas = 1 entrada. **Deshacer tras un cambio deshace la última jugada, no el cambio** | El e2e «un partido completo» pasa **sin un solo toque más** |
 | 1A.3 | `MBCore.lineupAt(g, seq)` → quinteto de una jugada, o `null` si es anterior a `lineupFrom` | `core.js` | Fixtures: el quinteto de cada jugada en un partido con cambios. Partido antiguo → `null`. Partido a medias durante la actualización → `null` hasta `lineupFrom` | Funciones puras con cobertura del 100 % |
 | 1A.4 | Tamaño | — | Una temporada sintética de 30 partidos × 250 jugadas: el JSON cabe y `encodeTransfer` < `MAX_TRANSFER` | El aumento del tamaño es < 35 % |
@@ -680,3 +686,18 @@ Se conserva por si en algún momento se retoma.
 **Recomendación: generador propio** (`pdf.js`). Se carga **bajo demanda** al pulsar «Informe PDF» y está en la caché
 del SW para funcionar sin conexión. Si no hay `navigator.canShare({ files })`, se descarga. Si algún día hace falta
 algo más complejo (imágenes, otras fuentes), se reevalúa pdf-lib.
+
+---
+
+## Avance
+
+| Fase | Estado | Notas |
+| --- | --- | --- |
+| 0 — Cimientos | **Hecha** (salvo 0.4) | `core.js` (núcleo puro, `MBCore`) con un 100 % de cobertura. Helper de tests que carga los scripts de `index.html` en orden. Test de que el SW guarda todos los scripts. Copia v3 con `exportedAt` y aviso de versión más nueva. **0.4 (i18n) pasa al inicio de la fase 2** |
+| 1A — Registrar quintetos | **Hecha** | `seq` en jugadas, `lineups`, `lineupFrom`, `logLineup` en crear partido, selector de quinteto, cambio, sentar, vaciar y periodo. `MBCore.lineupAt`. Sin cambios visibles: e2e de Android en verde sin tocar los tests. Tamaño: < 35 % más y la temporada cabe en el traspaso |
+| 2 — Avanzadas | Pendiente | Empieza por la base de i18n (0.4) |
+| 1B — Mejor quinteto | Pendiente | Necesita partidos jugados con la 1A publicada |
+| 4, 5, 3 | Pendientes | — |
+
+Conocido: al juntar la cobertura de todos los archivos de test, la cobertura V8 de Vitest a veces deja `core.js` fuera
+de la tabla (fallo de la herramienta al fusionar informes). Se mide aparte (ver el README).
