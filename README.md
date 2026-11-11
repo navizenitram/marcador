@@ -38,9 +38,17 @@ o pulsan sus botones. Si la app lanza una excepción durante un test, el test fa
 
 | Carpeta | Qué cubre |
 | --- | --- |
-| `tests/app/` | App de estadísticas: cálculos y valoración, datos (migración v1→v2, carga, importación), exportación (texto, CSV, JSON) y flujos de uso (equipos, plantilla, partido en directo, ajustes, estadísticas, fases de la temporada y local/visitante) |
+| `tests/core/` | Núcleo de cálculo de la app (`core.js`) cargado solo, sin DOM: si tocara el DOM o el estado de la app, fallaría |
+| `tests/app/` | App de estadísticas: cálculos y valoración, datos (migraciones v1→v2→v3, carga, importación), registro de quintetos, exportación (texto, CSV, JSON) y flujos de uso (equipos, plantilla, partido en directo, ajustes, estadísticas, fases de la temporada y local/visitante) |
 | `tests/marcador/` | Marcador: puntos, faltas y periodos, estadísticas y gráficas (Chart.js se sustituye por un doble), reinicio y tema |
 | `tests/web/` | `site.config.mjs`, `scripts/postbuild.mjs`, mismos textos en castellano y catalán, y archivos de la PWA (service worker, manifest, fuentes) |
+
+La cobertura de `core.js` se mide aparte: al juntar los informes de todos los archivos de test, la cobertura V8 de
+Vitest a veces lo deja fuera de la tabla.
+
+```bash
+npx vitest run tests/core --coverage --coverage.include=public/minibasket-stats/core.js
+```
 
 ### Tests e2e
 

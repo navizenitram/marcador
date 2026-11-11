@@ -127,6 +127,14 @@ describe('PWA de estadísticas: archivos', () => {
     expect(refs.filter((u) => !existsSync(join(APP, u)))).toEqual([]);
   });
 
+  it('el service worker guarda todos los scripts que carga index.html (si falta uno, la app no arranca sin conexión)', () => {
+    const { document } = new JSDOM(readFileSync(join(APP, 'index.html'), 'utf8')).window;
+    const scripts = [...document.querySelectorAll('script[src]')].map((el) => `./${el.getAttribute('src')}`);
+    expect(scripts).toEqual(expect.arrayContaining(['./core.js', './app.js']));
+    expect(scripts.indexOf('./core.js')).toBeLessThan(scripts.indexOf('./app.js'));
+    expect(sw().ASSETS).toEqual(expect.arrayContaining(scripts));
+  });
+
   it('existen los iconos del manifest y la app se abre en horizontal', () => {
     const manifest = JSON.parse(readFileSync(join(APP, 'manifest.webmanifest'), 'utf8'));
     expect(manifest.orientation).toBe('landscape');

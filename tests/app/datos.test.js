@@ -16,13 +16,13 @@ describe('normalize', () => {
 
   it('convierte datos vacíos o no válidos en una base de datos vacía', () => {
     for (const input of [null, undefined, 'texto', 42]) {
-      expect(app.fn.normalize(input)).toEqual({ games: [], teams: [], currentTeamId: null, version: 2 });
+      expect(app.fn.normalize(input)).toEqual({ games: [], teams: [], currentTeamId: null, version: 3 });
     }
   });
 
   it('migra el formato v1 (un solo equipo) a la lista de equipos', () => {
     const d = app.fn.normalize(v1Backup());
-    expect(d.version).toBe(2);
+    expect(d.version).toBe(3);
     expect(d.teams).toHaveLength(1);
     expect(d.teams[0]).toMatchObject({ name: 'Benjamín', email: 'entrenador@club.com', hidden: ['blk', 'blkr'] });
     expect(d.teams[0].players).toHaveLength(2);
@@ -216,7 +216,7 @@ describe('carga y guardado en localStorage', () => {
   it('migra los datos v1 al abrir y los guarda ya migrados, con identificadores estables', async () => {
     const first = await openApp({ data: v1Backup() });
     const stored = first.stored();
-    expect(stored.version).toBe(2);
+    expect(stored.version).toBe(3);
     expect(stored.teams[0].id).toBe(first.db.teams[0].id);
 
     // Al volver a abrir no se generan identificadores nuevos
@@ -224,7 +224,7 @@ describe('carga y guardado en localStorage', () => {
     expect(second.db.teams[0].id).toBe(stored.teams[0].id);
   });
 
-  it('no reescribe los datos que ya están en formato v2', async () => {
+  it('no reescribe los datos que ya están en el formato actual (v3)', async () => {
     const raw = JSON.stringify(makeData({ games: [makeGame({ events: [ev('t2_ok', 'p4')], played: { p4: [1] } })] }));
     const app = await openApp({ data: raw, hash: '#/equipo' });
     expect(app.window.localStorage.getItem(STORE_KEY)).toBe(raw);

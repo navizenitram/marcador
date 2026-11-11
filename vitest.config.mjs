@@ -8,7 +8,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       // El marcador lleva el script dentro del HTML y no se puede medir; postbuild.mjs se prueba en un proceso aparte.
-      include: ['public/minibasket-stats/app.js', 'site.config.mjs'],
+      include: ['public/minibasket-stats/core.js', 'public/minibasket-stats/app.js', 'site.config.mjs'],
       reporter: ['text', 'html'],
     },
   },

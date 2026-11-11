@@ -1,4 +1,4 @@
-// Datos de ejemplo con el formato que guarda la app (versión 2 de mbstats.v1).
+// Datos de ejemplo con el formato que guarda la app (versión 3 de mbstats.v1).
 
 export const PLAYERS = [
   { id: 'p4', number: '4', name: 'Ana' },
@@ -15,8 +15,9 @@ export function makeTeam(overrides = {}) {
   return { id: 't1', name: 'Alevín A', email: '', players: copy(PLAYERS), hidden: [], phase: 1, levels: ['', ''], move: '', ...overrides };
 }
 
+/** Partido. Sin `lineupFrom` es un partido sin registro de quintetos (como los anteriores a la versión 3). */
 export function makeGame(overrides = {}) {
-  return {
+  const g = {
     id: 'g1',
     createdAt: 1,
     date: '2026-10-03',
@@ -32,24 +33,28 @@ export function makeGame(overrides = {}) {
     finished: false,
     phase: 1,
     venue: '',
+    lineups: [],
     ...overrides,
   };
+  // Contador del partido: como lo deja la app, el mayor seq de sus jugadas y quintetos
+  if (g.seq === undefined) g.seq = Math.max(0, ...g.events.map((e) => e.seq || 0), ...g.lineups.map((l) => l.seq || 0));
+  return g;
 }
 
 let seq = 0;
-/** Acción de un jugador. Cada evento lleva un ts creciente, como en la app. */
+/** Acción de un jugador. Cada evento lleva un ts y un seq crecientes, como en la app. */
 export function ev(type, pid, period = 1) {
   seq++;
-  return { id: `e${seq}`, ts: 1_000_000 + seq, period, type, pid };
+  return { id: `e${seq}`, seq, ts: 1_000_000 + seq, period, type, pid };
 }
 /** Puntos del rival */
 export function opp(pts, period = 1) {
   seq++;
-  return { id: `e${seq}`, ts: 1_000_000 + seq, period, type: 'opp', pts };
+  return { id: `e${seq}`, seq, ts: 1_000_000 + seq, period, type: 'opp', pts };
 }
 
 export function makeData({ teams = [makeTeam()], games = [], currentTeamId } = {}) {
-  return { version: 2, teams, games, currentTeamId: currentTeamId ?? (teams[0] ? teams[0].id : null) };
+  return { version: 3, teams, games, currentTeamId: currentTeamId ?? (teams[0] ? teams[0].id : null) };
 }
 
 /*

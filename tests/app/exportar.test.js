@@ -71,14 +71,17 @@ describe('CSV', () => {
     const { bom, lines } = await csvOf(app.downloads[0]);
     expect(bom).toBe(true);  // para que Excel lea bien las tildes
     expect(lines).toEqual([
-      'Dorsal;Jugador;Periodos;PTS;T1A;T1I;T2A;T2I;T3A;T3I;RO;RD;RT;AS;TAP;TR;REC;PER;FC;FR;VAL',
-      '4;Ana;2;3;1;2;1;2;0;1;0;0;0;0;0;0;1;0;1;0;0',
-      '7;Bruno;1;3;0;0;0;0;1;1;0;1;1;1;0;0;0;0;0;0;5',
-      '10;Carla;1;2;0;0;1;1;0;0;0;0;0;0;0;1;0;1;0;0;0',
-      '12;Dani;0;0;0;0;0;0;0;0;1;0;1;0;0;0;0;0;0;0;1',
-      '15;Eva;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0',
-      '21;Fran;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0',
-      ';Equipo;4;8;1;2;2;3;1;2;1;1;2;1;0;1;1;1;1;0;6',
+      'Dorsal;Jugador;Periodos;PTS;T1A;T1I;T2A;T2I;T3A;T3I;RO;RD;RT;AS;TAP;TR;REC;PER;FC;FR;VAL;eFG%;TS%;%PÉR;TL/TC',
+      // Ana: 3 tiros de campo → eFG 1/3 = 33 %, TS 3 / (2·3,88) = 39 %, 0 pérdidas, 2 TL / 3 TC = 0,67
+      '4;Ana;2;3;1;2;1;2;0;1;0;0;0;0;0;0;1;0;1;0;0;33;39;0;0,67',
+      // Con menos de 3 intentos no se calcula
+      '7;Bruno;1;3;0;0;0;0;1;1;0;1;1;1;0;0;0;0;0;0;5;;;;',
+      '10;Carla;1;2;0;0;1;1;0;0;0;0;0;0;0;1;0;1;0;0;0;;;;',
+      '12;Dani;0;0;0;0;0;0;0;0;1;0;1;0;0;0;0;0;0;0;1;;;;',
+      '15;Eva;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;;;;',
+      '21;Fran;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;;;;',
+      // Equipo: 3/5 TC con 1 triple → 70 %; TS 8 / (2·5,88) = 68 %; 1 / 6,88 = 15 %; 2 / 5 = 0,4
+      ';Equipo;4;8;1;2;2;3;1;2;1;1;2;1;0;1;1;1;1;0;6;70;68;15;0,4',
     ]);
   });
 
@@ -122,8 +125,9 @@ describe('copia de seguridad', () => {
     const app = await openApp({ data, hash: '#/ajustes' });
     await app.act('export-json');
     expect(app.downloads[0].name).toBe(`minibasket-stats-${app.fn.todayISO()}.json`);
-    const exported = JSON.parse(await app.downloads[0].blob.text());
+    const { exportedAt, ...exported } = JSON.parse(await app.downloads[0].blob.text());
     expect(exported).toEqual(JSON.parse(JSON.stringify(app.db)));
+    expect(exportedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(exported.teams.map((t) => t.name)).toEqual(['Alevín A', 'Infantil']);
   });
 });
