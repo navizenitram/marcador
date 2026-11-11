@@ -44,6 +44,16 @@ describe('reportModel', () => {
     expect(m.teamPm).toBe(5);
   });
 
+  it('el +/- del equipo es el de los mismos partidos que el del jugador', () => {
+    const g3 = trackedGame('g3', [[1, Q2, 0, 5]], { date: '2026-11-20' });   // Ana no juega: el equipo −5 no cuenta
+    expect(core.reportModel([...season(), g3], 'p4', ALL).teamPm).toBe(5);
+  });
+
+  it('nombre y dorsal actuales del equipo si se pasan (pueden haber cambiado tras el último partido)', () => {
+    const m = plain(core.reportModel(season(), 'p4', ALL, { number: '14', name: 'Anna' }));
+    expect([m.number, m.name]).toEqual(['14', 'Anna']);
+  });
+
   it('sin partidos con registro, sin +/-', () => {
     const old = makeGame({ played: { p4: [1] }, events: [ev('t2_ok', 'p4'), opp(2)] });
     const m = plain(core.reportModel([old], 'p4', ALL));
@@ -125,6 +135,19 @@ describe('reportText', () => {
     expect(s).not.toContain('TS%');
     expect(s).not.toContain('TL/TC');
     expect(s).not.toContain('pocos tiros');
+  });
+
+  it('si el mismo mes se repite en años distintos, lleva el año', () => {
+    const dates = ['2026-09-05', '2026-09-12', '2026-10-03', '2026-11-07', '2027-01-09', '2027-03-06', '2027-05-08', '2027-09-04', '2027-09-11'];
+    const games = dates.map((date, i) => trackedGame(`y${i}`, [[1, Q1, 1, 0]], { date }));
+    const s = core.reportText(core.reportModel(games, 'p4', ALL), ctx);
+    expect(s).toMatch(/^sept 2026: 2 partidos/m);
+    expect(s).toMatch(/^sept 2027: 2 partidos/m);
+    expect(s).toMatch(/^oct: 1 partido/m);
+  });
+
+  it('el mínimo de periodos del +/- sale de la constante, no del texto', () => {
+    expect(text()).toContain(`al menos ${core.PM_MIN_PERIODS} periodos`);
   });
 
   it('un partido sin fecha no rompe el resumen por meses', () => {

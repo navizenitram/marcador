@@ -57,6 +57,20 @@ describe('informe del jugador', () => {
     expect(app.$('[data-action="report"]')).toBeNull();
   });
 
+  it('el informe usa el nombre y el dorsal actuales del equipo', async () => {
+    const team = makeTeam();
+    team.players[0] = { id: 'p4', number: '14', name: 'Anna' };
+    const app = await open('#/stats/temporada', team);
+    await app.act('report', { pid: 'p4' });
+    expect(app.$('.share-preview').textContent).toMatch(/^Informe de #14 Anna/);
+  });
+
+  it('la pista de «toca el nombre» solo sale si hay algún informe', async () => {
+    expect((await open()).$('.report-hint')).not.toBeNull();
+    const app = await open('#/stats/fase-2', makeTeam({ phase: 2 }));   // sin partidos en la 2ª fase
+    expect(app.$('.report-hint')).toBeNull();
+  });
+
   it('un jugador sin partidos no tiene botón de informe', async () => {
     const app = await open();
     expect(app.$('[data-action="report"][data-pid="p21"]')).toBeNull();

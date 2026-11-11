@@ -269,13 +269,13 @@
   const round1 = (n) => Math.round(n * 10) / 10;
   const byDate = (a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0);
 
-  function reportModel(games, pid, rec) {
+  /* current: { number, name } actuales del equipo (pueden haber cambiado tras el último partido); si no, los del partido */
+  function reportModel(games, pid, rec, current) {
     let player = null, periods = 0, teamPm = null;
     const line = blankLine(), evolution = [], phases = new Map();
     let pm = null;
     for (const g of [...games].sort(byDate)) {
       const own = plusMinus(g);
-      if (own) for (const s of stints(g)) teamPm = (teamPm || 0) + s.pf - s.pc;
       const p = g.roster.find(x => x.id === pid);
       const nper = (g.played[pid] || []).length;
       if (!p || (!nper && !g.events.some(e => e.pid === pid))) continue;
@@ -290,6 +290,8 @@
       if (own && own[pid]) {
         pm = pm || { pf: 0, pc: 0, pm: 0, periods: 0, games: 0 };
         pm.pf += own[pid].pf; pm.pc += own[pid].pc; pm.pm += own[pid].pm; pm.periods += own[pid].periods; pm.games++;
+        // El dato del equipo, de los mismos partidos (y los mismos tramos registrados) que el del jugador
+        for (const s of stints(g)) teamPm = (teamPm || 0) + s.pf - s.pc;
       }
     }
     if (!player) return null;
@@ -297,7 +299,7 @@
     const n = evolution.length;
     if (pm) pm.periods = r3(pm.periods);
     return {
-      number: player.number, name: player.name, games: n, periods,
+      number: (current || player).number, name: (current || player).name, games: n, periods,
       first: evolution[0].date, last: evolution[n - 1].date,
       line, per: { pts: round1(line.pts / n), reb: round1(line.reb / n), val: round1(line.val / n) },
       evolution,
@@ -338,8 +340,13 @@
         months.set(k, x);
       }
       const monthName = new Intl.DateTimeFormat(ctx.locale || 'es', { month: 'short', timeZone: 'UTC' });
-      for (const x of months.values()) {
-        const name = /^\d{4}-\d{2}/.test(x.date) ? monthName.format(new Date(`${x.date.slice(0, 7)}-15T12:00:00Z`)).replace('.', '') : '–';
+      // El año, solo si el mismo mes aparece en años distintos (un ámbito de más de 12 meses)
+      const mm = [...months.keys()].map(k => k.slice(5));
+      for (const [k, x] of months) {
+        const repeated = mm.filter(m => m === k.slice(5)).length > 1;
+        const name = /^\d{4}-\d{2}$/.test(k)
+          ? monthName.format(new Date(`${k}-15T12:00:00Z`)).replace('.', '') + (repeated ? ` ${k.slice(0, 4)}` : '')
+          : '–';
         out.push(t('report.evoMonth', { month: name, games: t('report.games', { n: x.n }), pts: fmtNum(x.pts / x.n), val: fmtNum(x.val / x.n) }));
       }
     }
@@ -347,7 +354,7 @@
 
     if (m.pm) {
       out.push('', t('report.pmHead', { name: m.name }));
-      if (m.pm.periods < PM_MIN_PERIODS) out.push(t('report.pmFew'));
+      if (m.pm.periods < PM_MIN_PERIODS) out.push(t('report.pmFew', { min: PM_MIN_PERIODS }));
       else {
         out.push(t('report.pmLine', { name: m.name, pf: m.pm.pf, pc: m.pm.pc, pm: signed(m.pm.pm),
           periods: t('report.periods', { n: fmtNum(m.pm.periods) }), games: t('report.games', { n: m.pm.games }) }));
@@ -372,6 +379,6 @@
 
   root.MBCore = Object.freeze({
     EV_PTS, blankLine, addEvent, sumLines, finish, score, periodScores, playerLines, scoreFlow, lineupAt,
-    ADV_MIN, advanced, recordedOpts, stints, plusMinus, combos, rankCombos, reportModel, reportText,
+    ADV_MIN, advanced, recordedOpts, stints, plusMinus, combos, rankCombos, PM_MIN_PERIODS, reportModel, reportText,
   });
 })(globalThis);

@@ -1125,7 +1125,7 @@ function viewStats(arg) {
     ${data.season ? seasonSummary(data.scopeGames) : gameSummary(g)}
     ${leaders(data)}
     <section class="card table-card">${statsTable(data)}</section>
-    ${data.season ? `<p class="muted small report-hint">${esc(tr('report.hint'))}</p>` : ''}
+    ${data.season && data.rows.some(r => r.gp) ? `<p class="muted small report-hint">${esc(tr('report.hint'))}</p>` : ''}
     ${unitsCard(data)}
     ${ui.adv ? `<p class="muted small adv-note">${esc(tr('adv.note'))} Toca la cabecera de una columna para ordenar.</p>${glossary(data)}` : `
     <p class="muted small formula"><b>VAL</b> (valoración ACB) = puntos + rebotes + asistencias + recuperaciones + tapones + faltas recibidas − tiros fallados (cada uno resta 1) − tapones recibidos − pérdidas − faltas cometidas.
@@ -2414,7 +2414,8 @@ function shareReport(arg, pid) {
   if (!scope) return;
   const t = team();
   const total = totalsRow(seasonRows(scope.games), scope.games.length);
-  const model = MBCore.reportModel(scope.games, pid, MBCore.recordedOpts(total, t.hidden));
+  const current = t.players.find(p => p.id === pid);   // nombre y dorsal de hoy, como en la tabla
+  const model = MBCore.reportModel(scope.games, pid, MBCore.recordedOpts(total, t.hidden), current);
   if (!model) return;
   const scopeLabel = scope.phase ? phaseLabel(t, scope.phase) : tr('report.season');
   const text = MBCore.reportText(model, {
