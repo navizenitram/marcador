@@ -31,7 +31,8 @@ export const home = {
     actionsIntro: 'Hasta 15 botones por jugador. Activa solo los que quieras usar: con menos botones, cada uno es más grande y más fácil de tocar.',
     miniTitle: 'Pensada para el minibasket',
     mini: [
-      'Partidos de 8 periodos o de 4 cuartos.',
+      'Partidos de 8 periodos o de 4 cuartos, de local o de visitante.',
+      'Temporada en dos fases: indicas en cuál estás y el nivel de cada una, y si en la segunda subes, bajas o sigues igual.',
       'Cuenta sola los periodos que juega cada jugador: solo tienes que elegir el quinteto.',
       'Aviso a las 4 faltas y jugador eliminado con la quinta.',
       'Cambios tocando el nombre del jugador en pista.',
@@ -44,7 +45,8 @@ export const home = {
       'Resultado y parciales de cada periodo.',
       'Líderes del partido: valoración, puntos, rebotes, asistencias, recuperaciones y tapones.',
       'Tabla por jugador con porcentajes de tiro, que puedes ordenar por cualquier columna.',
-      'Temporada completa en totales o en promedio por partido.',
+      'Temporada completa o cada fase por separado, en totales o en promedio por partido.',
+      'Balance de victorias y derrotas de local y de visitante.',
     ],
     statsVal: 'Valoración con la fórmula de la ACB.',
     statsValLink: 'Así se calcula',
@@ -65,6 +67,10 @@ export const home = {
       { q: '¿Funciona sin cobertura en el pabellón?', a: 'Sí. Una vez la has abierto por primera vez, funciona sin conexión.' },
       { q: '¿Qué pasa con los datos si cambio de móvil?', a: 'Los datos se guardan solo en tu dispositivo. Para pasarlos a otro, exporta una copia de seguridad desde Ajustes e impórtala en el nuevo.' },
       { q: '¿Sirve para categorías por encima del minibasket?', a: 'Sí. Al crear el partido eliges si se juega a 8 periodos, como en minibasket, o a 4 cuartos.' },
+      {
+        q: '¿Qué pasa si la temporada tiene dos fases?',
+        a: 'En minibasket es lo habitual: según la clasificación de la primera fase, en la segunda jugáis contra equipos nuevos en un nivel superior, igual o inferior. En la ficha del equipo indicas en qué fase estás y el nivel de cada una. Los partidos nuevos se apuntan en la fase actual, y puedes ver las estadísticas de cada fase por separado o de toda la temporada.',
+      },
       { q: '¿Por qué hay que usarla con el móvil en horizontal?', a: 'Para que quepan los cinco jugadores en pista con todos sus botones sin tener que hacer scroll durante el partido.' },
       {
         q: '¿Cómo calcula la valoración?',
@@ -107,7 +113,8 @@ export const home = {
     actionsIntro: 'Fins a 15 botons per jugador. Activa només els que vulguis fer servir: amb menys botons, cadascun és més gran i més fàcil de tocar.',
     miniTitle: 'Pensada per al minibàsquet',
     mini: [
-      'Partits de 8 períodes o de 4 quarts.',
+      'Partits de 8 períodes o de 4 quarts, a casa o a fora.',
+      'Temporada en dues fases: indiques en quina ets i el nivell de cadascuna, i si a la segona puges, baixes o et quedes igual.',
       'Compta sola els períodes que juga cada jugador: només has de triar el quintet.',
       'Avís a les 4 faltes i jugador eliminat amb la cinquena.',
       'Canvis tocant el nom del jugador a la pista.',
@@ -120,7 +127,8 @@ export const home = {
       'Resultat i parcials de cada període.',
       'Líders del partit: valoració, punts, rebots, assistències, recuperacions i taps.',
       'Taula per jugador amb percentatges de tir, que pots ordenar per qualsevol columna.',
-      'Temporada completa en totals o en mitjana per partit.',
+      'Temporada completa o cada fase per separat, en totals o en mitjana per partit.',
+      'Balanç de victòries i derrotes a casa i a fora.',
     ],
     statsVal: "Valoració amb la fórmula de l'ACB.",
     statsValLink: 'Així es calcula (en castellà)',
@@ -142,6 +150,10 @@ export const home = {
       { q: 'Funciona sense cobertura al pavelló?', a: "Sí. Un cop l'has oberta per primera vegada, funciona sense connexió." },
       { q: 'Què passa amb les dades si canvio de mòbil?', a: "Les dades es desen només al teu dispositiu. Per passar-les a un altre, exporta una còpia de seguretat des d'Ajustes i importa-la al nou." },
       { q: 'Serveix per a categories per sobre del minibàsquet?', a: 'Sí. En crear el partit tries si es juga a 8 períodes, com en minibàsquet, o a 4 quarts.' },
+      {
+        q: 'Què passa si la temporada té dues fases?',
+        a: "En minibàsquet és l'habitual: segons la classificació de la primera fase, a la segona jugueu contra equips nous en un nivell superior, igual o inferior. A la fitxa de l'equip indiques en quina fase ets i el nivell de cadascuna. Els partits nous s'apunten a la fase actual, i pots veure les estadístiques de cada fase per separat o de tota la temporada.",
+      },
       { q: 'Per què cal fer-la servir amb el mòbil en horitzontal?', a: 'Perquè hi càpiguen els cinc jugadors de la pista amb tots els botons sense haver de desplaçar la pantalla durant el partit.' },
       {
         q: 'Com calcula la valoració?',
