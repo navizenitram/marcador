@@ -11,6 +11,6 @@ export const UMAMI_WEBSITE_ID: string = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID 
 // Verificación de Google Search Console por etiqueta meta. El código no es secreto (acaba en el HTML público);
 // PUBLIC_GSC_VERIFICATION lo sustituye si hace falta otro.
 export const GSC_VERIFICATION: string =
-  import.meta.env.PUBLIC_GSC_VERIFICATION || '00XNDah1i8R4Wl3CbHz6AcO_aeLImIoTQju7aaxnfkA';
+  import.meta.env.PUBLIC_GSC_VERIFICATION || 'qTOcRMn6lUGbyOFyUWqL3bWUUBLumqlW4X27sp7h8to';
 
 export type Lang = 'es' | 'ca';
