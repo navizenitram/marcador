@@ -126,14 +126,21 @@
 
   function stints(g) {
     if (!Number.isInteger(g.lineupFrom)) return [];
-    const lineups = [...(g.lineups || [])].sort(bySeq);
+    // Una foto de un periodo anterior al más alto alcanzado es una vuelta atrás (‹) para apuntar algo olvidado: la
+    // pista sigue mostrando a los de ahora, así que no se sabe quién jugaba entonces y sus jugadas no cuentan.
+    let top = 0;
+    const lineups = [...(g.lineups || [])].sort(bySeq).map(l => {
+      const retro = l.period < top;
+      top = Math.max(top, l.period);
+      return { ...l, retro };
+    });
     const events = g.events.filter(e => e.seq > g.lineupFrom).sort(bySeq);
-    const groups = new Map();   // «seq del quinteto|periodo» → tramo
+    const groups = new Map();   // «jugadores|periodo» → tramo
     let i = -1;
     for (const e of events) {
       while (i + 1 < lineups.length && lineups[i + 1].seq < e.seq) i++;   // último quinteto anterior a la jugada
-      if (i < 0) continue;
-      const key = `${lineups[i].seq}|${e.period}`;
+      if (i < 0 || lineups[i].retro) continue;
+      const key = `${[...lineups[i].on].sort().join(',')}|${e.period}`;   // mismo quinteto en el mismo periodo, un tramo
       if (!groups.has(key)) groups.set(key, { period: e.period, on: [...lineups[i].on], events: 0, pf: 0, pc: 0 });
       const s = groups.get(key);
       s.events++;

@@ -47,6 +47,7 @@
   'units.below2': { one: '{n} pareja con menos de {min} periodos juntos no entra en el ranking.', other: '{n} parejas con menos de {min} periodos juntos no entran en el ranking.' },
   'units.below3': { one: '{n} trío con menos de {min} periodos juntos no entra en el ranking.', other: '{n} tríos con menos de {min} periodos juntos no entran en el ranking.' },
   'units.notEnough': 'Todavía no hay suficientes datos: las combinaciones se repiten poco. Prueba con parejas o tríos, baja el mínimo o vuelve dentro de unos partidos.',
+  'units.noneYet': 'Aún no hay jugadas con quinteto registrado en este partido.',
   'units.unavailable': 'No disponible: los quintetos se registran desde la última versión de la app y los partidos anteriores no tienen este dato.',
   'units.coverage': 'Calculado con {n} de {total} partidos: los anteriores al registro de quintetos no cuentan.',
   'units.help': 'El +/- es la diferencia de puntos (a favor menos en contra) mientras esos jugadores estaban juntos en pista. No mide solo a esos jugadores: depende también de sus compañeros, del rival y del momento del partido, y con pocos periodos cambia mucho. «≈» indica que hubo cambios dentro de algún periodo: ese periodo se reparte según las jugadas apuntadas con cada quinteto. Toca una fila para ver en qué partidos jugó.',

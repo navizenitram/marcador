@@ -92,6 +92,20 @@ describe('quintetos de un partido', () => {
     expect(app.text('.units')).toContain('8–2');   // Q1 en el partido: 5-1 y 3-1
   });
 
+  it('con cambios dentro de un periodo, los periodos se reparten y se marcan con «≈»', async () => {
+    // P1: Q1 con 3 jugadas y Q2 con 1 → 0,75 y 0,25 periodos
+    const g = tracked('g1', [[1, Q1, 2, 1], [1, Q2, 1, 0]]);
+    const app = await open([g], '#/stats/g1');
+    const text = app.$$('.units .unit').map((u) => app.text(u.querySelector('.unit-per')));
+    expect(text).toEqual(['≈ 0,8 periodos', '≈ 0,3 periodos']);
+  });
+
+  it('un partido con registro pero aún sin jugadas lo dice', async () => {
+    const g = makeGame({ lineupFrom: 1, lineups: [{ seq: 1, period: 1, on: Q1 }], seq: 1 });
+    const app = await open([g], '#/stats/g1');
+    expect(app.text('.units')).toContain('Aún no hay jugadas');
+  });
+
   it('un partido sin registro: no disponible', async () => {
     const app = await open([makeGame({ finished: true })], '#/stats/g1');
     expect(app.text('.units')).toContain('No disponible');

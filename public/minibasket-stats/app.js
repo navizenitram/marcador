@@ -1174,7 +1174,7 @@ function flowScale(flow) {
   return { hi, lo, y: (d) => round1((hi - d) / (hi - lo) * 100) };
 }
 
-const signed = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
+const signed = (n) => signedNum(n);   // +2 / −3 / 0, con el formato del idioma
 const sideOf = (n) => (n > 0 ? 'us' : n < 0 ? 'them' : '');
 
 /* Fila de la tabla de parciales con la diferencia de puntos a lo largo del partido: por encima de la línea
@@ -1397,7 +1397,7 @@ function unitsCard(data) {
       <div class="unit-games">${c.games.map(id => byId[id]).filter(Boolean).map(g => `${fmtDate(g.date, true)} vs ${esc(g.opponent)}`).join(' · ')}</div>
     </details>`;
 
-  const empty = data.season && !list.length ? `<p class="empty">${esc(tr('units.notEnough'))}</p>` : '';
+  const empty = list.length ? '' : `<p class="empty">${esc(tr(data.season ? 'units.notEnough' : 'units.noneYet'))}</p>`;
   const coverage = res.tracked < res.total ? `<p class="muted small coverage">${esc(tr('units.coverage', { n: res.tracked, total: res.total }))}</p>` : '';
   return `<section class="card units">
     ${head}

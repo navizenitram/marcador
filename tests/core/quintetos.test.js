@@ -49,6 +49,18 @@ describe('stints (tramos con un mismo quinteto en un periodo)', () => {
     expect(plain(core.stints(g)).map((x) => [x.period, x.events, x.share])).toEqual([[1, 2, 1], [2, 4, 1]]);
   });
 
+  it('las jugadas apuntadas al volver a un periodo anterior no cuentan para ningún quinteto', () => {
+    // En P2 juega B; se vuelve a P1 (foto de B con periodo 1) para apuntar algo olvidado: no se sabe quién jugaba
+    const g = game({
+      lineups: [...game().lineups, { seq: 13, period: 1, on: B }, { seq: 15, period: 2, on: B }],
+      events: [...game().events, e(14, 1, 't2_ok', { pid: 'p4' }), e(16, 2, 'opp', { pts: 2 })],
+      seq: 16,
+    });
+    const s = plain(core.stints(g));
+    expect(s.map((x) => [x.period, x.events, x.pf, x.pc])).toEqual([[1, 3, 2, 2], [1, 2, 3, 1], [2, 5, 3, 3]]);
+    expect(s.map((x) => x.share)).toEqual([0.6, 0.4, 1]);
+  });
+
   it('con inicio de registro pero sin quintetos válidos (descartados al cargar), no hay tramos', () => {
     expect(plain(core.stints(game({ lineups: [] })))).toEqual([]);
   });
