@@ -41,8 +41,17 @@ describe('normalize', () => {
 
   it('completa los campos que faltan en partidos y equipos', () => {
     const d = app.fn.normalize({ teams: [{ id: 't1' }], games: [{ id: 'g1', teamId: 't1' }] });
-    expect(d.teams[0]).toEqual({ id: 't1', name: 'Mi equipo', email: '', players: [], hidden: [] });
-    expect(d.games[0]).toMatchObject({ events: [], onCourt: [], roster: [], played: {}, periods: 8, period: 1, teamName: 'Mi equipo' });
+    expect(d.teams[0]).toEqual({ id: 't1', name: 'Mi equipo', email: '', players: [], hidden: [], phase: 1, levels: ['', ''], move: '' });
+    expect(d.games[0]).toMatchObject({ events: [], onCourt: [], roster: [], played: {}, periods: 8, period: 1, teamName: 'Mi equipo', phase: 1, venue: '' });
+  });
+
+  it('corrige la fase, el nivel y el campo', () => {
+    const d = app.fn.normalize(makeData({
+      teams: [makeTeam({ phase: 3, levels: 'Nivel A', move: 'toString' })],
+      games: [makeGame({ id: 'a', phase: '2', venue: 'away' }), makeGame({ id: 'b', phase: 0, venue: 'casa' })],
+    }));
+    expect(d.teams[0]).toMatchObject({ phase: 1, levels: ['', ''], move: '' });
+    expect(d.games.map((g) => [g.phase, g.venue])).toEqual([[2, 'away'], [1, '']]);
   });
 
   it('mantiene el periodo actual dentro de los límites del partido', () => {
@@ -72,11 +81,12 @@ describe('copia de seguridad manipulada', () => {
     currentTeamId: evil('team'),
     teams: [{
       id: evil('team'), name: 'Alevín A', email: '', hidden: [],
+      phase: '2', levels: [42, 'Nivel B'], move: '<img id="xss-move">',
       players: [{ id: evil('player'), number: '4', name: 'Ana' }, { id: 'p9', number: 9, name: 42 }],
     }],
     games: [{
       id: evil('game'), teamId: evil('team'), teamName: 'Alevín A', opponent: 'Rival',
-      date: '<img id="xss-date">', periods: 8, period: 1, finished: false,
+      date: '<img id="xss-date">', periods: 8, period: 1, finished: false, phase: 2, venue: '<img id="xss-venue">',
       roster: [{ id: evil('player'), number: '4', name: 'Ana' }],
       onCourt: [evil('player')],
       played: { [evil('player')]: [1, '<img id="xss-played">'] },
@@ -93,10 +103,13 @@ describe('copia de seguridad manipulada', () => {
   it('no se cuela HTML en ninguna pantalla', async () => {
     const app = await openApp({ data: tampered() });
     const gid = app.db.games[0].id;
-    for (const hash of ['#/equipos', '#/equipo', '#/partidos', `#/partido/${gid}`, `#/stats/${gid}`, '#/stats/temporada', '#/ajustes']) {
+    for (const hash of ['#/equipos', '#/equipo', '#/partidos', `#/partido/${gid}`, `#/stats/${gid}`, '#/stats/temporada', '#/stats/fase-2', '#/ajustes']) {
       await app.go(hash);
       expect(injected(app), hash).toEqual([]);
     }
+    await app.go('#/partidos');
+    await app.act('edit-game', { id: gid });
+    expect(injected(app), 'editar partido').toEqual([]);
     await app.go(`#/partido/${gid}`);
     await app.act('menu');
     await app.act('log');
@@ -130,6 +143,8 @@ describe('copia de seguridad manipulada', () => {
     expect(game.events[0].period).toBe(1);
     expect(Object.values(game.played)[0]).toEqual([1]);
     expect(game.date).toBe('');
+    expect(game).toMatchObject({ phase: 2, venue: '' });
+    expect(d.teams[0]).toMatchObject({ phase: 2, levels: ['42', 'Nivel B'], move: '' });
     expect(d.teams[0].players[1]).toMatchObject({ number: '9', name: '42' });
   });
 

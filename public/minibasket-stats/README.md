@@ -9,8 +9,13 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
 
 - **Varios equipos** (por ejemplo, uno por categoría): al abrir la app se elige con cuál recoger estadísticas; se cambia tocando el nombre del equipo arriba a la izquierda. Cada equipo tiene su plantilla, partidos, estadísticas y botones del partido.
 - **Equipo**: alta de jugadores con dorsal y nombre (editar / eliminar), nombre del equipo y email por defecto.
-- **Partidos**: crear partido (rival, fecha, **8 periodos** de minibasket o **4 cuartos** para categorías superiores), continuar, abrir, borrar.
+- **Fases de la temporada**: en minibasket la temporada se divide en dos fases independientes; según la clasificación
+  de la 1ª, en la 2ª se juega contra equipos nuevos en un nivel superior, el mismo o inferior. En **Equipo** se indica
+  la fase en la que está el equipo, el nivel de cada fase (texto libre: «Nivel B», «Grupo 3»…) y si en la 2ª se sube,
+  se baja o se sigue en el mismo nivel. Los partidos nuevos se apuntan en la fase actual.
+- **Partidos**: crear partido (rival, fecha, **local o visitante**, **8 periodos** de minibasket o **4 cuartos** para categorías superiores), continuar, abrir, editar (rival, fecha, campo y fase), borrar.
   Al crear uno nuevo, si el equipo tiene partidos sin finalizar con jugadas, propone finalizarlos (solo los finalizados cuentan como victoria, derrota o empate en la temporada).
+  Cuando el equipo llega a la 2ª fase, la lista se agrupa por fase, con su nivel y su balance.
 - **Partido en directo** (pensado para que quepa todo sin scroll):
   - Marcador arriba: los puntos propios se suman solos con los tiros anotados; botones **+1 / +2 / +3 / −1** para el rival.
   - Periodo actual (‹ P3 ›). Al pasar de periodo se abre el selector de quinteto.
@@ -22,8 +27,8 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
   - Las faltas de cada jugador se ven de un vistazo (un punto por falta bajo su dorsal), con aviso visual a las 4 y jugador eliminado a las 5.
   - ↶ deshacer la última acción y listado de jugadas para borrar cualquier error.
   - Registro automático de los periodos jugados por cada jugador.
-- **Estadísticas**: por partido o de temporada (totales o promedio por partido), parciales por periodo,
-  líderes, tabla ordenable y valoración.
+- **Estadísticas**: por partido, de temporada o de cada fase (totales o promedio por partido), parciales por periodo,
+  líderes, tabla ordenable y valoración. La temporada y cada fase muestran también el balance de local y de visitante.
   - **Evolución del marcador**: bajo los parciales, y con sus mismas columnas, la diferencia de puntos a lo largo del
     partido. Al pasar el dedo (o el ratón) se ve cómo iba el partido en ese momento.
   - **Temporada de un vistazo**: la diferencia de puntos de cada partido, del más antiguo al más reciente. Cada columna

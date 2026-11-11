@@ -12,7 +12,7 @@ export const PLAYERS = [
 const copy = (list) => list.map((p) => ({ ...p }));
 
 export function makeTeam(overrides = {}) {
-  return { id: 't1', name: 'Alevín A', email: '', players: copy(PLAYERS), hidden: [], ...overrides };
+  return { id: 't1', name: 'Alevín A', email: '', players: copy(PLAYERS), hidden: [], phase: 1, levels: ['', ''], move: '', ...overrides };
 }
 
 export function makeGame(overrides = {}) {
@@ -30,6 +30,8 @@ export function makeGame(overrides = {}) {
     played: {},
     events: [],
     finished: false,
+    phase: 1,
+    venue: '',
     ...overrides,
   };
 }
