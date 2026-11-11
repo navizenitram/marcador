@@ -507,6 +507,11 @@ h3.sub { font-size: 12.5px; letter-spacing: .13em; text-transform: uppercase; co
 
 .btn.kofi { background: #ff5e5b; border-color: transparent; color: #fff; width: 100%; font-size: 16px; min-height: 44px; box-shadow: inset 0 1px 0 #ffffff40; }
 .btn.kofi:active { background: #e94e4b; }
+/* Nombre de un jugador que abre su informe (temporada o fase) */
+.pname-btn { all: unset; cursor: pointer; font: inherit; color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
+.pname-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 4px; }
+.report-hint { margin: 6px 2px 0; }
+
 /* Mejores quintetos */
 .units { margin-top: 10px; }
 .units .card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
