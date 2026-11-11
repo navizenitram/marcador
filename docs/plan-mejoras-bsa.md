@@ -1,8 +1,25 @@
 # Plan de mejoras — My Own Basketball Stats
 
-> Estado: **propuesta pendiente de aprobación**. No se ha escrito código de producción.
+> Estado: **propuesta pendiente de aprobación** (revisada con tus decisiones del 11/11). No se ha escrito código de producción.
 > Fecha: 11/11/2026 · Rama: `claude/stoic-hopper-4rsg3g`
 > Las referencias `archivo:línea` apuntan al commit `3454784`.
+
+## Decisiones tomadas (11/11/2026)
+
+| Tema | Decisión | Efecto en el plan |
+| --- | --- | --- |
+| Informe del jugador | **Texto por email** (y copiar o compartir), no PDF | Fase 4 rehecha; el PDF pasa al anexo A |
+| Unidad de juego | **Periodos**, sin minutos ni tiempo. Es una app no profesional | Sin estimación por reloj ni duración del periodo (§2.2) |
+| Partidos antiguos | **«No disponible»** para +/- y quintetos | Sin reconstrucción por `played` (§2.3) |
+| +/- en el informe para familias | **Sí, muy bien explicado** | Texto propuesto en la fase 4 |
+| Portugués | **pt-PT** | Fase 5 |
+| Umami en la web | **Activo** | La comparativa dice «sin analítica en la app», no «sin rastreo» en general (fase 3) |
+| Prioridad | **Encontrar qué 5 jugadores juntos son el mejor quinteto** | La fase 1B es el centro del plan (§3) |
+
+Sobre «registrar qué jugadores han participado en cada cuarto»: **ya se hace**. `g.played` guarda los periodos
+de cada jugador y alimenta la columna de periodos jugados. Pero eso no basta para los quintetos: si en un periodo
+juegan 7 jugadores, `played` no dice qué 5 estaban juntos cuando se anotó cada canasta. Por eso sigue haciendo
+falta el registro de quintetos (§2.1), que no añade ningún toque.
 
 ---
 
@@ -13,17 +30,17 @@
 2. **Hoy no se puede calcular el +/- ni los quintetos.** Los cambios de jugadores no se apuntan como eventos:
    solo se guarda quién está en pista *ahora* (`g.onCourt`) y en qué periodos ha estado cada jugador (`g.played`).
    Cambio mínimo: un registro aparte de quintetos (`g.lineups`), que se rellena con los toques que ya existen. En los
-   partidos antiguos se puede **reconstruir una parte**: los periodos en los que aparecen exactamente 5 jugadores.
-3. **La app no mide tiempo de juego.** No hay reloj en la app ni en el marcador. Lo que se guarda son los
-   *periodos jugados*. «Minutos juntos» y «+/- por minuto» no se pueden calcular tal cual. Propuesta: medir la
-   exposición en **periodos**, con un reparto *estimado* cuando hay cambios dentro del periodo, y pasar a minutos
-   solo si el equipo indica cuánto dura un periodo.
+   partidos antiguos, +/- y quintetos salen como **«no disponible»** (decidido).
+3. **La app no mide tiempo de juego.** No hay reloj en la app ni en el marcador, solo *periodos jugados*.
+   Decidido: todo se mide en **periodos**. Si hay cambios dentro de un periodo, ese periodo se reparte entre los
+   quintetos según las jugadas apuntadas en cada tramo, sin reloj.
 4. **La app solo está en castellano.** El catalán solo está en la portada de la web. Las guías, la plantilla, la
    privacidad, la app y el marcador están en castellano. La mejora 5 parte de un idioma, no de dos.
 5. **Informe del jugador: texto por email en vez de PDF** (decisión tuya del 11/11). Reutiliza lo que ya existe
    (`buildText` y el modal «Enviar» con email, copiar y compartir). No añade dependencias ni peso, y funciona sin
    conexión. La evaluación del PDF queda en el anexo A por si se retoma.
-6. **Orden recomendado:** 0 (cimientos) → **1A (registrar quintetos, sin interfaz, cuanto antes)** → 2 → 1B → 4 → 5 → 3.
+6. **Orden recomendado:** 0 (cimientos) → **1A (registrar quintetos, sin interfaz, cuanto antes)** → 2 → **1B (mejor
+   quinteto, la mejora principal)** → 4 → 5 → 3.
    Es tu orden con dos cambios: el registro de quintetos va primero porque **los datos solo se acumulan desde que se
    publique**, y estamos a mitad de temporada. Además, la base de i18n (`t()`) entra en la fase 0 para que las
    mejoras 1, 2 y 4 nazcan ya traducibles.
@@ -129,25 +146,17 @@ Evidencia:
   `ts` máximo (`:1698`). Sabemos *cuándo* se anotó cada punto, pero no *quién estaba en pista*.
 - Lo único que sabemos de cada acción propia es que su autor estaba en pista. De los puntos del rival no sabemos nada.
 
-**Reconstrucción parcial de los partidos antiguos.** Por cómo funciona `markPlayed`, cualquier cambio de quinteto entre
-dos jugadas del mismo periodo deja **6 o más** jugadores con ese periodo en `played`: el que entra queda marcado al
-entrar o con la siguiente jugada, y el que sale ya lo estaba. Por tanto:
-
-> **Si en un periodo hay exactamente 5 jugadores con ese periodo en `played`, esos 5 estuvieron en pista en todas las
-> jugadas de ese periodo.**
-
-Solo falla en un caso raro: que se jugara un rato con menos de 5 en pista y con jugadas apuntadas, y luego se
-completara el quinteto. Lo aceptaría y lo documentaría. Los periodos con otro número de jugadores quedan como «no
-disponible». En minibasket, donde los cambios suelen hacerse entre periodos (hay que confirmarlo según el reglamento
-de cada federación), se podrá reconstruir buena parte de los periodos. En partidos de 4 cuartos, muchos menos.
+**Partidos antiguos: se descarta la reconstrucción.** Técnicamente se podía recuperar una parte: un periodo con
+exactamente 5 jugadores en `played` tuvo el mismo quinteto en todas sus jugadas. Pero decidiste «no disponible», que
+es más simple y no da datos a medias. Quedaría como mejora futura, sin cambios en los datos, si algún día interesa.
 
 ### 1.8 Premisas del encargo que el código no confirma
 
 | Premisa | Realidad | Consecuencia |
 | --- | --- | --- |
-| «Registramos tiempo de juego por jugador» | Solo **periodos jugados** (`g.played`, columna `PER`). No hay reloj | La mejora 1 no puede dar «minutos» ni «+/- por minuto» exactos (§2.2) |
+| «Registramos tiempo de juego por jugador» | Solo **periodos jugados** (`g.played`, columna `PER`). No hay reloj | Decidido: todo en periodos, sin minutos (§2.2) |
 | «ES/CA en app y landing» | La app y el marcador solo están en ES. En la web, CA solo tiene la portada | La mejora 5 incluye traducir la app al **catalán** |
-| «Sin analítica» | Es cierto en la **app**. La **web** carga Umami (sin cookies) si se define `PUBLIC_UMAMI_WEBSITE_ID` (`Base.astro`) | En la comparativa, «sin rastreo» tiene que referirse a la app, o hay que confirmar que Umami está apagado (pregunta 11) |
+| «Sin analítica» | Es cierto en la **app**. La **web** carga Umami (sin cookies), que **está activo** en producción (`Base.astro`) | La comparativa y los textos de la web solo pueden decir «sin analítica» de la **app** (fase 3) |
 | Las métricas avanzadas siempre tienen datos | Cada equipo puede **desactivar botones** (`t.hidden`). Sin `t1` no hay TLI, y sin `lost` no hay pérdidas | Hay que ocultar la métrica cuando falta un dato, no mostrar un 0 (§2.4) |
 | Los quintetos aparecen solos | Solo si quien apunta registra los cambios en la app | Indicadores de cobertura y avisos (§4) |
 
@@ -161,11 +170,11 @@ Una lista **aparte** de `g.events`, para no tocar `undo`, el listado de jugadas,
 
 ```jsonc
 "seq": 57,                         // contador del partido: ordena eventos y quintetos entre sí
-"lineupFrom": 31,                  // primer seq con registro de quintetos (antes: modo «partido antiguo»)
+"lineupFrom": 31,                  // primer seq con registro de quintetos (lo anterior: «no disponible»)
 "lineups": [
-  { "seq": 31, "ts": 1731320000000, "period": 1, "on": ["p4","p7","p10","p12","p15"] },
-  { "seq": 44, "ts": 1731320410000, "period": 1, "on": ["p4","p7","p10","p12","p21"] },
-  { "seq": 52, "ts": 1731320700000, "period": 2, "on": ["p4","p7","p10","p12","p21"] }  // cambio de periodo
+  { "seq": 31, "period": 1, "on": ["p4","p7","p10","p12","p15"] },
+  { "seq": 44, "period": 1, "on": ["p4","p7","p10","p12","p21"] },
+  { "seq": 52, "period": 2, "on": ["p4","p7","p10","p12","p21"] }  // cambio de periodo
 ],
 "events": [{ "id", "seq": 45, "ts", "period", "type", "pid" }, …]
 ```
@@ -176,49 +185,41 @@ Una lista **aparte** de `g.events`, para no tocar `undo`, el listado de jugadas,
 - **Agrupación:** si la última foto es del mismo periodo y no hay ningún evento con un `seq` mayor, se **reemplaza** en
   vez de añadir otra. Así, tocar 10 veces en el selector de quinteto deja una sola entrada, y corregir un quinteto
   antes de la primera jugada no ensucia los datos.
-- **`seq`:** un entero creciente por partido. Hace falta porque `ts` (`Date.now()`) puede empatar o ir hacia atrás si
-  cambia el reloj del móvil. `ts` se guarda igualmente para estimar la duración (§2.2).
+- **`seq`:** un entero creciente por partido que ordena jugadas y quintetos entre sí. No se usa el reloj (`ts`) para
+  ordenar porque puede empatar o ir hacia atrás si cambia la hora del móvil. Los quintetos no guardan `ts`: decidimos
+  no medir tiempo.
 - **Quinteto de una jugada:** la última foto con `seq` menor que el de la jugada.
-- **Al cargar en v3** (`normalize`): los eventos sin `seq` reciben uno en el orden de la lista. Si el partido no tiene
-  `lineupFrom`, se considera antiguo. A un partido que estaba **a medias** durante la actualización se le añade una
-  foto de su `onCourt` actual y `lineupFrom` = ese `seq`. Lo jugado antes se trata como antiguo y lo de después, como
-  nuevo.
-- **Tamaño:** de 10 a 40 fotos por partido, unos 100 bytes cada una, más unos 10 bytes de `seq` por evento. Son unos
-  3–6 KB por partido (+20–30 %). Hay margen de sobra en `localStorage` y en el traspaso (lo comprobará un test).
+- **Al cargar en v3** (`normalize`): los eventos sin `seq` reciben uno en el orden de la lista. Un partido sin
+  `lineupFrom` es antiguo (no disponible). A un partido que estaba **a medias** durante la actualización se le añade
+  una foto de su `onCourt` actual y `lineupFrom` = ese `seq`. Lo jugado antes no cuenta y lo de después, sí.
+- **Tamaño:** de 10 a 40 fotos por partido, unos 80 bytes cada una, más unos 10 bytes de `seq` por evento. Son unos
+  3–5 KB por partido (+20–25 %). Hay margen de sobra en `localStorage` y en el traspaso (lo comprobará un test).
 
 He descartado la alternativa de guardar el quinteto *dentro de cada evento*. Es más simple de leer, pero pesa
-3–4 veces más y no dice *cuándo* se hizo cada cambio, que es lo que necesita la estimación de tiempo.
+3–4 veces más y no registra los quintetos que juegan un tramo sin que se apunte nada.
 
-### 2.2 Exposición: periodos, no minutos
+### 2.2 Unidad: periodos
 
-Sin reloj, la unidad honesta es el **periodo**:
+Decidido: **no hay minutos ni tiempo.** La exposición de un quinteto se mide en periodos:
 
-1. **Periodo con un solo quinteto** (lo habitual en minibasket): ese quinteto suma **1 periodo exacto**.
-2. **Periodo con cambios dentro:** se reparte entre los quintetos según el **reloj real** (`ts`) dentro de una
-   ventana. La ventana va del primer evento o cambio del periodo al último evento del periodo. Las pausas entre
-   periodos quedan fuera porque el quinteto se elige en el descanso. Cada periodo suma siempre 1. Si los `ts` no son
-   válidos (iguales, decrecientes o con huecos de más de 3× lo normal), se reparte según el número de jugadas de cada
-   tramo. Si se vuelve a un periodo anterior (‹) para corregir algo, ese tiempo no cuenta.
-3. **Minutos:** solo si el equipo indica en **Equipo** cuánto dura un periodo, un dato que depende del reglamento.
-   Entonces se muestra «≈ 12 min». Si no, se muestra «2,5 per.». Siempre con la etiqueta «estimado» cuando haya algún
-   reparto por reloj.
-4. **+/- por periodo** (en vez de por minuto) para el ranking, con la opción de mostrarlo por minuto si se conoce la
-   duración.
+1. **Periodo con un solo quinteto** (lo habitual en minibasket): ese quinteto suma **1 periodo**.
+2. **Periodo con cambios dentro:** el periodo (que vale 1) se reparte entre sus tramos **en proporción a las jugadas
+   apuntadas** en cada uno (las propias y los puntos del rival). Es lo más parecido a «cuánto jugaron» que tenemos sin
+   reloj. Si en el periodo no se apuntó nada, se reparte a partes iguales. Esos valores se muestran con «≈»
+   («≈ 2,5 periodos»).
+3. **Ranking por +/- por periodo**, con un mínimo de periodos para entrar (§3, fase 1B).
 
-Hay una alternativa que **descarto**: un cronómetro en la pantalla del partido. Añade toques (iniciar y parar), que es
-justo lo que pides evitar, y duplica el marcador.
+Descartado: un cronómetro. Añade toques y no aporta en una app no profesional.
 
-### 2.3 Partidos antiguos
+### 2.3 Partidos antiguos: «no disponible»
 
-| Dato | Partidos con registro (v3) | Partidos antiguos |
+| Dato | Partidos con registro (v3) | Partidos antiguos, o tramo anterior a la actualización |
 | --- | --- | --- |
-| +/- por jugador | Exacto | Solo en los periodos reconstruibles (§1.7). Se muestra la cobertura: «calculado con 6 de 8 periodos» |
-| Quintetos | Exacto, con exposición estimada | Solo en los periodos reconstruibles, cada uno = 1 periodo exacto |
-| Fuera de cobertura | — | «No disponible para partidos anteriores a esta versión» |
+| +/- por jugador | Exacto | «No disponible» |
+| Quintetos | Exacto | No cuentan |
+| Temporada o fase | Suma solo los partidos con registro | Aviso: «+/- y quintetos con N de M partidos (los anteriores a esta versión no tienen datos)» |
 
-No modifico los datos guardados. La reconstrucción se calcula al vuelo, lo que permite mejorarla más adelante sin
-migraciones. Pregunta 12: ¿aceptas la reconstrucción parcial o prefieres «no disponible» en todo partido antiguo,
-que es más simple?
+No se modifican los datos guardados.
 
 ### 2.4 Botones activos de cada partido: `g.hidden`
 
@@ -269,7 +270,7 @@ En cada tarea, primero se escriben los tests, se comprueba que fallan y después
 | --- | --- | --- | --- | --- |
 | 1A.1 | `normalize` v2→v3: `seq` para los eventos, `lineups`, `lineupFrom`, foto inicial de los partidos a medias y validación | `app.js` | `datos.test.js`: un v2 sin quintetos, un partido a medias, `lineups` manipulados (ids raros, 6 jugadores, repetidos, `seq` desordenado) y que sea idempotente (normalizar dos veces da lo mismo) | Los datos v2 guardados siguen cargando. `load()` vuelve a guardar una sola vez |
 | 1A.2 | `logLineup(g)` con agrupación, llamado desde las acciones de cambio y de periodo. `record` y `recordOpp` asignan `seq` | `app.js` | `flujos.test.js`: crear un partido, elegir quinteto, hacer un cambio, cambiar de periodo y sentar sin cambio dan la lista de `lineups` esperada. 10 toques en el selector sin jugadas = 1 entrada. **Deshacer tras un cambio deshace la última jugada, no el cambio** | El e2e «un partido completo» pasa **sin un solo toque más** |
-| 1A.3 | `MBCore.lineupAt(g, seq)` y `MBCore.legacyLineups(g)` (reconstrucción por `played`) | `core.js` | Fixtures: el quinteto de cada jugada en un partido con cambios. Periodos con 5, 6 y 4 jugadores en `played`. Partido mixto, antiguo hasta `lineupFrom` | Funciones puras con cobertura del 100 % |
+| 1A.3 | `MBCore.lineupAt(g, seq)` → quinteto de una jugada, o `null` si es anterior a `lineupFrom` | `core.js` | Fixtures: el quinteto de cada jugada en un partido con cambios. Partido antiguo → `null`. Partido a medias durante la actualización → `null` hasta `lineupFrom` | Funciones puras con cobertura del 100 % |
 | 1A.4 | Tamaño | — | Una temporada sintética de 30 partidos × 250 jugadas: el JSON cabe y `encodeTransfer` < `MAX_TRANSFER` | El aumento del tamaño es < 35 % |
 
 ### Fase 2 — Estadísticas avanzadas (M) · sin cambios de modelo
@@ -309,18 +310,57 @@ Reglas:
 | 2.3 | Interfaz: botón «Básicas · Avanzadas» en la tabla (como Totales / Por partido) y una tarjeta de glosario con el nombre para familias, el término técnico y la explicación | `app.js`, `styles.css`, `i18n/es.js` | `flujos.test.js`: el cambio de vista, «–», el asterisco y la columna oculta sin datos | La tabla avanzada cabe a lo ancho en 844×390 (e2e) |
 | 2.4 | CSV: columnas nuevas **al final** (`eFG%`, `TS%`, `%PÉR`, `TL/TC`), vacías si son `null` | `app.js` | `exportar.test.js`: las columnas antiguas siguen en el mismo orden y con el mismo nombre | Una hoja de cálculo que lea las columnas por posición sigue funcionando |
 
-### Fase 1B — +/- y mejores quintetos: interfaz (M/L)
+### Fase 1B — El mejor quinteto (y el +/- por jugador) (M/L) · **la mejora principal**
+
+**Objetivo:** responder a «¿qué 5 jugadores juntos nos funcionan mejor?» con los datos de la temporada (o de una
+fase), sin ningún toque extra durante el partido.
+
+**Lo que hay que tener claro antes (sé crítico conmigo si no te convence):**
+
+- **Hacen falta repeticiones.** Con 10 jugadores hay 252 quintetos posibles. En minibasket, además, las normas de
+  participación obligan a rotar. Si el entrenador repite grupos (por ejemplo, dos o tres quintetos base), en una
+  fase habrá muchos periodos por quinteto y el ranking será útil. Si cada periodo es una combinación distinta, cada
+  quinteto tendrá 1 o 2 periodos y el «mejor» será casualidad. **La app tiene que decirlo** en vez de coronar un
+  quinteto con 1 periodo.
+- **El rival no se puede descontar.** Sin datos del rival, un quinteto que jugó contra los flojos parece mejor. Se
+  mitiga separando por **fase** (rivales de nivel parecido) y mostrando contra quién jugó cada quinteto.
+- **En un solo partido no hay ranking.** Cada quinteto juega 1 o 2 periodos. En el partido se muestra «cómo le fue a
+  cada quinteto» (lista). El ranking es para la temporada o la fase.
+- **Complemento con más datos: parejas y tríos.** Cuando los quintetos se repiten poco, «qué dos o tres jugadores
+  funcionan juntos» acumula muchos más periodos por combinación y sí puede dar señales. Lo propongo como pestaña
+  secundaria (pregunta 2).
+
+**Qué se muestra**
+
+- **Tarjeta «Quintetos»** (temporada o fase), con tres órdenes:
+  - **+/- por periodo** (por defecto): el mejor en conjunto.
+  - **Ataque:** puntos a favor por periodo.
+  - **Defensa:** puntos en contra por periodo (menos es mejor).
+- **Cada fila:** los 5 dorsales con su nombre, periodos jugados juntos (≈ si hay reparto), PF–PC, +/- y +/- por
+  periodo. Un indicador de muestra: «pocos datos» por debajo del mínimo, que no entra en el ranking.
+- **Mínimo para entrar en el ranking:** configurable, con una propuesta de **4 periodos** (pregunta 1). Debajo:
+  «Hay 23 quintetos con menos de 4 periodos que no entran».
+- **Si nadie llega al mínimo:** «Todavía no hay suficientes datos: los quintetos se repiten poco. Mira las parejas o
+  vuelve dentro de unos partidos».
+- **Al tocar un quinteto:** en qué partidos y periodos jugó, con el parcial de cada uno.
+- **En el partido:** la lista de quintetos usados con sus periodos y su parcial, y el +/- de cada jugador en la tabla.
+- **Aviso de cobertura:** «Calculado con N de M partidos» (los antiguos no cuentan).
+- **En la pantalla del partido en directo no cambia nada.**
 
 | # | Tarea | Archivos | Tests primero | Aceptación |
 | --- | --- | --- | --- | --- |
-| 1B.1 | `MBCore.plusMinus(g)` → por jugador `{ pf, pc, pm, covered, total }` | `core.js` | Fixture calculado a mano. **Invariante: Σ pm de los jugadores = 5 × (PF − PC) cubiertos** cuando el quinteto está completo. `opp −1` cuenta para el quinteto en pista. Cobertura de un partido antiguo | — |
-| 1B.2 | `MBCore.exposure(g)` (§2.2) | `core.js` | Un solo quinteto = 1,0. Dos tramos 50/50 por `ts`. `ts` incoherente → reparto por número de jugadas. Volver a un periodo anterior. Cada periodo suma 1 | — |
-| 1B.3 | `MBCore.units(games)`: agrupar por los 5 ids ordenados → `{ pids, exp, pf, pc, pm, pmPerPeriod }`. Los quintetos con menos de 5 se agrupan como «incompleto» y no entran en el ranking | `core.js` | Agregado de temporada. Mismo quinteto en varios partidos. Σ pf de los quintetos = puntos cubiertos | — |
-| 1B.4 | `rankUnits(units, minExp)`, con el mínimo configurable por equipo (`t.minUnit`, propuesta: 2 periodos en un partido y 6 en temporada o fase) | `core.js`, `app.js` | Desempates (más exposición primero). Sin quintetos por encima del mínimo → lista vacía con su mensaje | — |
-| 1B.5 | Interfaz: columna `+/-` en la tabla, tarjeta «Mejores quintetos» (dorsales, exposición, PF–PC, +/-, +/- por periodo) con selector del mínimo, cobertura y la marca «estimado» | `app.js`, `styles.css`, `i18n/es.js` | `flujos.test.js`: los valores de la tarjeta, el aviso de cobertura y el selector del mínimo | **Ningún cambio en la pantalla del partido en directo** (snapshot de `viewLive` igual) |
-| 1B.6 | Duración del periodo (opcional) en **Equipo** → minutos estimados | `app.js` | Sin duración se ven periodos. Con duración, `≈ min` | — |
-| 1B.7 | CSV: `+/-` al final. CSV de quintetos aparte (opcional, pregunta 6) | `app.js` | `exportar.test.js` | — |
-| 1B.8 | Rendimiento: memoizar `units` y `plusMinus` por `(g.id, g.seq, g.events.length)` | `core.js` | Un test de que no se recalcula si nada cambia | Estadísticas de temporada de 30 partidos en < 50 ms en el e2e de Android |
+| 1B.1 | `MBCore.plusMinus(g)` → por jugador `{ pf, pc, pm, periods }`, o `null` en un partido sin registro | `core.js` | Fixture calculado a mano. **Invariante: Σ pm de los jugadores = 5 × (PF − PC)** cuando el quinteto está completo. `opp −1` cuenta para el quinteto en pista. Partido antiguo → `null` | — |
+| 1B.2 | `MBCore.exposure(g)` (§2.2): periodos por tramo | `core.js` | Un solo quinteto = 1. Dos tramos con 6 y 2 jugadas = 0,75 y 0,25. Periodo sin jugadas → a partes iguales. **Cada periodo suma 1.** Volver a un periodo anterior para apuntar algo no rompe la suma | — |
+| 1B.3 | `MBCore.units(games)`: agrupar por los 5 ids ordenados → `{ pids, periods, approx, pf, pc, pm, pmPer, pfPer, pcPer, games }`. Los tramos con menos de 5 se agrupan como «incompleto» | `core.js` | El mismo quinteto en varios partidos se suma. Un quinteto con distinto orden de ids es el mismo. Σ pf de los quintetos = puntos con registro | — |
+| 1B.4 | `MBCore.rankUnits(units, { by, min })` con `by` = `pm` / `pf` / `pc` | `core.js` | Desempates (más periodos primero). Los que no llegan al mínimo se cuentan pero no entran. Sin ninguno → lista vacía con su recuento | — |
+| 1B.5 | `MBCore.pairs(games, size)` (parejas y tríos), si se aprueba | `core.js` | Las mismas invariantes con `size` 2 y 3 | — |
+| 1B.6 | Interfaz: la tarjeta «Quintetos» (órdenes, mínimo, «pocos datos», detalle), la lista de quintetos del partido, la columna `+/-` en la tabla y el aviso de cobertura | `app.js`, `styles.css`, `i18n/es.js` | `flujos.test.js`: el orden por cada criterio, cambiar el mínimo, el mensaje sin datos suficientes, el aviso de cobertura con partidos antiguos y el detalle de un quinteto | La tarjeta cabe en 844×390 (e2e). **Pantalla del partido en directo idéntica** (snapshot de `viewLive`) |
+| 1B.7 | Explicación en la app (texto corto bajo la tarjeta): qué es el +/-, por qué depende de los compañeros y del rival, y por qué hace falta un mínimo de periodos | `i18n/es.js` | Snapshot del texto | Lo revisas tú |
+| 1B.8 | CSV: `+/-` al final. CSV de quintetos aparte (pregunta 6) | `app.js` | `exportar.test.js` | Las columnas antiguas no cambian |
+| 1B.9 | Rendimiento: memoizar `units` y `plusMinus` por `(g.id, g.seq)` | `core.js` | Un test de que no se recalcula si nada cambia | Estadísticas de temporada de 30 partidos en < 50 ms en el e2e de Android |
+
+**Cuándo será útil:** solo con los partidos jugados después de publicar la fase 1A. Por eso 1A va primero y se
+publica sola. Cuando llegue 1B ya habrá varias semanas de datos.
 
 ### Fase 4 — Informe del jugador en texto, por email (S/M)
 
@@ -334,7 +374,7 @@ archivos nuevos, funciona sin conexión y no sale nada del dispositivo salvo lo 
 - **Sin tablas alineadas con espacios:** los clientes de correo y WhatsApp usan fuentes proporcionales y las
   columnas se descolocan. Se usan líneas cortas tipo «Etiqueta: valor», en bloques con un título.
 - **Longitud:** el cuerpo de un `mailto:` tiene límites que dependen del cliente (algunos cortan a partir de unos
-  2.000 caracteres codificados en la URL). El informe tiene que ser **compacto (objetivo < 1.500 caracteres)**. Si
+  2.000 caracteres codificados en la URL). El informe tiene que ser **compacto (objetivo < 2.000 caracteres, con la explicación del +/-)**. Si
   se pasa del límite, el botón Email se sustituye por «Copiar y pegar en el correo», y un test lo comprueba. Copiar y
   Compartir no tienen ese límite.
 - **Destinatario:** `team().email` (el que ya existe) o vacío. **No se guardan emails de las familias**: serían más
@@ -363,8 +403,10 @@ EVOLUCIÓN (puntos · valoración por partido)
 …
 1ª fase: 6,1 pts · 2ª fase: 8,3 pts por partido
 
-+/- (cómo le fue al equipo con él/ella en pista)
-+18 en 34 de 41 periodos con datos. Depende también de sus compañeros.
++/- · CÓMO LE FUE AL EQUIPO CON BRUNO EN PISTA
+Con Bruno jugando, el equipo metió 64 puntos y recibió 46: +18 (30 periodos en 9 partidos).
+En toda la temporada el equipo va +25.
+(ver la explicación completa más abajo)
 
 ACIERTO Y CUIDADO DEL BALÓN
 Acierto real en el tiro (TS%): 47 % — puntos por intento, tiros libres incluidos.
@@ -373,11 +415,35 @@ Acierto real en el tiro (TS%): 47 % — puntos por intento, tiros libres incluid
 myownbasketballstats.com
 ```
 
+**El +/- explicado para familias** (decidido: va en el informe, muy bien explicado). Propuesta de texto. Usa el nombre
+del jugador en vez de pronombres y se escribe una vez por idioma:
+
+> **¿Qué es el +/-?** Es el marcador de los ratos en los que Bruno estaba en pista: los puntos que metió el equipo
+> menos los que recibió. +18 quiere decir que, mientras Bruno jugaba, el equipo sacó 18 puntos de ventaja en total.
+>
+> **Lo que no es:** no mide solo lo que hace Bruno. Depende también de los compañeros que jugaban a su lado, del rival
+> y de la suerte de cada partido. **No sirve para comparar a dos jugadores**, porque cada uno juega con compañeros y
+> rivales distintos.
+>
+> **Cómo leerlo:** con pocos periodos cambia mucho de un partido a otro. Tiene sentido a lo largo de la temporada y
+> junto al dato del equipo (aquí, +25 en toda la temporada).
+>
+> Solo cuentan los partidos desde el [fecha]: los anteriores no tienen este dato.
+
+Reglas para el +/- en el informe:
+
+- Siempre va acompañado del **dato del equipo** en el mismo ámbito, como referencia. Nunca de una comparación con
+  otro jugador ni de un ranking.
+- **Con menos de 4 periodos con datos** no se da la cifra: «Todavía hay pocos datos para calcularlo».
+- **El ranking de quintetos no va en el informe para familias.** Es una herramienta del entrenador.
+- La explicación ocupa unos 500 caracteres. Con ella, el objetivo de longitud pasa a **< 2.000 caracteres**. Si el
+  `mailto:` se queda corto, se usa «Copiar» (4.2). Alternativa: poner la explicación completa una sola vez al final.
+
 | # | Tarea | Archivos | Tests primero | Aceptación |
 | --- | --- | --- | --- | --- |
 | 4.1 | `MBCore.reportModel(games, pid, scope)` → datos del informe (resumen, tiro, evolución por partido, comparación de fases, +/- con cobertura y avanzadas) | `core.js` | Jugador en dos fases, jugador sin tiros, jugador dado de baja de la plantilla, +/- sin cobertura, ámbito de una sola fase | Función pura con 100 % de cobertura |
 | 4.2 | `reportText(model, t)` → texto | `core.js` | Snapshot del texto en ES. Sin `NaN` ni `undefined`. «–» cuando no hay datos. Con el informe de una temporada de 30 partidos, el `mailto` sigue por debajo del límite o cae a «Copiar» | Legible en Gmail, Apple Mail y WhatsApp (revisión manual) |
-| 4.3 | Evolución compacta: con más de N partidos (propuesta: 12) se resume por fase o por mes en vez de una línea por partido | `core.js` | Con 30 partidos, la longitud se mantiene acotada | < 1.500 caracteres en el caso típico |
+| 4.3 | Evolución compacta: con más de N partidos (propuesta: 12) se resume por fase o por mes en vez de una línea por partido | `core.js` | Con 30 partidos, la longitud se mantiene acotada | < 2.000 caracteres en el caso típico (con la explicación del +/-) |
 | 4.4 | Interfaz: en temporada o fase, tocar un jugador de la tabla → «Informe» → el modal «Enviar» con su texto. Asunto propio | `app.js`, `i18n/es.js` | `flujos.test.js`: abrir el informe de un jugador, el `mailto` con el asunto y el cuerpo correctos, copiar y compartir (doble de `navigator.share`) | Funciona en modo avión (e2e de Chrome sin conexión) |
 | 4.5 | (Opcional) «Descargar .txt» | `app.js` | `exportar.test.js`: nombre del archivo y contenido UTF-8 | — |
 
@@ -393,11 +459,13 @@ con texto ya se usan hoy y están cubiertos por los e2e.
 - **Detector de textos sin extraer:** una **pseudolocalización** (`qps`) que rodea cada texto con `⟦…⟧`. Un test
   recorre todas las pantallas y modales en `qps` y falla si encuentra un nodo de texto visible sin envolver (salvo
   números, dorsales y nombres).
+- **Portugués: pt-PT** (decidido). `<html lang="pt-PT">`, `Intl` con `pt-PT` y vocabulario de Portugal (*minibasquete*, *equipa*…).
+  Un usuario con el móvil en pt-BR recibe pt-PT.
 - **Archivos:** `i18n/{es,ca,fr,it,pt}.js` (unos 25–35 KB cada uno). Solo se carga el activo, con un `<script>` que
   inyecta un pequeño script en línea de `index.html` antes de `app.js`. Todos van precacheados para cambiar de idioma
   sin conexión.
 - **Detección:** `localStorage.mb_lang` (compartido con el marcador, como `mb_theme`) → `?lang=xx` (desde la web; se
-  guarda y se quita de la URL) → `navigator.languages` (`ca*`→ca, `pt*`→pt…) → `es`.
+  guarda y se quita de la URL) → `navigator.languages` (`ca*`→ca, `pt*`→pt, incluido pt-BR…) → `es`.
 - **Selector:** en Ajustes y en la pantalla de equipos (la primera que se ve). Actualiza `<html lang>`.
 - **Números y fechas:** `Intl.NumberFormat` e `Intl.DateTimeFormat` con el idioma activo. Los cinco idiomas usan coma
   decimal y día/mes/año. `MONTHS` (`app.js:309`) pasa a `Intl`. El CSV mantiene `;` y la coma decimal en los cinco.
@@ -431,7 +499,7 @@ lo que no queremos es que una traducción afirme una regla.
 | 5A.3 | Traducción CA (la revisas tú) | M | Revisión hecha |
 | 5A.4 | FR, IT y PT: primer borrador marcado `// TODO revisión nativa`, con un glosario de términos para validar | M | Revisión nativa hecha antes de publicar el idioma (se puede publicar idioma a idioma) |
 | 5A.5 | Detección, selector y `?lang=` | S | e2e: con `navigator.language = 'fr-FR'` se abre en FR; el selector cambia el idioma y se recuerda sin conexión |
-| 5A.6 | El marcador (`/marcador/`): ¿dentro o fuera? | — | Pregunta 8 |
+| 5A.6 | El marcador (`/marcador/`): ¿dentro o fuera? | — | Pregunta 7 |
 
 ### Fase 5B — Idiomas en la web (M/L)
 
@@ -442,7 +510,7 @@ lo que no queremos es que una traducción afirme una regla.
   diccionarios (`src/i18n/*.ts`). `Lang = 'es' | 'ca' | 'fr' | 'it' | 'pt'`. El selector de idioma del pie lista todos.
 - **Enlaces a la app** con `?lang=xx`, para que se abra en el idioma de la página.
 - **Alcance inicial:** solo la portada en FR, IT y PT. Las guías, la plantilla y la privacidad se marcan «(en
-  castellano)», como ya hace CA (pregunta 9). **Las afirmaciones de reglamento de la portada se reescriben** para
+  castellano)», como ya hace CA (pregunta 8). **Las afirmaciones de reglamento de la portada se reescriben** para
   FR/IT/PT (ver la tabla anterior); no se traducen literalmente.
 - **Tests:** `web.test.js` comprueba las mismas claves en todos los idiomas. Sobre el build: cada página tiene
   hreflang recíprocos y `x-default`. e2e: cada portada responde y su `<html lang>` es el correcto.
@@ -454,7 +522,7 @@ lo que no queremos es que una traducción afirme una regla.
 probable que en castellano se busque poco «alternativa a GameChanger». Propongo que la página apunte a la búsqueda
 genérica («apps de estadísticas de baloncesto», «… minibasket») y use los nombres de la competencia como términos
 secundarios. Si el objetivo es captar búsquedas por esos nombres, una versión en inglés tendría más sentido, pero
-necesitaría la app en inglés (pregunta 11).
+necesitaría la app en inglés (pregunta 10).
 
 **Propuesta de página (ES)**
 
@@ -482,6 +550,10 @@ necesitaría la app en inglés (pregunta 11).
   competencia** (reseñas de terceros escritas por una parte interesada). `FAQPage` es opcional: Google ya no
   suele mostrarlo como resultado enriquecido.
 - **Marcas:** se nombran solo para identificar cada app, sin logos ni capturas de la competencia.
+- **Privacidad, con Umami activo:** la página dice «la **app** no tiene analítica, cookies ni cuentas». De la web
+  dice la verdad: «la web usa una analítica sin cookies (Umami) para contar visitas». No se usa «sin rastreo» en
+  general. En la fila «analítica/seguimiento» de la tabla, nuestra celda distingue entre la app y la web. Un test
+  comprueba que la página no contiene «sin rastreo» ni «sin seguimiento» sin precisar que se refiere a la app.
 
 **Datos de la competencia: todos quedan como TODO para que los revises tú.** No escribiré ninguna celda sin fuente.
 La plantilla de cada celda es `{ valor: 'TODO', fuente: 'TODO (URL oficial)', consultado: 'TODO (fecha)' }`.
@@ -489,7 +561,8 @@ La plantilla de cada celda es `{ valor: 'TODO', fuente: 'TODO (URL oficial)', co
 **Datos propios** (verificables en el código; se rellenan ya): gratis, sin cuenta (no hay inicio de sesión), web
 instalable como PWA (`manifest.webmanifest`), sin conexión (`sw.js`), datos solo en el dispositivo (`localStorage`),
 sin analítica en la app, sin estadísticas del rival (solo sus puntos), 8 periodos o 4 cuartos, faltas 4/5,
-exportación CSV/JSON, varios equipos y, cuando estén publicadas, +/-, avanzadas e informe por jugador.
+exportación CSV/JSON, varios equipos y, cuando estén publicadas, +/-, **mejor quinteto**, avanzadas e informe por jugador. El mejor quinteto sin toques
+extra es un argumento propio fuerte: conviene comprobar (TODO) qué apps de la lista lo ofrecen y con qué esfuerzo.
 
 | # | Tarea | Aceptación |
 | --- | --- | --- |
@@ -507,12 +580,13 @@ exportación CSV/JSON, varios equipos y, cuando estén publicadas, +/-, avanzada
 | Quien apunta no registra los cambios (solo apunta el marcador del rival) | +/- y quintetos falsos | Avisos fuera del directo: «hubo jugadas con menos de 5 en pista», «el quinteto no cambió en 3 periodos seguidos». Cobertura visible |
 | Corregir el quinteto *después* de haber apuntado jugadas | Esas jugadas se atribuyen al quinteto equivocado | Se documenta. La agrupación cubre las correcciones hechas antes de la primera jugada |
 | `−1` del rival en otro momento | Pequeño error en el +/- | El `−1` solo corrige el periodo actual (`recordOpp`); se documenta |
-| La exposición estimada con el reloj real (pausas, tiempos muertos, móvil bloqueado) | Minutos imprecisos | Unidad en periodos, marca «estimado», cada periodo suma 1 y reparto por jugadas si los `ts` no son coherentes |
-| **+/- individual de niños leído por las familias** | Comparaciones injustas: depende de los compañeros y las muestras son pequeñas | Explicación en el informe, cobertura, opción de no incluirlo (pregunta 4). El ranking de quintetos solo en la vista del entrenador y no en el texto que se comparte por defecto |
+| Reparto de un periodo por jugadas cuando hay cambios dentro | Un tramo con pocas jugadas cuenta menos de lo que jugó | Cada periodo suma 1, marca «≈» y, en minibasket, la mayoría de periodos tienen un solo quinteto |
+| **Quintetos que se repiten poco** | Un «mejor quinteto» que es casualidad | Mínimo de periodos, recuento de los que no llegan, mensaje de «faltan datos», separación por fase y parejas o tríos como complemento (fase 1B) |
+| **+/- individual de niños leído por las familias** | Comparaciones injustas: depende de los compañeros y las muestras son pequeñas | Explicación completa en el informe, siempre junto al dato del equipo y sin cifra con menos de 4 periodos. El ranking de quintetos nunca va en el informe para familias |
 | Muestras pequeñas en las avanzadas | Porcentajes extremos (100 %, 0 %) | Umbrales, asterisco y ocultación |
 | Extracción de i18n en un archivo de 2.400 líneas | Regresiones visuales y textos sin traducir | Pseudolocalización, tests actuales, e2e y extracción por pantallas en PR separados |
 | Calidad de FR/IT/PT | Pérdida de credibilidad | Revisión nativa obligatoria antes de publicar cada idioma |
-| Informe demasiado largo para `mailto:` | El cliente de correo corta el cuerpo | Informe compacto (< 1.500 caracteres), resumen por fase o mes con muchos partidos, y «Copiar» como alternativa (4.2, 4.3) |
+| Informe demasiado largo para `mailto:` | El cliente de correo corta el cuerpo | Informe compacto (< 2.000 caracteres), resumen por fase o mes con muchos partidos, y «Copiar» como alternativa (4.2, 4.3) |
 | Datos de la competencia que se quedan viejos | Comparativa engañosa | Fecha visible, fuentes y revisión semestral (recordatorio en el README) |
 | Versiones antiguas de la app en caché | Ediciones sin `seq` ni registro | El SW es de red primero: solo pasa sin conexión. `normalize` asigna `seq` a lo que llegue sin él (§5) |
 
@@ -524,7 +598,7 @@ exportación CSV/JSON, varios equipos y, cuando estén publicadas, +/-, avanzada
 
 | Caso | Resultado |
 | --- | --- |
-| La app nueva importa v1 o v2 | `normalize` migra a v3. Partidos antiguos con reconstrucción parcial. Tests con los fixtures de hoy |
+| La app nueva importa v1 o v2 | `normalize` migra a v3. Partidos antiguos: +/- y quintetos «no disponible». Tests con los fixtures de hoy |
 | La app nueva importa v3 | Directo, con validación de `lineups` |
 | **La app antigua (v2) importa v3** | Funciona: `normalize` conserva los campos que no conoce (`lineups`, `seq`, `lineupFrom`, `hidden` del partido) y marca `version: 2`. Si se siguen apuntando jugadas en la app antigua, esos eventos no tendrán `seq` y los cambios no se registrarán. Al volver a la nueva, reciben `seq` al final y se atribuyen al último quinteto. Caso raro; se documenta |
 | Copia de una versión **futura** (v4+) en la nueva | Aviso y opción de importarla |
@@ -554,36 +628,35 @@ exportación CSV/JSON, varios equipos y, cuando estén publicadas, +/-, avanzada
 - El precache crece unos 150–200 KB en total, casi todo por los idiomas (hoy: app + CSS + 6 fuentes + iconos ≈ 400 KB). Es aceptable una sola vez.
 - El arranque añade 2 scripts pequeños y síncronos. No hace falta un proceso de build. Si algún día se quiere
   minificar, sería una tarea aparte.
-- El cálculo de quintetos y +/- de una temporada de unas 7.500 jugadas es lineal y está memoizado (1B.8).
+- El cálculo de quintetos y +/- de una temporada de unas 7.500 jugadas es lineal y está memoizado (1B.9).
 - Todo archivo nuevo entra en `ASSETS` y cada versión sube `CACHE` (lo comprueba el test de 0.3).
 
 ---
 
 ## 7. Preguntas abiertas
 
-1. **Exposición:** ¿te vale «periodos» (con reparto estimado) como unidad, y minutos solo si el equipo indica la
-   duración del periodo? ¿Ponemos un valor por defecto para la duración?
-2. **Mínimo del ranking de quintetos:** propuesta de 2 periodos por partido y 6 por temporada o fase, configurable.
-   ¿Vale?
+Ya decididas (ver la tabla del principio): unidad en periodos, partidos antiguos «no disponible», +/- en el informe
+con explicación, pt-PT y Umami activo.
+
+1. **Mínimo para el ranking de quintetos:** propuesta de **4 periodos** juntos en la temporada o fase,
+   configurable. ¿Vale?
+2. **Parejas y tríos** como complemento a los quintetos (1B.5): ¿los incluimos? Dan señales antes, cuando los
+   quintetos se repiten poco.
 3. **Umbrales de muestra pequeña** en las avanzadas: < 3 se oculta y < 5 (partido) o < 15 (temporada) se atenúa.
    ¿Ocultar o atenuar?
-4. **+/- en el informe para familias:** ¿por defecto sí o no? ¿Añadimos «con/sin el jugador en pista» (on/off) para dar
-   contexto?
+4. **Texto del +/- para familias** (fase 4): ¿te vale el borrador? ¿Va completo en cada informe o una sola vez al
+   final?
 5. **Informe en texto:** ¿nombre de pila o solo el dorsal? ¿Añadimos el botón «Descargar .txt» (4.5)? ¿Hace falta
    un «enviar a todos» (sería un email por jugador, porque `mailto:` no admite varios cuerpos)?
 6. **CSV:** ¿añadimos las columnas avanzadas y el +/-? ¿Cabeceras traducidas o fijas en ES? ¿Un CSV de quintetos?
-7. **Portugués:** ¿pt-PT o pt-BR?
-8. **¿El marcador (`/marcador/`) también se traduce?**
-9. **Web en FR, IT y PT:** ¿solo la portada o también las guías, la plantilla y la privacidad? (Para la privacidad,
+7. **¿El marcador (`/marcador/`) también se traduce?**
+8. **Web en FR, IT y PT:** ¿solo la portada o también las guías, la plantilla y la privacidad? (Para la privacidad,
    ¿quién revisa la traducción legal?)
-10. **Reglamento por país:** ¿investigamos el formato de minibasket de FR, IT y PT (periodos, faltas, línea de 3,
-    participación mínima) antes de publicar la web en esos idiomas? ¿Quién hace la revisión nativa?
-11. **Comparativa:** ¿solo en ES, también en CA o en EN? ¿Está activo Umami en producción? Si lo está, la página no
-    puede decir «sin rastreo» de la web, solo de la app.
-12. **Partidos antiguos:** ¿reconstrucción parcial (periodos con exactamente 5 jugadores) o «no disponible»
-    directamente?
-13. **Puntos por posesión del equipo** (solo con datos propios): ¿lo añadimos a la fase 2 o lo dejamos fuera?
-14. **Orden:** ¿apruebas 0 → 1A → 2 → 1B → 4 → 5A → 5B → 3, publicando 1A en cuanto esté para que se empiecen a
+9. **Reglamento por país:** ¿investigamos el formato de minibasket de FR, IT y PT (periodos, faltas, línea de 3,
+   participación mínima) antes de publicar la web en esos idiomas? ¿Quién hace la revisión nativa?
+10. **Comparativa:** ¿solo en ES, también en CA o en EN?
+11. **Puntos por posesión del equipo** (solo con datos propios): ¿lo añadimos a la fase 2 o lo dejamos fuera?
+12. **Orden:** ¿apruebas 0 → 1A → 2 → 1B → 4 → 5A → 5B → 3, publicando 1A en cuanto esté para que se empiecen a
     acumular quintetos esta temporada?
 
 ---
