@@ -12,7 +12,7 @@ export const PLAYERS = [
 const copy = (list) => list.map((p) => ({ ...p }));
 
 export function makeTeam(overrides = {}) {
-  return { id: 't1', name: 'Alevín A', email: '', players: copy(PLAYERS), hidden: [], phase: 1, levels: ['', ''], move: '', ...overrides };
+  return { id: 't1', name: 'Alevín A', email: '', players: copy(PLAYERS), hidden: [], phase: 1, levels: ['', ''], move: '', minUnit: 4, ...overrides };
 }
 
 /** Partido. Sin `lineupFrom` es un partido sin registro de quintetos (como los anteriores a la versión 3). */
@@ -80,4 +80,24 @@ export function sampleGame(overrides = {}) {
     ],
     ...overrides,
   });
+}
+
+/**
+ * Partido con registro de quintetos. plan: tramos [periodo, quinteto, puntos a favor, en contra]; cada tramo ocupa
+ * su periodo entero (un quinteto por periodo). Los puntos a favor son tiros libres del primero del quinteto; los
+ * del rival, de 1 en 1.
+ */
+export function trackedGame(id, plan, overrides = {}) {
+  let n = 0;
+  const lineups = [], events = [], played = {};
+  for (const [period, on, pf, pc] of plan) {
+    lineups.push({ seq: ++n, period, on });
+    for (const pid of on) {
+      played[pid] = played[pid] || [];
+      if (!played[pid].includes(period)) played[pid].push(period);
+    }
+    for (let i = 0; i < pf; i++) events.push({ id: `${id}-${n}-f${i}`, seq: ++n, ts: 1_000_000 + n, period, type: 't1_ok', pid: on[0] });
+    for (let i = 0; i < pc; i++) events.push({ id: `${id}-${n}-c${i}`, seq: ++n, ts: 1_000_000 + n, period, type: 'opp', pts: 1 });
+  }
+  return makeGame({ id, finished: true, lineupFrom: 1, lineups, events, played, seq: n, ...overrides });
 }

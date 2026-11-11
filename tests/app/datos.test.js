@@ -41,7 +41,7 @@ describe('normalize', () => {
 
   it('completa los campos que faltan en partidos y equipos', () => {
     const d = app.fn.normalize({ teams: [{ id: 't1' }], games: [{ id: 'g1', teamId: 't1' }] });
-    expect(d.teams[0]).toEqual({ id: 't1', name: 'Mi equipo', email: '', players: [], hidden: [], phase: 1, levels: ['', ''], move: '' });
+    expect(d.teams[0]).toEqual({ id: 't1', name: 'Mi equipo', email: '', players: [], hidden: [], phase: 1, levels: ['', ''], move: '', minUnit: 4 });
     expect(d.games[0]).toMatchObject({ events: [], onCourt: [], roster: [], played: {}, periods: 8, period: 1, teamName: 'Mi equipo', phase: 1, venue: '' });
   });
 

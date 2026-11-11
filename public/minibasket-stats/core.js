@@ -116,6 +116,107 @@
     return on ? [...on] : null;
   }
 
+  /* ── +/- y quintetos ──
+     Todo se mide en periodos (no hay reloj). Un tramo es un quinteto en pista dentro de un periodo; si en un periodo
+     hubo varios, el periodo (que vale 1) se reparte entre ellos según las jugadas apuntadas en cada uno (approx).
+     Solo cuentan las jugadas posteriores a g.lineupFrom: los partidos sin registro no tienen +/- ni quintetos. */
+  const QUINTET = 5;   // jugadores de un quinteto completo
+  const r3 = (n) => Math.round(n * 1000) / 1000;
+  const bySeq = (a, b) => a.seq - b.seq;
+
+  function stints(g) {
+    if (!Number.isInteger(g.lineupFrom)) return [];
+    const lineups = [...(g.lineups || [])].sort(bySeq);
+    const events = g.events.filter(e => e.seq > g.lineupFrom).sort(bySeq);
+    const groups = new Map();   // «seq del quinteto|periodo» → tramo
+    let i = -1;
+    for (const e of events) {
+      while (i + 1 < lineups.length && lineups[i + 1].seq < e.seq) i++;   // último quinteto anterior a la jugada
+      if (i < 0) continue;
+      const key = `${lineups[i].seq}|${e.period}`;
+      if (!groups.has(key)) groups.set(key, { period: e.period, on: [...lineups[i].on], events: 0, pf: 0, pc: 0 });
+      const s = groups.get(key);
+      s.events++;
+      if (e.type === 'opp') s.pc += e.pts;
+      else s.pf += EV_PTS[e.type] || 0;
+    }
+    const list = [...groups.values()];
+    const perPeriod = new Map();
+    for (const s of list) {
+      const p = perPeriod.get(s.period) || { events: 0, n: 0 };
+      p.events += s.events; p.n++;
+      perPeriod.set(s.period, p);
+    }
+    for (const s of list) {
+      const p = perPeriod.get(s.period);
+      s.share = s.events / p.events;
+      s.approx = p.n > 1;
+    }
+    return list;
+  }
+
+  /* +/- de cada jugador en un partido: { pid: { pf, pc, pm, periods } }, o null si el partido no tiene registro */
+  function plusMinus(g) {
+    if (!Number.isInteger(g.lineupFrom)) return null;
+    const out = {};
+    for (const s of stints(g)) {
+      for (const pid of s.on) {
+        const r = out[pid] || (out[pid] = { pf: 0, pc: 0, pm: 0, periods: 0 });
+        r.pf += s.pf; r.pc += s.pc; r.pm += s.pf - s.pc; r.periods += s.share;
+      }
+    }
+    for (const r of Object.values(out)) r.periods = r3(r.periods);
+    return out;
+  }
+
+  /* Combinaciones de k elementos de una lista (k pequeño: parejas, tríos o el quinteto entero) */
+  function choose(list, k, start = 0, acc = [], out = []) {
+    if (acc.length === k) { out.push([...acc]); return out; }
+    for (let i = start; i < list.length; i++) { acc.push(list[i]); choose(list, k, i + 1, acc, out); acc.pop(); }
+    return out;
+  }
+
+  /* Quintetos (size 5), parejas (2) o tríos (3) de una lista de partidos, ordenados por periodos jugados juntos.
+     Un quinteto necesita 5 en pista: los tramos con menos van a «incomplete». Las parejas y los tríos salen de
+     cualquier tramo con suficientes jugadores. tracked/total: partidos con registro y partidos de la lista. */
+  function combos(games, size) {
+    const map = new Map();
+    const incomplete = { periods: 0, pf: 0, pc: 0 };
+    let tracked = 0;
+    for (const g of games) {
+      if (!Number.isInteger(g.lineupFrom)) continue;
+      tracked++;
+      for (const s of stints(g)) {
+        if (size === QUINTET && s.on.length !== QUINTET) {
+          incomplete.periods += s.share; incomplete.pf += s.pf; incomplete.pc += s.pc;
+          continue;
+        }
+        for (const set of choose([...s.on].sort(), size)) {
+          const key = set.join(',');
+          const c = map.get(key) || { key, pids: set, periods: 0, approx: false, pf: 0, pc: 0, games: [] };
+          c.periods += s.share; c.pf += s.pf; c.pc += s.pc;
+          c.approx = c.approx || s.approx;
+          if (!c.games.includes(g.id)) c.games.push(g.id);
+          map.set(key, c);
+        }
+      }
+    }
+    const list = [...map.values()].map(c => {
+      const periods = r3(c.periods);
+      return { ...c, periods, pm: c.pf - c.pc, pmPer: (c.pf - c.pc) / periods, pfPer: c.pf / periods, pcPer: c.pc / periods };
+    }).sort((a, b) => b.periods - a.periods || b.pm - a.pm);
+    incomplete.periods = r3(incomplete.periods);
+    return { list, incomplete, tracked, total: games.length };
+  }
+
+  /* Ranking: by 'pm' (+/- por periodo), 'pf' (ataque: más a favor) o 'pc' (defensa: menos en contra). Solo entran
+     las combinaciones con al menos min periodos; below cuenta las que se quedan fuera. A igualdad, más periodos. */
+  function rankCombos(list, { by, min }) {
+    const value = (c) => (by === 'pf' ? c.pfPer : by === 'pc' ? -c.pcPer : c.pmPer);
+    const ranked = list.filter(c => c.periods >= min).sort((a, b) => value(b) - value(a) || b.periods - a.periods);
+    return { ranked, below: list.length - ranked.length };
+  }
+
   /* ── Estadísticas avanzadas ──
      Solo las que permiten los datos propios (nada que necesite datos del rival). TC = tiros de campo (T2 + T3).
        efg: (TCA + 0,5·T3A) / TCI          ts:  PTS / (2·(TCI + 0,44·TLI))
@@ -156,6 +257,6 @@
 
   root.MBCore = Object.freeze({
     EV_PTS, blankLine, addEvent, sumLines, finish, score, periodScores, playerLines, scoreFlow, lineupAt,
-    ADV_MIN, advanced, recordedOpts,
+    ADV_MIN, advanced, recordedOpts, stints, plusMinus, combos, rankCombos,
   });
 })(globalThis);
