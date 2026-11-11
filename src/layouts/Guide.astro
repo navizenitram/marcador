@@ -12,9 +12,10 @@ interface Props {
   crumb: string;
   origin: string; // etiqueta para la analítica
   image?: string;
+  noindex?: boolean;
 }
 
-const { title, description, h1, lead, updated, crumb, origin, image } = Astro.props;
+const { title, description, h1, lead, updated, crumb, origin, image, noindex = false } = Astro.props;
 const site = Astro.site!.href.replace(/\/$/, '');
 const url = new URL(Astro.url.pathname, Astro.site).href;
 const isGuide = Astro.url.pathname.startsWith('/guias/');
@@ -54,7 +55,7 @@ const jsonLd = {
   ],
 };
 ---
-<Base title={title} description={description} type="article" jsonLd={jsonLd} image={image}>
+<Base title={title} description={description} type="article" jsonLd={jsonLd} image={image} noindex={noindex}>
   <article class="article">
     <div class="wrap">
       <nav class="crumbs" aria-label="Ruta de navegación">

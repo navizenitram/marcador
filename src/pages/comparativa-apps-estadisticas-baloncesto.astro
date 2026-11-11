@@ -1,0 +1,144 @@
+---
+// Comparativa con otras apps. Los datos están en src/data/comparativa.mjs (allí se explica cómo rellenarlos).
+// Mientras quede algún TODO es un borrador: noindex, fuera del sitemap (astro.config.mjs) y sin enlaces.
+import Guide from '../layouts/Guide.astro';
+import { APP_URL } from '../consts';
+import { APPS, DRAFT, META, OURS, REVIEWED, ROWS, isTodo, pendingLabel, pendingTodos, updatedDate, validationErrors } from '../data/comparativa.mjs';
+
+// Datos mal rellenados (fuente sin https, fecha en otro formato…): mejor que falle el build que publicarlos
+const errors = validationErrors();
+if (errors.length) throw new Error(`Comparativa: datos mal rellenados en src/data/comparativa.mjs:\n- ${errors.join('\n- ')}`);
+
+const pending = pendingTodos();
+const reviewedText = isTodo(REVIEWED)
+  ? 'TODO'
+  : new Date(`${REVIEWED}T12:00:00Z`).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+---
+<Guide
+  title={META.title}
+  description={META.description}
+  h1={META.h1}
+  lead={META.lead}
+  updated={updatedDate()}
+  crumb="Comparativa de apps"
+  origin="comparativa"
+  noindex={DRAFT}
+>
+  {DRAFT && (
+    <div class="callout draft-note" role="note">
+      <p>
+        <strong>Borrador:</strong> {pendingLabel(pending)} (datos de las otras apps, su fuente o la fecha de revisión). Mientras
+        tanto, esta página no se indexa, no está en el sitemap y no se enlaza desde la web.
+      </p>
+    </div>
+  )}
+
+  <h2>Cómo hemos hecho esta comparativa</h2>
+  <p>
+    Los datos de My Own Basketball Stats salen de la propia app. Los de las demás, de sus webs y tiendas de apps oficiales,
+    con el enlace y la fecha de consulta en cada caso; si sus fuentes no dicen algo, lo indicamos como «No consta». Las apps cambian:
+    si ves un dato desactualizado, escríbenos y lo corregimos. Datos revisados el {reviewedText}.
+  </p>
+
+  <h2>Resumen</h2>
+  <div class="table-scroll compare-scroll">
+    <table class="compare">
+      <caption>Comparativa de apps de estadísticas de baloncesto</caption>
+      <thead>
+        <tr>
+          <th scope="col">Qué</th>
+          <th scope="col">My Own Basketball Stats</th>
+          {APPS.map((a) => <th scope="col">{a.name}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {ROWS.map((r) => (
+          <tr>
+            <th scope="row">{r.label}</th>
+            <td>{OURS[r.key].valor}</td>
+            {APPS.map((a) => {
+              const c = a.cells[r.key];
+              if (c.valor === null) return <td class="nc">No consta</td>;
+              return isTodo(c.valor)
+                ? <td class="todo">TODO</td>
+                : <td>{c.valor} <a class="src" href={c.fuente} rel="nofollow noopener" target="_blank">fuente, {c.consultado}</a></td>;
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  {APPS.map((a) => (
+    <section class="app-section">
+      <h2>{a.name}</h2>
+      <h3>En qué es mejor</h3>
+      <ul>{a.better.map((b) => <li class={isTodo(b) ? 'todo' : ''}>{b}</li>)}</ul>
+      <h3>Para quién encaja</h3>
+      <p class={isTodo(a.fit) ? 'todo' : ''}>{a.fit}</p>
+      <h3>Diferencias con My Own Basketball Stats</h3>
+      <p>
+        En la tabla, cada dato de {a.name} lleva su fuente oficial y la fecha en que se consultó. «No consta» quiere decir
+        que sus fuentes oficiales no lo dicen.
+      </p>
+      <p>
+        Web oficial:{' '}
+        {isTodo(a.url) ? <span class="todo">TODO</span> : <a href={a.url} rel="nofollow noopener" target="_blank">{a.url}</a>}
+      </p>
+    </section>
+  ))}
+
+  <h2>Cuándo no te conviene My Own Basketball Stats</h2>
+  <ul>
+    <li><strong>Si varias personas tienen que ver los datos a la vez en sus móviles.</strong> No hay cuentas ni sincronización: los datos están en un solo dispositivo y se pasan a otro con una copia.</li>
+    <li><strong>Si necesitas estadísticas del rival.</strong> Solo se apuntan sus puntos.</li>
+    <li><strong>Si quieres vídeo, retransmisión en directo o marcador para el público.</strong> No los tiene.</li>
+    <li><strong>Si prefieres una app de tienda.</strong> Es una web que se puede añadir a la pantalla de inicio, no está en App Store ni en Google Play.</li>
+    <li><strong>Si no vas a hacer copias.</strong> Si borras los datos del navegador o pierdes el móvil sin haber exportado una copia, se pierden.</li>
+    <li><strong>Si la necesitas en otro idioma.</strong> Por ahora la app está en castellano.</li>
+  </ul>
+
+  <h2>Cuándo sí</h2>
+  <ul>
+    <li><strong>No quieres cuentas ni dar datos de menores a nadie:</strong> todo se queda en tu móvil. La app no tiene analítica, cookies ni publicidad.</li>
+    <li><strong>No quieres instalar nada:</strong> se abre en el navegador y funciona sin conexión en el pabellón.</li>
+    <li><strong>Es gratis</strong> y sin versión de pago.</li>
+    <li><strong>Está pensada para el minibasket:</strong> 8 periodos o 4 cuartos, aviso a 4 faltas, temporada en dos fases y periodos jugados por cada niño.</li>
+    <li><strong>Quieres saber qué quintetos funcionan</strong> sin apuntar nada más que los cambios que ya haces.</li>
+    <li><strong>Quieres mandar a cada familia un informe</strong> por WhatsApp o email al acabar la temporada.</li>
+  </ul>
+
+  <h2>Preguntas frecuentes</h2>
+  <h3>¿Qué app de estadísticas es la mejor para minibasket?</h3>
+  <p>
+    Depende de lo que necesites. Si quieres algo gratis, sin cuentas y pensado para el formato de minibasket, My Own Basketball
+    Stats encaja. Si necesitas que varias personas compartan los datos o ver al rival en detalle, mira las otras opciones de la tabla.
+  </p>
+  <h3>¿Puedo probar My Own Basketball Stats sin registrarme?</h3>
+  <p>Sí. <a href={APP_URL}>Ábrela en el navegador</a>, crea el equipo y apunta. No pide email ni contraseña.</p>
+  <h3>¿Puedo llevarme los datos a otra app?</h3>
+  <p>Puedes descargar las estadísticas en CSV, que se abre en Excel o en Google Sheets, y exportar una copia de seguridad completa.</p>
+
+  <h2>Fuentes</h2>
+  <p>
+    Cada dato de las otras apps enlaza a su fuente oficial en la tabla, con la fecha de consulta. Los nombres de las apps
+    son marcas de sus propietarios y solo se usan para identificarlas; esta comparativa no está patrocinada ni revisada por
+    ellas.
+  </p>
+</Guide>
+
+<style>
+  /* La tabla sale del ancho del texto (66ch) y ocupa el de la página (sin 100vw, que incluye la barra de scroll);
+     el resto del texto sigue a 66ch. En el móvil se desplaza en horizontal con la primera columna fija. */
+  :global(.prose:has(> .compare-scroll)) { max-width: none; }
+  :global(.prose:has(> .compare-scroll) > :not(.compare-scroll)) { max-width: var(--measure); }
+  .compare { font-size: .95rem; min-width: 1060px; }
+  .compare td, .compare th { vertical-align: top; min-width: 8.5rem; }
+  .compare th[scope='row'] { min-width: 10rem; position: sticky; left: 0; background: var(--paper); z-index: 1; }
+  .compare thead th:first-child { position: sticky; left: 0; background: var(--paper); z-index: 2; }
+  .compare td:nth-child(2) { min-width: 13rem; background: color-mix(in srgb, var(--paper) 88%, #ff8a00); }
+  .compare .src { font-size: .8rem; white-space: nowrap; }
+  .todo { color: #b45309; font-weight: 600; }
+  .nc { color: var(--ink-soft); font-style: italic; }
+  .draft-note { border-left-color: #b45309; }
+</style>
