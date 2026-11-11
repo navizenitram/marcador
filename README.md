@@ -71,7 +71,9 @@ funcionamiento sin conexión en un iPhone real conviene comprobarlo a mano (modo
 
 ### Integración continua
 
-`.github/workflows/tests.yml` pasa los tests unitarios y los e2e en cada push, en paralelo. Si fallan los e2e, el
+`.github/workflows/tests.yml` pasa los tests unitarios y los e2e en cada push, en paralelo. Los e2e se ejecutan en la
+imagen oficial de Playwright (`mcr.microsoft.com/playwright`), que ya trae los navegadores y sus dependencias: al
+actualizar `@playwright/test`, hay que subir también la versión de la imagen en el workflow. Si fallan los e2e, el
 informe de Playwright queda como artefacto de la ejecución.
 
 ## Configuración
