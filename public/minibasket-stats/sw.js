@@ -1,6 +1,6 @@
 /* Service worker: red primero y copia en caché para funcionar sin conexión en el pabellón. */
-const CACHE = 'mbstats-v20';
-const ASSETS = ['./', './index.html', './styles.css', './core.js', './app.js', './manifest.webmanifest', './icon.svg', './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png',
+const CACHE = 'mbstats-v21';
+const ASSETS = ['./', './index.html', './styles.css', './core.js', './i18n.js', './i18n/es.js', './app.js', './manifest.webmanifest', './icon.svg', './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png',
   './fonts/rajdhani-latin-500-normal.woff2', './fonts/rajdhani-latin-600-normal.woff2', './fonts/rajdhani-latin-700-normal.woff2',
   './fonts/barlow-latin-400-normal.woff2', './fonts/barlow-latin-500-normal.woff2', './fonts/barlow-latin-600-normal.woff2'];
 

@@ -35,7 +35,12 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
     lleva a las estadísticas de su partido.
   - En la tabla, los ceros se atenúan, los tiros llevan su porcentaje con una barra y, si la tabla cabe a lo ancho,
     la cabecera se queda fija al bajar.
-  - **Enviar**: email (`mailto:`), copiar o compartir (menú nativo del móvil). También descarga en **CSV**.
+  - **Avanzadas** (botón «Básicas · Avanzadas»): acierto en el tiro con el triple (eFG%), acierto real en el tiro (TS%),
+    balones perdidos por ataque (% de pérdidas) y tiros libres que provoca (TL/TC), con un glosario para familias.
+    Se calculan con los totales; con menos de 3 intentos no se dan y con pocos (menos de 5 en un partido o de 15 en la
+    temporada) se marcan con *. Si un botón no se apunta, se oculta la métrica que lo necesita.
+  - **Enviar**: email (`mailto:`), copiar o compartir (menú nativo del móvil). También descarga en **CSV** (con las
+    avanzadas en las últimas columnas).
 - **Ajustes**: botones del partido que se quieren usar (con vista previa), copia de seguridad y enlace de apoyo (Ko-fi).
 - **Copia de seguridad**: exportar / importar todos los datos en JSON (útil para cambiar de dispositivo).
 - **Modo claro / oscuro** (botón 🌙/☀️ en la barra superior o en el menú ☰ del partido). Se comparte con el marcador.
@@ -82,6 +87,7 @@ así que sigue disponible en `/minibasket-stats/` sin proceso de build propio. L
 ```
 index.html            Shell de la SPA
 core.js               Núcleo de cálculo: funciones puras sin DOM (MBCore). Se carga antes que app.js
+i18n.js, i18n/        Textos por idioma (MBI18n.t). Por ahora solo los nuevos, en castellano
 app.js                Vistas, acciones y almacenamiento
 styles.css            Estilos (layout horizontal)
 sw.js                 Service worker (modo sin conexión)

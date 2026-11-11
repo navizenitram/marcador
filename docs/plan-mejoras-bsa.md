@@ -1,8 +1,8 @@
 # Plan de mejoras — My Own Basketball Stats
 
 > Estado: **aprobado el 11/11/2026**. Para las preguntas abiertas se toman de momento las propuestas del plan.
-> Avance: **fase 0 y fase 1A hechas** (ver «Avance» al final). La tarea 0.4 (base de i18n) pasa al inicio de la fase 2,
-> que es la primera con textos nuevos en pantalla. No se ha escrito código de producción.
+> Avance: **fases 0, 1A y 2 hechas** (ver «Avance» al final). Desde el 11/11 se aceptan cambios que rompan la
+> compatibilidad mientras no haya masa crítica de usuarios. No se ha escrito código de producción.
 > Fecha: 11/11/2026 · Rama: `claude/stoic-hopper-4rsg3g`
 > Las referencias `archivo:línea` apuntan al commit `3454784`.
 
@@ -695,7 +695,7 @@ algo más complejo (imágenes, otras fuentes), se reevalúa pdf-lib.
 | --- | --- | --- |
 | 0 — Cimientos | **Hecha** (salvo 0.4) | `core.js` (núcleo puro, `MBCore`) con un 100 % de cobertura. Helper de tests que carga los scripts de `index.html` en orden. Test de que el SW guarda todos los scripts. Copia v3 con `exportedAt` y aviso de versión más nueva. **0.4 (i18n) pasa al inicio de la fase 2** |
 | 1A — Registrar quintetos | **Hecha** | `seq` en jugadas, `lineups`, `lineupFrom`, `logLineup` en crear partido, selector de quinteto, cambio, sentar, vaciar y periodo. `MBCore.lineupAt`. Sin cambios visibles: e2e de Android en verde sin tocar los tests. Tamaño: < 35 % más y la temporada cabe en el traspaso |
-| 2 — Avanzadas | Pendiente | Empieza por la base de i18n (0.4) |
+| 2 — Avanzadas | **Hecha** | Base de i18n (`i18n.js`, `i18n/es.js`, solo con los textos nuevos). `MBCore.advanced` y `recordedOpts`. Vista «Básicas · Avanzadas» con glosario, CSV con 4 columnas al final. **Simplificación** (se permiten cambios que rompen): sin `g.hidden` por partido; un dato se considera apuntado si su botón está activo hoy o si hay alguna jugada de ese tipo en el ámbito |
 | 1B — Mejor quinteto | Pendiente | Necesita partidos jugados con la 1A publicada |
 | 4, 5, 3 | Pendientes | — |
 

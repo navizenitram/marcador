@@ -98,6 +98,7 @@ const ui = {
   modal: null,           // { kind, ... } modal abierto
   sort: { key: 'number', dir: 1 },
   avg: false,            // estadísticas de temporada: promedio por partido
+  adv: false,            // estadísticas: vista de avanzadas
   flash: null,           // { pid, type } botón a resaltar tras pulsar
   focus: null,           // selector a enfocar tras renderizar
   pendingModal: null,    // modal a abrir tras la próxima navegación
@@ -254,6 +255,9 @@ function save() {
 }
 
 /* ────────────────────────── Utilidades ────────────────────────── */
+
+/* Textos por idioma (i18n.js). Los textos nuevos usan claves; el resto se extraerá en la fase 5 del plan. */
+const tr = (key, vars) => MBI18n.t(key, vars);
 
 const $ = (s, r = document) => r.querySelector(s);
 const appEl = $('#app');
@@ -1026,13 +1030,22 @@ function statsData(arg) {
   if (scope) {
     let rows = seasonRows(scope.games);
     const total = totalsRow(rows, scope.games.length);
+    withAdvanced(rows, total, 'season');   // antes de promediar: los porcentajes salen de los totales
     if (ui.avg) rows = rows.map(averageRow);
     return { season: true, phase: scope.phase, scopeGames: scope.games, rows, total: ui.avg ? averageRow(total) : total, games };  // scopeGames: del más reciente al más antiguo
   }
   const g = getGame(arg);
   if (!g) return null;
   const rows = gameRows(g);
-  return { season: false, game: g, rows, total: totalsRow(rows, 1), games };
+  const total = totalsRow(rows, 1);
+  withAdvanced(rows, total, 'game');
+  return { season: false, game: g, rows, total, games };
+}
+
+/* Añade a cada fila sus estadísticas avanzadas (r.adv). Qué datos se apuntaron se decide con el total del ámbito. */
+function withAdvanced(rows, total, scope) {
+  const rec = MBCore.recordedOpts(total, team().hidden);
+  for (const r of [...rows, total]) r.adv = MBCore.advanced(r, scope, rec);
 }
 
 function viewStats(arg) {
@@ -1066,6 +1079,10 @@ function viewStats(arg) {
           <button class="${ui.avg ? '' : 'on'}" data-action="avg" data-v="0">Totales</button>
           <button class="${ui.avg ? 'on' : ''}" data-action="avg" data-v="1">Por partido</button>
         </div>` : ''}
+      <div class="seg">
+        <button class="${ui.adv ? '' : 'on'}" data-action="adv" data-v="0">${tr('stats.basic')}</button>
+        <button class="${ui.adv ? 'on' : ''}" data-action="adv" data-v="1">${tr('stats.advanced')}</button>
+      </div>
       <span class="grow"></span>
       ${!data.season && !g.finished ? `<button class="btn" data-action="finish" data-id="${g.id}" title="Finalizar partido">${icon('flag')} Finalizar</button>` : ''}
       ${!data.season ? `<a class="btn" href="#/partido/${g.id}">${g.finished ? 'Abrir partido' : `${icon('play', 'solid')} Volver al partido`}</a>` : ''}
@@ -1078,8 +1095,9 @@ function viewStats(arg) {
     ${data.season ? seasonSummary(data.scopeGames) : gameSummary(g)}
     ${leaders(data)}
     <section class="card table-card">${statsTable(data)}</section>
+    ${ui.adv ? `<p class="muted small adv-note">${esc(tr('adv.note'))} Toca la cabecera de una columna para ordenar.</p>${glossary(data)}` : `
     <p class="muted small formula"><b>VAL</b> (valoración ACB) = puntos + rebotes + asistencias + recuperaciones + tapones + faltas recibidas − tiros fallados (cada uno resta 1) − tapones recibidos − pérdidas − faltas cometidas.
-    Toca la cabecera de una columna para ordenar.</p>
+    Toca la cabecera de una columna para ordenar.</p>`}
     <p class="support">¿Te es útil la app? <a href="${KOFI_URL}" target="_blank" rel="noopener">${icon('coffee')} Invítame a un café</a></p>
   `);
 }
@@ -1301,7 +1319,46 @@ function leaders(data) {
   </section>`;
 }
 
+/* Columnas de la vista de avanzadas. adv: métrica de MBCore.advanced; fmt: cómo se escribe su valor */
+const ADV_COLS = [
+  { k: 'number', h: '#', cls: 'c-num', g: 'id' },
+  { k: 'name', h: 'Jugador', cls: 'c-name', g: 'id' },
+  { k: 'gp', h: 'PJ', t: 'Partidos jugados', season: true, g: 'played' },
+  { k: 'pts', h: 'PTS', t: 'Puntos', cls: 'hl', g: 'shots' },
+  { k: 'fg', g: 'shots', sortKey: 'fgm' },
+  { k: 'efg', adv: true, fmt: 'pct', g: 'adv' },
+  { k: 'ts', adv: true, fmt: 'pct', g: 'adv' },
+  { k: 'tov', adv: true, fmt: 'pct', g: 'adv' },
+  { k: 'ftr', adv: true, fmt: 'num', g: 'adv' },
+];
+
+/* Cabecera y título de una columna avanzada (sin triples apuntados, el eFG% es el acierto en tiros de campo) */
+function advKey(c, data) { return c.k === 'efg' && data.total.adv.efg.fgOnly ? 'fg' : c.k; }
+function advHead(c, data) {
+  if (c.k === 'fg') return { h: tr('adv.col.fg'), t: tr('adv.col.fg.title') };
+  const k = advKey(c, data);
+  return { h: tr(`adv.${k}.abbr`), t: `${tr(`adv.${k}.name`)} · ${tr(`adv.${k}.term`)}` };
+}
+
+function advValue(m, fmt) {
+  if (m.value == null) return '–';
+  const v = fmt === 'pct' ? MBI18n.fmtPct(m.value) : MBI18n.fmtNum(m.value, 2);
+  return m.low ? `<span class="low" title="${esc(tr('adv.lowMark'))}">${v}*</span>` : v;
+}
+
+/* Glosario de la vista de avanzadas: nombre para familias, término técnico y explicación de cada métrica */
+function glossary(data) {
+  const keys = ADV_COLS.filter(c => c.adv && !data.total.adv[c.k].hidden).map(c => advKey(c, data));
+  return `<section class="card glossary">
+    <h2>${esc(tr('adv.glossary'))}</h2>
+    <dl>${keys.map(k => `<div><dt><b>${esc(tr(`adv.${k}.name`))}</b> <small>${esc(tr(`adv.${k}.term`))}</small></dt><dd>${esc(tr(`adv.${k}.desc`))}</dd></div>`).join('')}</dl>
+    <p class="muted small">${esc(tr('adv.glossaryNote'))}</p>
+  </section>`;
+}
+
 function cellValue(r, c) {
+  if (c.adv) return advValue(r.adv[c.k], c.fmt);
+  if (c.k === 'fg') return `${r.t2m + r.t3m}/${r.t2a + r.t3a}`;
   if (c.shot) {
     const m = r[`t${c.shot}m`], a = r[`t${c.shot}a`];
     const meter = a ? `<i class="meter" style="--p:${Math.min(round1(m / a * 100) / 100, 1)}"><i></i></i>` : '';
@@ -1317,6 +1374,7 @@ function cellValue(r, c) {
 /* Una columna se oculta si su acción está desactivada y no hay datos que mostrar */
 const COL_OPTS = { t1: ['t1'], t2: ['t2'], t3: ['t3'], ro: ['ro'], rd: ['rd'], reb: ['ro', 'rd'], ast: ['ast'], blk: ['blk'], blkr: ['blkr'], rec: ['rec'], lost: ['lost'], fc: ['fc'], fr: ['fr'] };
 function colVisible(k, data) {
+  if (data.total.adv && data.total.adv[k] && ADV_COLS.some(c => c.adv && c.k === k)) return !data.total.adv[k].hidden;
   const opts = COL_OPTS[k];
   if (!opts || opts.some(optEnabled)) return true;
   const t = data.total;
@@ -1325,12 +1383,17 @@ function colVisible(k, data) {
 }
 
 function statsTable(data) {
-  const cols = COLS.filter(c => (!c.season || data.season) && colVisible(c.k, data));
+  const cols = (ui.adv ? ADV_COLS : COLS)
+    .filter(c => (!c.season || data.season) && colVisible(c.k, data))
+    .map(c => (c.adv || c.k === 'fg' ? { ...c, ...advHead(c, data) } : c));
   const { key, dir } = ui.sort;
   const sk = (r) => {
     const c = cols.find(c => c.k === key) || cols[0];
+    // Sin valor (sin tiros), siempre al final
+    if (c.adv) return r.adv[c.k].value ?? (dir > 0 ? Infinity : -Infinity);
     const k = c.sortKey || c.k;
     if (k === 'number') return numVal(r.number);
+    if (k === 'fgm') return r.t2m + r.t3m;
     return r[k];
   };
   const rows = [...data.rows].sort((a, b) => {
@@ -1341,14 +1404,16 @@ function statsTable(data) {
   // Clases comunes a toda la columna: la suya, el inicio de un grupo de columnas y si es la ordenada
   const colCls = cols.map((c, i) => `${c.cls || ''}${i && cols[i - 1].g !== c.g && c.g !== 'played' ? ' gs' : ''}${key === c.k ? ' sorted' : ''}`);
   // Los ceros se atenúan para que destaque lo que sí ha pasado (en los tiros, no haber tirado)
-  const isZero = (r, c) => (c.shot ? r[`t${c.shot}a`] === 0 : c.k !== 'val' && r[c.k] === 0);
-  const cell = (r, c, i) => `<td class="${colCls[i]}${isZero(r, c) ? ' zero' : ''}${c.k === 'fc' && !data.season && r.fc >= MAX_FOULS ? ' neg' : ''}">${cellValue(r, c)}</td>`;
+  const isZero = (r, c) => (c.adv ? r.adv[c.k].value == null
+    : c.k === 'fg' ? r.t2a + r.t3a === 0
+    : c.shot ? r[`t${c.shot}a`] === 0 : c.k !== 'val' && r[c.k] === 0);
+  const cell = (r, c, i) => `<td class="${colCls[i]}${isZero(r, c) ? ' zero' : ''}${c.k === 'fc' && !data.season && r.fc >= MAX_FOULS ? ' neg' : ''}" data-k="${c.k}">${cellValue(r, c)}</td>`;
   return `
   <div class="table-wrap">
     <table class="stats">
       <thead><tr>${cols.map((c, i) => `<th class="${colCls[i]}" data-action="sort" data-k="${c.k}" title="${c.t || ''}"${key === c.k ? ` aria-sort="${dir > 0 ? 'ascending' : 'descending'}"` : ''}>${c.h}${key === c.k ? `<i class="sort-ind ${dir > 0 ? 'asc' : 'desc'}"></i>` : ''}</th>`).join('')}</tr></thead>
       <tbody>
-        ${rows.map(r => `<tr class="${r.gp ? '' : 'dnp'}">${cols.map((c, i) => cell(r, c, i)).join('')}</tr>`).join('')}
+        ${rows.map(r => `<tr class="${r.gp ? '' : 'dnp'}" data-pid="${r.id}">${cols.map((c, i) => cell(r, c, i)).join('')}</tr>`).join('')}
       </tbody>
       <tfoot><tr>${cols.map((c, i) => (c.k === 'number' ? `<td class="${colCls[i]}"></td>` : cell(data.total, c, i))).join('')}</tr></tfoot>
     </table>
@@ -1790,6 +1855,7 @@ const actions = {
     render();
   },
   avg(el) { ui.avg = el.dataset.v === '1'; render(); },
+  adv(el) { ui.adv = el.dataset.v === '1'; render(); },
   share(el) { shareStats(el.dataset.arg); },
   csv(el) { downloadCSV(el.dataset.arg); },
   async 'copy-text'() {
@@ -2238,8 +2304,12 @@ function renderShare(m) {
 function downloadCSV(arg) {
   const data = statsData(arg);
   if (!data) return;
-  const head = ['Dorsal', 'Jugador', ...(data.season ? ['PJ'] : []), 'Periodos', 'PTS', 'T1A', 'T1I', 'T2A', 'T2I', 'T3A', 'T3I', 'RO', 'RD', 'RT', 'AS', 'TAP', 'TR', 'REC', 'PER', 'FC', 'FR', 'VAL'];
-  const line = (r) => [r.number, r.name, ...(data.season ? [r.gp] : []), r.nper, r.pts, r.t1m, r.t1a, r.t2m, r.t2a, r.t3m, r.t3a, r.ro, r.rd, r.reb, r.ast, r.blk, r.blkr, r.rec, r.lost, r.fc, r.fr, r.val];
+  const head = ['Dorsal', 'Jugador', ...(data.season ? ['PJ'] : []), 'Periodos', 'PTS', 'T1A', 'T1I', 'T2A', 'T2I', 'T3A', 'T3I', 'RO', 'RD', 'RT', 'AS', 'TAP', 'TR', 'REC', 'PER', 'FC', 'FR', 'VAL',
+    'eFG%', 'TS%', '%PÉR', 'TL/TC'];
+  // Avanzadas al final (para no mover las columnas de siempre): % redondeado, tasa con 2 decimales; vacías sin valor
+  const adv = (m, pctFmt) => (m.value == null || m.hidden ? '' : pctFmt ? Math.round(m.value * 100) : Math.round(m.value * 100) / 100);
+  const line = (r) => [r.number, r.name, ...(data.season ? [r.gp] : []), r.nper, r.pts, r.t1m, r.t1a, r.t2m, r.t2a, r.t3m, r.t3a, r.ro, r.rd, r.reb, r.ast, r.blk, r.blkr, r.rec, r.lost, r.fc, r.fr, r.val,
+    adv(r.adv.efg, true), adv(r.adv.ts, true), adv(r.adv.tov, true), adv(r.adv.ftr, false)];
   const rows = [head, ...sortedPlayers(data.rows).map(line), line(data.total)];
   const csv = rows.map(r => r.map(v => {
     // Coma decimal solo en los números (los promedios); los textos, como los nombres, van tal cual

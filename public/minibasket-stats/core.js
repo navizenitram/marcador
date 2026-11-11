@@ -116,7 +116,46 @@
     return on ? [...on] : null;
   }
 
+  /* ── Estadísticas avanzadas ──
+     Solo las que permiten los datos propios (nada que necesite datos del rival). TC = tiros de campo (T2 + T3).
+       efg: (TCA + 0,5·T3A) / TCI          ts:  PTS / (2·(TCI + 0,44·TLI))
+       tov: PÉR / (TCI + 0,44·TLI + PÉR)   ftr: TLI / TCI
+     Cada métrica: { value, den, low, hidden }. value es null sin intentos o con menos de ADV_MIN.hide; low marca
+     una muestra pequeña (menos de ADV_MIN.game en un partido o ADV_MIN.season en una temporada o fase); hidden, que
+     falta un dato porque su botón no se apunta. Se calculan siempre sobre totales, nunca sobre promedios. */
+  const ADV_MIN = Object.freeze({ hide: 3, game: 5, season: 15 });
+
+  function advanced(l, scope, rec) {
+    const low = scope === 'season' ? ADV_MIN.season : ADV_MIN.game;
+    const fga = l.t2a + l.t3a, fgm = l.t2m + l.t3m;
+    const tsa = fga + 0.44 * l.t1a;
+    const pts = l.t1m + 2 * l.t2m + 3 * l.t3m;
+    const metric = (num, den, hidden, extra) => ({
+      value: den > 0 && den >= ADV_MIN.hide ? num / den : null,
+      den,
+      low: den > 0 && den < low,
+      hidden: !!hidden,
+      ...extra,
+    });
+    return {
+      efg: metric(fgm + 0.5 * l.t3m, fga, false, { fgOnly: !rec.t3 }),
+      ts: metric(pts / 2, tsa, !rec.t1),
+      tov: metric(l.lost, tsa + l.lost, !rec.lost),
+      ftr: metric(l.t1a, fga, !rec.t1),
+    };
+  }
+
+  /* Qué datos se apuntaron en un ámbito: el botón está activo (no está en hidden) o hay alguna jugada de ese tipo */
+  function recordedOpts(total, hidden) {
+    return {
+      t1: !hidden.includes('t1') || total.t1a > 0,
+      t3: !hidden.includes('t3') || total.t3a > 0,
+      lost: !hidden.includes('lost') || total.lost > 0,
+    };
+  }
+
   root.MBCore = Object.freeze({
     EV_PTS, blankLine, addEvent, sumLines, finish, score, periodScores, playerLines, scoreFlow, lineupAt,
+    ADV_MIN, advanced, recordedOpts,
   });
 })(globalThis);
