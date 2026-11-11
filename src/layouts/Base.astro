@@ -3,6 +3,7 @@ import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { SITE_NAME, UMAMI_WEBSITE_ID, GSC_VERIFICATION, type Lang } from '../consts';
+import Analytics from '@vercel/analytics/astro';
 
 interface Props {
   title: string;
@@ -67,6 +68,7 @@ const locale = lang === 'ca' ? 'ca_ES' : 'es_ES';
     {UMAMI_WEBSITE_ID && (
       <script is:inline defer src="https://cloud.umami.is/script.js" data-website-id={UMAMI_WEBSITE_ID} data-domains={site.hostname}></script>
     )}
+    <Analytics />
   </head>
   <body>
     <a class="skip" href="#main">{lang === 'ca' ? 'Salta al contingut' : 'Saltar al contenido'}</a>
