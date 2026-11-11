@@ -1,7 +1,7 @@
 # Plan de mejoras — My Own Basketball Stats
 
 > Estado: **aprobado el 11/11/2026**. Para las preguntas abiertas se toman de momento las propuestas del plan.
-> Avance: **fases 0, 1A, 2, 1B y 4 hechas** (ver «Avance» al final). Desde el 11/11 se aceptan cambios que rompan la
+> Avance: **fases 0, 1A, 2, 1B, 4 y 3 (borrador) hechas** (ver «Avance» al final). Desde el 11/11 se aceptan cambios que rompan la
 > compatibilidad mientras no haya masa crítica de usuarios. No se ha escrito código de producción.
 > Fecha: 11/11/2026 · Rama: `claude/stoic-hopper-4rsg3g`
 > Las referencias `archivo:línea` apuntan al commit `3454784`.
@@ -698,7 +698,8 @@ algo más complejo (imágenes, otras fuentes), se reevalúa pdf-lib.
 | 2 — Avanzadas | **Hecha** | Base de i18n (`i18n.js`, `i18n/es.js`, solo con los textos nuevos). `MBCore.advanced` y `recordedOpts`. Vista «Básicas · Avanzadas» con glosario, CSV con 4 columnas al final. **Simplificación** (se permiten cambios que rompen): sin `g.hidden` por partido; un dato se considera apuntado si su botón está activo hoy o si hay alguna jugada de ese tipo en el ámbito |
 | 1B — Mejor quinteto | **Hecha** | `MBCore.stints`, `plusMinus`, `combos` (quintetos, parejas y tríos) y `rankCombos`. Tarjeta «Quintetos» en temporada o fase (ranking por +/-, ataque o defensa; mínimo por equipo en `t.minUnit`, 4 por defecto) y en cada partido (lista sin ranking). Columna `+/-` en la tabla y al final del CSV; se oculta si ningún partido del ámbito tiene registro. Sin memoizar: el cálculo es lineal (un recorrido por partido) y no hace falta |
 | 4 — Informe en texto | **Hecha** | `MBCore.reportModel` y `reportText`. En temporada o fase, tocar el nombre de un jugador abre su informe en el modal «Enviar» (email, copiar, compartir y «Descargar .txt»). Si el enlace de email supera 8.000 caracteres, se propone copiarlo. Con más de 8 partidos, la evolución se resume por mes. +/- solo con 4 periodos o más, siempre con el dato del equipo y la explicación para familias. Nombre y dorsal en el informe (como en el resto de textos que se comparten) |
-| 5, 3 | Pendientes | — |
+| 3 — Comparativa | **Hecha (borrador)** | `/comparativa-apps-estadisticas-baloncesto/` con los datos en `src/data/comparativa.mjs`: nuestras celdas con su evidencia en el código; las de las 5 apps, en TODO con `fuente` y `consultado`. Mientras quede algún TODO: `noindex`, fuera del sitemap, sin enlaces (guías y pie) y aviso de borrador; se publica sola al completar los datos. Tests: datos completos o en TODO, nunca sin fuente; sin «sin rastreo»; e2e del borrador |
+| 5A, 5B | Pendientes | — |
 
 Conocido: al juntar la cobertura de todos los archivos de test, la cobertura V8 de Vitest a veces deja `core.js` fuera
 de la tabla (fallo de la herramienta al fusionar informes). Se mide aparte (ver el README).

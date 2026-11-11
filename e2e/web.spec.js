@@ -29,6 +29,22 @@ for (const [path, title] of [
   });
 }
 
+test('la comparativa con otras apps: mientras sea un borrador, no se indexa, no está en el sitemap ni se enlaza', async ({ page, request }) => {
+  const response = await page.goto('/comparativa-apps-estadisticas-baloncesto/');
+  expect(response.ok()).toBe(true);
+  await expect(page.locator('h1')).toContainText('Apps de estadísticas de baloncesto');
+  await expect(page.locator('table.compare thead th')).toHaveCount(7);   // qué, nosotros y las 5 apps
+  await expect(page.locator('meta[name=robots]')).toHaveAttribute('content', 'noindex');
+  await expect(page.locator('.draft-note')).toBeVisible();
+
+  const sitemap = await (await request.get('/sitemap-0.xml')).text();
+  expect(sitemap).toContain('/guias/');
+  expect(sitemap).not.toContain('comparativa-apps-estadisticas-baloncesto');
+
+  await page.goto('/guias/');
+  await expect(page.locator('a[href="/comparativa-apps-estadisticas-baloncesto/"]')).toHaveCount(0);
+});
+
 test('la plantilla en PDF se descarga', async ({ request }) => {
   const response = await request.get('/descargas/plantilla-estadisticas-baloncesto.pdf');
   expect(response.ok()).toBe(true);
