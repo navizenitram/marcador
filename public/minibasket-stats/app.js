@@ -1672,7 +1672,8 @@ const actions = {
   undo() {
     const g = currentGame();
     if (!g || !g.events.length) { toast('Nada que deshacer'); return; }
-    const last = g.events.reduce((a, b) => (b.ts >= a.ts ? b : a));
+    // La última por orden (seq), no por hora: el reloj del móvil puede retroceder
+    const last = g.events.reduce((a, b) => (b.seq >= a.seq ? b : a));
     removeEvent(g, last.id);
     render();
     toast(`↶ Deshecho: ${eventText(g, last)}`);

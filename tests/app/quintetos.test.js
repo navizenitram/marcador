@@ -192,6 +192,18 @@ describe('registro de quintetos en el partido (sin toques extra)', () => {
     expect([...g.onCourt]).toContain('p21');
   });
 
+  it('deshacer quita la última jugada por orden aunque el reloj del móvil haya retrocedido', async () => {
+    const app = await openApp({ data: makeData(), hash: '#/partidos' });
+    const g = await newGame(app);
+    const now = app.window.Date.now;
+    await app.act('ev', { pid: 'p4', type: 't2_ok' });
+    app.window.Date.now = () => now() - 3_600_000;   // la hora del móvil se atrasa una hora
+    await app.act('ev', { pid: 'p7', type: 'rd' });
+    app.window.Date.now = now;
+    await app.act('undo');
+    expect(g.events.map((e) => e.type)).toEqual(['t2_ok']);
+  });
+
   it('un partido antiguo a medias empieza a registrar en el siguiente cambio; lo anterior no tiene quinteto', async () => {
     const old = makeGame({ onCourt: [...FIVE], events: [ev('t2_ok', 'p4'), opp(2)] });
     delete old.lineups;
