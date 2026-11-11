@@ -72,7 +72,7 @@ informe de Playwright queda como artefacto de la ejecución.
 | --- | --- | --- |
 | `SITE_URL` | URL pública, sin barra final. Se usa en canonical, Open Graph, sitemap y robots.txt | `https://myownbasketballstats.com` |
 | `PUBLIC_UMAMI_WEBSITE_ID` | Activa la analítica de Umami (sin cookies) en la web. La app no lleva analítica | vacía: sin analítica |
-| `PUBLIC_GSC_VERIFICATION` | Verificación de Google Search Console por etiqueta meta (mejor por DNS) | vacía |
+| `PUBLIC_GSC_VERIFICATION` | Código de verificación de Google Search Console (etiqueta meta) | el de la propiedad actual, en `src/consts.ts` |
 
 Ver `.env.example`.
 
