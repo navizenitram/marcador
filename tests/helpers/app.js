@@ -29,8 +29,11 @@ const SCRIPTS = [...HTML.matchAll(/<script src="([^"]+)"><\/script>/g)]
  * @param {string} [opts.origin] dirección donde se abre la app, p. ej. 'https://marcador-kohl.vercel.app'
  * @param {string} [opts.siteUrl] valor de %SITE_URL% (la canonical); sin él queda el marcador tal cual
  * @param {boolean} [opts.compression] da a la ventana CompressionStream y DecompressionStream (jsdom no los tiene)
+ * @param {string} [opts.search] parámetros de la URL, p. ej. '?origen=android'
+ * @param {string} [opts.referrer] document.referrer, p. ej. 'android-app://com.myownbasketballstats.app/'
+ * @param {Record<string,string>} [opts.session] claves de sessionStorage
  */
-export async function openApp({ data, hash = '', storage = {}, origin = 'https://app.test', siteUrl, compression = false } = {}) {
+export async function openApp({ data, hash = '', storage = {}, origin = 'https://app.test', siteUrl, compression = false, search = '', referrer, session = {} } = {}) {
   const errors = [];
   const logs = [];
   const virtualConsole = new VirtualConsole();
@@ -38,7 +41,8 @@ export async function openApp({ data, hash = '', storage = {}, origin = 'https:/
   for (const level of ['log', 'info', 'warn', 'error']) virtualConsole.on(level, (...args) => logs.push({ level, args }));
 
   const dom = new JSDOM(siteUrl ? HTML.replaceAll('%SITE_URL%', siteUrl) : HTML, {
-    url: `${origin}/minibasket-stats/${hash}`,
+    url: `${origin}/minibasket-stats/${search}${hash}`,
+    referrer,
     runScripts: 'outside-only',
     pretendToBeVisual: true,
     virtualConsole,
@@ -49,6 +53,7 @@ export async function openApp({ data, hash = '', storage = {}, origin = 'https:/
   if (compression) Object.assign(window, { CompressionStream, DecompressionStream });
   if (data !== undefined) window.localStorage.setItem(STORE_KEY, typeof data === 'string' ? data : JSON.stringify(data));
   for (const [k, v] of Object.entries(storage)) window.localStorage.setItem(k, v);
+  for (const [k, v] of Object.entries(session)) window.sessionStorage.setItem(k, v);
 
   for (const script of SCRIPTS) script.runInContext(dom.getInternalVMContext());
   const app = new App(dom, errors, logs, downloads);

@@ -109,6 +109,21 @@ test('funciona sin conexión una vez abierta', async ({ page, context, browserNa
   await context.setOffline(false);
 });
 
+test('como app de Android (?origen=android) no enlaza a Ko-fi y funciona sin conexión', async ({ page, context, browserName }) => {
+  test.skip(browserName === 'webkit', 'La recarga sin conexión con service worker no funciona en el WebKit de Playwright');
+  await seed(page, liveGame());
+  await page.goto(`${APP}?origen=android#/ajustes`);
+  await expect(page.getByRole('heading', { name: 'Copia de seguridad' })).toBeVisible();
+  await expect(page.locator('a[href*="ko-fi.com"]')).toHaveCount(0);
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Copia de seguridad' })).toBeVisible();
+  await expect(page.locator('a[href*="ko-fi.com"]')).toHaveCount(0);
+  await context.setOffline(false);
+});
+
 test('descarga las estadísticas en CSV', async ({ page }) => {
   await seed(page, makeData({ games: [sampleGame({ finished: true })] }));
   await page.goto(`${APP}#/stats/g1`);
