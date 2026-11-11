@@ -1,6 +1,6 @@
 ---
 import Ball from './Ball.astro';
-import { APP_URL, type Lang } from '../consts';
+import { APP_URL, SITE_NAME_LINES, type Lang } from '../consts';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const t = lang === 'ca'
@@ -11,7 +11,7 @@ const t = lang === 'ca'
   <div class="wrap header-inner">
     <a class="wordmark" href={t.home}>
       <Ball size={30} />
-      <span>Cantera Stats</span>
+      <span class="wordmark-text"><span>{SITE_NAME_LINES[0]}</span> <span>{SITE_NAME_LINES[1]}</span></span>
     </a>
     <nav aria-label={t.nav}>
       {t.guides && <a class="nav-link" href={t.guides}>Guías</a>}

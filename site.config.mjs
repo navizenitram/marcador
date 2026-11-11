@@ -1,5 +1,5 @@
 // Única fuente de verdad para la URL pública del sitio.
-// Mientras no haya dominio propio se usa la URL de Vercel. Cuando compres el dominio,
-// define la variable de entorno SITE_URL en el hosting (p. ej. https://canterastats.com)
-// o cambia el valor por defecto de aquí abajo.
-export const SITE_URL = (process.env.SITE_URL || 'https://marcador-kohl.vercel.app').replace(/\/+$/, '');
+// Se puede cambiar sin tocar el código definiendo la variable de entorno SITE_URL en el hosting.
+// La dirección antigua (marcador-kohl.vercel.app) sigue sirviendo las apps para que cada usuario
+// pueda llevarse sus datos (ver «Mudanza» en public/minibasket-stats/app.js y vercel.json).
+export const SITE_URL = (process.env.SITE_URL || 'https://myownbasketballstats.com').replace(/\/+$/, '');

@@ -1,6 +1,6 @@
-# Cantera Stats
+# My Own Basketball Stats
 
-Web de [Cantera Stats](https://marcador-kohl.vercel.app/), una app gratuita de estadísticas para minibasket y
+Web de [My Own Basketball Stats](https://myownbasketballstats.com/), una app gratuita de estadísticas para minibasket y
 baloncesto formativo. El repositorio contiene tres cosas:
 
 | Ruta | Qué es | Código |
@@ -70,7 +70,7 @@ informe de Playwright queda como artefacto de la ejecución.
 
 | Variable | Para qué | Por defecto |
 | --- | --- | --- |
-| `SITE_URL` | URL pública, sin barra final. Se usa en canonical, Open Graph, sitemap y robots.txt | `https://marcador-kohl.vercel.app` |
+| `SITE_URL` | URL pública, sin barra final. Se usa en canonical, Open Graph, sitemap y robots.txt | `https://myownbasketballstats.com` |
 | `PUBLIC_UMAMI_WEBSITE_ID` | Activa la analítica de Umami (sin cookies) en la web. La app no lleva analítica | vacía: sin analítica |
 | `PUBLIC_GSC_VERIFICATION` | Verificación de Google Search Console por etiqueta meta (mejor por DNS) | vacía |
 
@@ -106,19 +106,34 @@ funcionando sin tocar nada en el panel. Las variables se definen en *Settings �
 
 `public/_headers` y `public/_redirects` replican en Cloudflare lo que `vercel.json` hace en Vercel.
 
-## Al cambiar de dominio
+## Dominio y mudanza desde `marcador-kohl.vercel.app`
 
-- Los datos de la app viven en el `localStorage` del navegador, que va **por dominio**. Quien ya la use en
-  `marcador-kohl.vercel.app` no verá sus equipos en el dominio nuevo: tendrá que exportar la copia de seguridad en
-  *Ajustes* e importarla allí. Mantén el despliegue de Vercel vivo durante la transición.
-- Cambia `SITE_URL` en el hosting y vuelve a desplegar.
-- Si dejas Vercel, actualiza el texto de privacidad de la app (`public/minibasket-stats/app.js`, que menciona a Vercel
-  como servicio de alojamiento) y sube la versión de la caché en `sw.js`.
+El dominio es `myownbasketballstats.com`. Antes la web estaba en `marcador-kohl.vercel.app`, y esa dirección sigue
+activa en el mismo proyecto de Vercel:
+
+- **La web** (portada, guías, plantilla, privacidad…) redirige con un 301 al dominio nuevo. Lo hace la última regla de
+  `vercel.json`, que solo se aplica a ese host.
+- **Las apps** (`/minibasket-stats/` y `/marcador/`) no se redirigen. Sus datos viven en el `localStorage` del
+  navegador, que va **por dominio**: quien ya use la app en la dirección antigua no verá sus equipos en la nueva.
+  En la dirección antigua la app muestra un aviso con el botón «Llevar mis datos», que abre la app en el dominio
+  nuevo con los datos en el fragmento de la URL (`#traspaso=…`, comprimido). El fragmento no se envía al servidor,
+  aunque la URL completa sí puede quedar en el historial del navegador. Al llegar, la app pide confirmación siempre
+  (cualquiera puede fabricar un enlace así), guarda los datos y quita el fragmento de la URL. En la dirección antigua
+  no se borra nada.
+- Las direcciones antiguas están en `OLD_HOSTS` (`public/minibasket-stats/app.js`). La nueva se toma de la canonical
+  de la app, que sale de `SITE_URL`.
+- En un iPhone con la app instalada en la pantalla de inicio, el botón abre Safari y la app instalada desde allí puede
+  no ver esos datos. En ese caso hay que usar *Ajustes → Exportar* en la antigua e *Importar* en la nueva.
+- Cuando ya no haya visitas a las apps en la dirección antigua, se puede quitar `/minibasket-stats` y `/marcador` de la
+  exclusión de la regla de `vercel.json` para redirigirlo todo.
+
+Si algún día se deja Vercel, hay que actualizar el texto de privacidad de la app (`public/minibasket-stats/app.js`,
+que menciona a Vercel como servicio de alojamiento) y subir la versión de la caché en `sw.js`.
 
 ## Recursos generados
 
 - `public/img/app-*.webp`: capturas reales de la app con datos de ejemplo, en un viewport de 844×390 a 2x.
-- `public/og/cantera-stats.png`: imagen para compartir (1200×630). Fuente: `assets-src/og.html`.
+- `public/og/og.png`: imagen para compartir (1200×630). Fuente: `assets-src/og.html`.
 - `public/descargas/plantilla-estadisticas-baloncesto.pdf`: plantilla A4 apaisada. Fuente: `assets-src/plantilla-estadisticas.html`.
 
 Fuentes incluidas: Rajdhani y Barlow, ambas con licencia SIL OFL 1.1 (`public/fonts/OFL-*.txt`).

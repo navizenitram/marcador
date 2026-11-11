@@ -38,7 +38,7 @@ const jsonLd = {
       dateModified: updated,
       datePublished: updated,
       mainEntityOfPage: url,
-      image: new URL(image ?? '/og/cantera-stats.png', Astro.site).href,
+      image: new URL(image ?? '/og/og.png', Astro.site).href,
       author: { '@type': 'Organization', name: SITE_NAME, url: `${site}/` },
       publisher: { '@type': 'Organization', name: SITE_NAME, url: `${site}/` },
     },

@@ -5,7 +5,13 @@
   "trailingSlash": true,
   "redirects": [
     { "source": "/app", "destination": "/minibasket-stats/", "permanent": false },
-    { "source": "/app/", "destination": "/minibasket-stats/", "permanent": false }
+    { "source": "/app/", "destination": "/minibasket-stats/", "permanent": false },
+    {
+      "source": "/:path((?!minibasket-stats|marcador).*)",
+      "has": [{ "type": "host", "value": "marcador-kohl.vercel.app" }],
+      "destination": "https://myownbasketballstats.com/:path",
+      "permanent": true
+    }
   ],
   "headers": [
     {

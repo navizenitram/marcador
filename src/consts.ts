@@ -1,4 +1,6 @@
-export const SITE_NAME = 'Cantera Stats';
+// El nombre en dos líneas, para el logotipo en pantallas estrechas
+export const SITE_NAME_LINES = ['My Own', 'Basketball Stats'];
+export const SITE_NAME = SITE_NAME_LINES.join(' ');
 export const APP_URL = '/minibasket-stats/';
 export const SCOREBOARD_URL = '/marcador/';
 export const KOFI_URL = 'https://ko-fi.com/navizenitram';

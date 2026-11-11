@@ -23,16 +23,19 @@ const SCRIPT = new vm.Script(readFileSync(APP_DIR + 'app.js', 'utf8'), { filenam
  * @param {object|string} [opts.data] contenido de localStorage[mbstats.v1] (objeto o texto tal cual)
  * @param {string} [opts.hash] ruta inicial, p. ej. '#/partidos'
  * @param {Record<string,string>} [opts.storage] otras claves de localStorage
+ * @param {string} [opts.origin] dirección donde se abre la app, p. ej. 'https://marcador-kohl.vercel.app'
+ * @param {string} [opts.siteUrl] valor de %SITE_URL% (la canonical); sin él queda el marcador tal cual
+ * @param {boolean} [opts.compression] da a la ventana CompressionStream y DecompressionStream (jsdom no los tiene)
  */
-export async function openApp({ data, hash = '', storage = {} } = {}) {
+export async function openApp({ data, hash = '', storage = {}, origin = 'https://app.test', siteUrl, compression = false } = {}) {
   const errors = [];
   const logs = [];
   const virtualConsole = new VirtualConsole();
   virtualConsole.on('jsdomError', (e) => errors.push(e));
   for (const level of ['log', 'info', 'warn', 'error']) virtualConsole.on(level, (...args) => logs.push({ level, args }));
 
-  const dom = new JSDOM(HTML, {
-    url: `https://cantera.test/minibasket-stats/${hash}`,
+  const dom = new JSDOM(siteUrl ? HTML.replaceAll('%SITE_URL%', siteUrl) : HTML, {
+    url: `${origin}/minibasket-stats/${hash}`,
     runScripts: 'outside-only',
     pretendToBeVisual: true,
     virtualConsole,
@@ -40,6 +43,7 @@ export async function openApp({ data, hash = '', storage = {} } = {}) {
   const { window } = dom;
   const downloads = [];
   stubBrowserApis(window, downloads);
+  if (compression) Object.assign(window, { CompressionStream, DecompressionStream });
   if (data !== undefined) window.localStorage.setItem(STORE_KEY, typeof data === 'string' ? data : JSON.stringify(data));
   for (const [k, v] of Object.entries(storage)) window.localStorage.setItem(k, v);
 
@@ -63,7 +67,7 @@ function stubBrowserApis(window, downloads) {
   const blobs = new Map();
   let n = 0;
   window.URL.createObjectURL = (blob) => {
-    const url = `blob:https://cantera.test/${++n}`;
+    const url = `blob:https://app.test/${++n}`;
     blobs.set(url, blob);
     return url;
   };

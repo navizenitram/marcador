@@ -72,6 +72,7 @@ p, li { text-wrap: pretty; }
 .site-header { padding: 1rem 0; }
 .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .wordmark { display: inline-flex; align-items: center; gap: .55rem; color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 1.5rem; }
+.wordmark-text > span { white-space: nowrap; }
 .site-header nav { display: flex; align-items: center; gap: 1.25rem; }
 .nav-link { color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.15rem; }
 .nav-link:hover { text-decoration: underline; }
@@ -246,9 +247,23 @@ p, li { text-wrap: pretty; }
   .hide-sm { display: none; }
   .site-header nav { gap: .9rem; }
   .wordmark { font-size: 1.3rem; }
+  /* En dos líneas para dejar sitio a la navegación */
+  .site-header .wordmark-text { display: flex; flex-direction: column; font-size: 1.1rem; line-height: 1; }
   .hero .lead { font-size: 1.15rem; }
   .hero .actions .btn { flex: 1 1 100%; }
   .final-cta .actions .btn { flex: 1 1 100%; }
+}
+
+/* El nombre largo no deja sitio para todo en los móviles más estrechos */
+@media (max-width: 389px) {
+  .header-inner { gap: .5rem; }
+  .site-header nav { gap: .6rem; }
+  .site-header .wordmark { gap: .4rem; }
+  .site-header .wordmark-text { font-size: 1rem; }
+  .site-header .btn-sm { padding-left: .8rem; padding-right: .8rem; }
+}
+@media (max-width: 359px) {
+  .site-header .nav-link { display: none; }
 }
 
 @media print {

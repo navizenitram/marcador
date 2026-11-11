@@ -1,4 +1,4 @@
-# Cantera Stats
+# My Own Basketball Stats
 
 _Estadísticas de baloncesto formativo._
 
@@ -53,7 +53,7 @@ Es la valoración de la ACB / Euroliga. Cada tiro fallado resta 1, sea de 1, 2 o
 
 ## Privacidad
 
-Cantera Stats no recoge, no envía y no rastrea ningún dato: no hay cuentas, cookies, publicidad ni analítica,
+My Own Basketball Stats no recoge, no envía y no rastrea ningún dato: no hay cuentas, cookies, publicidad ni analítica,
 y no se cargan recursos de terceros (las fuentes Rajdhani y Barlow van incluidas en `fonts/`, licencia SIL OFL 1.1,
 y los iconos se dibujan en el propio código).
 Todo se guarda en el `localStorage` del navegador y solo sale del dispositivo si el usuario lo comparte o exporta.
