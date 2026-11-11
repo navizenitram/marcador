@@ -34,6 +34,11 @@ jobs:
     name: E2E (Chrome en Android y Safari en iPhone)
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
+    # Imagen oficial de Playwright (misma versión que @playwright/test en package-lock.json): trae Chromium, WebKit y
+    # sus dependencias del sistema. Antes se instalaban con `playwright install --with-deps`, que usa apt y se quedaba
+    # colgado cuando los repositorios de Ubuntu no respondían desde el runner. Al actualizar Playwright, sube también
+    # la versión de esta imagen.
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
@@ -42,8 +47,9 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci
-      - name: Instalar navegadores
-        run: npx playwright install --with-deps chromium webkit
+      # Con la versión de la imagen ya están instalados: solo comprueba que no falta nada (sin apt)
+      - name: Comprobar navegadores
+        run: npx playwright install chromium webkit
       - run: npm run test:e2e
       - name: Guardar el informe si algo falla
         if: failure()
