@@ -39,6 +39,11 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
     balones perdidos por ataque (% de pérdidas) y tiros libres que provoca (TL/TC), con un glosario para familias.
     Se calculan con los totales; con menos de 3 intentos no se dan y con pocos (menos de 5 en un partido o de 15 en la
     temporada) se marcan con *. Si un botón no se apunta, se oculta la métrica que lo necesita.
+  - **Quintetos** (y parejas o tríos): en la temporada o una fase, ranking de los que han jugado al menos un mínimo
+    de periodos juntos (4 por defecto, se cambia en la propia tarjeta), por +/- por periodo, ataque o defensa; en un
+    partido, los quintetos usados. Toca una fila para ver en qué partidos jugó. La tabla lleva el **+/-** de cada
+    jugador. Solo cuentan los partidos con registro de quintetos (desde la v3). Sin reloj: si hay cambios dentro de un
+    periodo, ese periodo se reparte según las jugadas apuntadas con cada quinteto («≈»).
   - **Enviar**: email (`mailto:`), copiar o compartir (menú nativo del móvil). También descarga en **CSV** (con las
     avanzadas en las últimas columnas).
 - **Ajustes**: botones del partido que se quieren usar (con vista previa), copia de seguridad y enlace de apoyo (Ko-fi).

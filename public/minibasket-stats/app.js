@@ -99,6 +99,8 @@ const ui = {
   sort: { key: 'number', dir: 1 },
   avg: false,            // estadísticas de temporada: promedio por partido
   adv: false,            // estadísticas: vista de avanzadas
+  unitSize: 5,           // estadísticas: quintetos (5), parejas (2) o tríos (3)
+  unitBy: 'pm',          // estadísticas: orden de los quintetos (+/-, ataque o defensa)
   flash: null,           // { pid, type } botón a resaltar tras pulsar
   focus: null,           // selector a enfocar tras renderizar
   pendingModal: null,    // modal a abrir tras la próxima navegación
@@ -158,6 +160,8 @@ function normalize(d) {
     t.phase = asPhase(t.phase);
     t.levels = PHASES.map((n, i) => String((Array.isArray(t.levels) && t.levels[i]) || '').slice(0, 24));
     t.move = t.move in MOVES ? t.move : '';
+    // Mínimo de periodos juntos para entrar en el ranking de quintetos
+    t.minUnit = intIn(t.minUnit, 1, 20, 4);
   }
   const teamIds = new Set(d.teams.map(t => t.id));
   for (const g of d.games) {
@@ -415,12 +419,26 @@ function playerLines(g) { return MBCore.playerLines(g); }
 
 function gameRows(g) {
   const lines = playerLines(g);
+  const pm = MBCore.plusMinus(g);   // null si el partido no tiene registro de quintetos
   return sortedPlayers(g.roster).map(p => {
     const per = (g.played[p.id] || []).slice().sort((a, b) => a - b);
     const l = lines[p.id] || finish(blankLine());
     const hasEvents = g.events.some(e => e.pid === p.id);
-    return { id: p.id, number: p.number, name: p.name, ...l, nper: per.length, perList: per, gp: (per.length || hasEvents) ? 1 : 0 };
+    const own = pm && pm[p.id];
+    return { id: p.id, number: p.number, name: p.name, ...l, nper: per.length, perList: per, gp: (per.length || hasEvents) ? 1 : 0,
+      pm: own ? own.pm : null, pmGames: own ? 1 : 0 };
   });
+}
+
+/* +/- del equipo en los partidos con registro (lo que pasó en los tramos registrados) y cuántos partidos son */
+function teamPlusMinus(games) {
+  let pm = null, n = 0;
+  for (const g of games) {
+    if (!Number.isInteger(g.lineupFrom)) continue;
+    n++;
+    for (const s of MBCore.stints(g)) pm = (pm || 0) + s.pf - s.pc;
+  }
+  return { pm: n ? pm || 0 : null, pmGames: n };
 }
 
 /* Filas de la temporada (o de una fase): la suma de los partidos indicados */
@@ -428,11 +446,12 @@ function seasonRows(list) {
   const games = [...list].sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0));
   const map = {};
   const ensure = (p) => {
-    if (!map[p.id]) map[p.id] = { id: p.id, number: p.number, name: p.name, line: blankLine(), gp: 0, nper: 0 };
+    if (!map[p.id]) map[p.id] = { id: p.id, number: p.number, name: p.name, line: blankLine(), gp: 0, nper: 0, pm: 0, pmGames: 0 };
     return map[p.id];
   };
   for (const g of games) {
     const lines = playerLines(g);
+    const pm = MBCore.plusMinus(g);
     for (const p of g.roster) {
       const r = ensure(p);
       r.number = p.number; r.name = p.name;
@@ -443,6 +462,7 @@ function seasonRows(list) {
         r.nper += nper;
         sumLines(r.line, lines[p.id]);
       }
+      if (pm && pm[p.id]) { r.pm += pm[p.id].pm; r.pmGames++; }
     }
   }
   // Nombres/dorsales actuales del equipo y jugadores sin partidos
@@ -452,13 +472,16 @@ function seasonRows(list) {
   }
   return Object.values(map)
     .filter(r => r.gp > 0 || team().players.some(p => p.id === r.id))
-    .map(r => ({ id: r.id, number: r.number, name: r.name, gp: r.gp, nper: r.nper, ...finish({ ...r.line }) }));
+    .map(r => ({ id: r.id, number: r.number, name: r.name, gp: r.gp, nper: r.nper, ...finish({ ...r.line }),
+      pm: r.pmGames ? r.pm : null, pmGames: r.pmGames }));
 }
 
 function averageRow(r) {
   if (!r.gp) return r;
   const out = { ...r };
   for (const k of [...Object.keys(blankLine()), 'pts', 'reb', 'miss', 'val', 'nper']) out[k] = round1(r[k] / r.gp);
+  // El +/- se promedia entre los partidos con registro de quintetos, no entre todos
+  if (r.pm != null && r.pmGames) out.pm = round1(r.pm / r.pmGames);
   return out;
 }
 
@@ -1013,7 +1036,14 @@ const COLS = [
   { k: 'fc', h: 'FC', t: 'Faltas cometidas', g: 'fouls' },
   { k: 'fr', h: 'FR', t: 'Faltas recibidas', g: 'fouls' },
   { k: 'val', h: 'VAL', t: 'Valoración', cls: 'hl c-val', g: 'val' },
+  { k: 'pm', h: '+/-', tk: 'stats.pm.title', cls: 'c-pm', g: 'val' },
 ];
+
+/* Número con signo y el formato del idioma: +2,5 / −6 / 0 */
+function signedNum(n) {
+  if (!n) return '0';
+  return `${n > 0 ? '+' : '−'}${MBI18n.fmtNum(Math.abs(n), 1)}`;
+}
 
 /* Estadísticas de varios partidos: toda la temporada ('temporada') o una de sus fases ('fase-1', 'fase-2').
    Devuelve la fase (0 para la temporada completa) y sus partidos, o null si arg es otra cosa (un partido). */
@@ -1029,7 +1059,7 @@ function statsData(arg) {
   const scope = seasonScope(arg);
   if (scope) {
     let rows = seasonRows(scope.games);
-    const total = totalsRow(rows, scope.games.length);
+    const total = { ...totalsRow(rows, scope.games.length), ...teamPlusMinus(scope.games) };
     withAdvanced(rows, total, 'season');   // antes de promediar: los porcentajes salen de los totales
     if (ui.avg) rows = rows.map(averageRow);
     return { season: true, phase: scope.phase, scopeGames: scope.games, rows, total: ui.avg ? averageRow(total) : total, games };  // scopeGames: del más reciente al más antiguo
@@ -1037,7 +1067,7 @@ function statsData(arg) {
   const g = getGame(arg);
   if (!g) return null;
   const rows = gameRows(g);
-  const total = totalsRow(rows, 1);
+  const total = { ...totalsRow(rows, 1), ...teamPlusMinus([g]) };
   withAdvanced(rows, total, 'game');
   return { season: false, game: g, rows, total, games };
 }
@@ -1095,6 +1125,7 @@ function viewStats(arg) {
     ${data.season ? seasonSummary(data.scopeGames) : gameSummary(g)}
     ${leaders(data)}
     <section class="card table-card">${statsTable(data)}</section>
+    ${unitsCard(data)}
     ${ui.adv ? `<p class="muted small adv-note">${esc(tr('adv.note'))} Toca la cabecera de una columna para ordenar.</p>${glossary(data)}` : `
     <p class="muted small formula"><b>VAL</b> (valoración ACB) = puntos + rebotes + asistencias + recuperaciones + tapones + faltas recibidas − tiros fallados (cada uno resta 1) − tapones recibidos − pérdidas − faltas cometidas.
     Toca la cabecera de una columna para ordenar.</p>`}
@@ -1143,7 +1174,7 @@ function flowScale(flow) {
   return { hi, lo, y: (d) => round1((hi - d) / (hi - lo) * 100) };
 }
 
-const signed = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
+const signed = (n) => signedNum(n);   // +2 / −3 / 0, con el formato del idioma
 const sideOf = (n) => (n > 0 ? 'us' : n < 0 ? 'them' : '');
 
 /* Fila de la tabla de parciales con la diferencia de puntos a lo largo del partido: por encima de la línea
@@ -1319,6 +1350,64 @@ function leaders(data) {
   </section>`;
 }
 
+/* ── Mejores quintetos (y parejas o tríos) ──
+   En la temporada o una fase: ranking de las combinaciones con al menos t.minUnit periodos juntos, por +/- por
+   periodo, ataque (a favor por periodo) o defensa (en contra por periodo). En un partido: los quintetos usados, sin
+   ranking. Solo cuentan los partidos con registro de quintetos. */
+function unitsCard(data) {
+  const games = data.season ? data.scopeGames : [data.game];
+  const size = ui.unitSize;
+  const res = MBCore.combos(games, size);
+  const seg = (action, value, label, on) => `<button class="${on ? 'on' : ''}" data-action="${action}" data-v="${value}">${esc(label)}</button>`;
+  const head = `<div class="card-head">
+      <h2>${esc(tr(`units.title${size}`))}</h2>
+      <div class="seg">${[5, 2, 3].map(n => seg('unit-size', n, tr(`units.title${n}`), size === n)).join('')}</div>
+    </div>`;
+  if (!res.tracked) return `<section class="card units">${head}<p class="empty">${esc(tr('units.unavailable'))}</p></section>`;
+
+  const names = {};
+  for (const g of games) for (const p of g.roster) names[p.id] = p;
+  for (const p of team().players) names[p.id] = p;
+  const byId = Object.fromEntries(games.map(g => [g.id, g]));
+
+  let list = res.list, controls = '', below = '';
+  if (data.season) {
+    const min = team().minUnit;
+    const r = MBCore.rankCombos(res.list, { by: ui.unitBy, min });
+    list = r.ranked;
+    controls = `<div class="units-controls">
+      <div class="seg">${['pm', 'pf', 'pc'].map(b => seg('unit-by', b, tr(`units.by.${b}`), ui.unitBy === b)).join('')}</div>
+      <label class="units-min">${esc(tr('units.min'))}
+        <select data-change="unit-min">${Array.from({ length: 12 }, (_, i) => i + 1).map(n => `<option value="${n}" ${n === min ? 'selected' : ''}>${esc(tr('units.periods', { n }))}</option>`).join('')}</select>
+      </label>
+    </div>`;
+    if (r.below) below = `<p class="muted small below">${esc(tr(`units.below${size}`, { n: r.below, min }))}</p>`;
+  }
+
+  const player = (pid) => { const p = names[pid]; return `<span class="up"><i>#${esc(p ? p.number : '?')}</i> ${esc(p ? p.name : '¿?')}</span>`; };
+  const row = (c) => `
+    <details class="unit" data-key="${esc(c.key)}">
+      <summary>
+        <span class="unit-players">${sortedPlayers(c.pids.map(pid => names[pid] || { id: pid, number: '', name: '' })).map(p => player(p.id)).join('')}</span>
+        <span class="unit-per">${c.approx ? '≈ ' : ''}${esc(tr('units.periods', { n: MBI18n.fmtNum(c.periods, 1) }))}</span>
+        <span class="unit-score">${c.pf}–${c.pc}</span>
+        <span class="unit-pm val ${c.pm > 0 ? 'pos' : c.pm < 0 ? 'neg' : ''}">${signedNum(c.pm)}</span>
+        <span class="unit-pmper">${signedNum(round1(c.pmPer))}<small>${esc(tr('units.perPeriod'))}</small></span>
+      </summary>
+      <div class="unit-games">${c.games.map(id => byId[id]).filter(Boolean).map(g => `${fmtDate(g.date, true)} vs ${esc(g.opponent)}`).join(' · ')}</div>
+    </details>`;
+
+  const empty = list.length ? '' : `<p class="empty">${esc(tr(data.season ? 'units.notEnough' : 'units.noneYet'))}</p>`;
+  const coverage = res.tracked < res.total ? `<p class="muted small coverage">${esc(tr('units.coverage', { n: res.tracked, total: res.total }))}</p>` : '';
+  return `<section class="card units">
+    ${head}
+    ${controls}
+    ${list.map(row).join('')}
+    ${empty}${below}${coverage}
+    <p class="muted small units-help">${esc(tr('units.help'))}</p>
+  </section>`;
+}
+
 /* Columnas de la vista de avanzadas. adv: métrica de MBCore.advanced; fmt: cómo se escribe su valor */
 const ADV_COLS = [
   { k: 'number', h: '#', cls: 'c-num', g: 'id' },
@@ -1360,6 +1449,7 @@ function glossary(data) {
 function cellValue(r, c) {
   if (c.adv) return advValue(r.adv[c.k], c.fmt);
   if (c.k === 'fg') return `${r.t2m + r.t3m}/${r.t2a + r.t3a}`;
+  if (c.k === 'pm') return r.pm == null ? '–' : `<span class="val ${r.pm > 0 ? 'pos' : r.pm < 0 ? 'neg' : ''}">${signedNum(r.pm)}</span>`;
   if (c.shot) {
     const m = r[`t${c.shot}m`], a = r[`t${c.shot}a`];
     const meter = a ? `<i class="meter" style="--p:${Math.min(round1(m / a * 100) / 100, 1)}"><i></i></i>` : '';
@@ -1376,6 +1466,7 @@ function cellValue(r, c) {
 const COL_OPTS = { t1: ['t1'], t2: ['t2'], t3: ['t3'], ro: ['ro'], rd: ['rd'], reb: ['ro', 'rd'], ast: ['ast'], blk: ['blk'], blkr: ['blkr'], rec: ['rec'], lost: ['lost'], fc: ['fc'], fr: ['fr'] };
 function colVisible(k, data) {
   if (ADV_KEYS.has(k)) return !data.total.adv[k].hidden;
+  if (k === 'pm') return data.total.pm != null;   // solo si algún partido del ámbito tiene registro de quintetos
   const opts = COL_OPTS[k];
   if (!opts || opts.some(optEnabled)) return true;
   const t = data.total;
@@ -1386,12 +1477,13 @@ function colVisible(k, data) {
 function statsTable(data) {
   const cols = (ui.adv ? ADV_COLS : COLS)
     .filter(c => (!c.season || data.season) && colVisible(c.k, data))
-    .map(c => (c.adv || c.k === 'fg' ? { ...c, ...advHead(c, data) } : c));
+    .map(c => (c.adv || c.k === 'fg' ? { ...c, ...advHead(c, data) } : c.tk ? { ...c, t: tr(c.tk) } : c));
   const { key, dir } = ui.sort;
   const sk = (r) => {
     const c = cols.find(c => c.k === key) || cols[0];
     // Sin valor (sin tiros), siempre al final
     if (c.adv) return r.adv[c.k].value ?? (dir > 0 ? Infinity : -Infinity);
+    if (c.k === 'pm') return r.pm ?? (dir > 0 ? Infinity : -Infinity);
     const k = c.sortKey || c.k;
     if (k === 'number') return numVal(r.number);
     if (k === 'fgm') return r.t2m + r.t3m;
@@ -1407,6 +1499,7 @@ function statsTable(data) {
   // Los ceros se atenúan para que destaque lo que sí ha pasado (en los tiros, no haber tirado)
   const isZero = (r, c) => (c.adv ? r.adv[c.k].value == null
     : c.k === 'fg' ? r.t2a + r.t3a === 0
+    : c.k === 'pm' ? r.pm == null
     : c.shot ? r[`t${c.shot}a`] === 0 : c.k !== 'val' && r[c.k] === 0);
   const cell = (r, c, i) => `<td class="${colCls[i]}${isZero(r, c) ? ' zero' : ''}${c.k === 'fc' && !data.season && r.fc >= MAX_FOULS ? ' neg' : ''}" data-k="${c.k}">${cellValue(r, c)}</td>`;
   return `
@@ -1857,6 +1950,8 @@ const actions = {
   },
   avg(el) { ui.avg = el.dataset.v === '1'; render(); },
   adv(el) { ui.adv = el.dataset.v === '1'; render(); },
+  'unit-size'(el) { ui.unitSize = [2, 3, 5].includes(+el.dataset.v) ? +el.dataset.v : 5; render(); },
+  'unit-by'(el) { ui.unitBy = ['pm', 'pf', 'pc'].includes(el.dataset.v) ? el.dataset.v : 'pm'; render(); },
   share(el) { shareStats(el.dataset.arg); },
   csv(el) { downloadCSV(el.dataset.arg); },
   async 'copy-text'() {
@@ -1964,7 +2059,7 @@ document.addEventListener('submit', async (e) => {
     const name = String(fd.get('name') || '').trim();
     if (!name) return;
     const cur = team();
-    const t = { id: uid(), name, email: cur ? cur.email : '', players: [], hidden: [], phase: 1, levels: ['', ''], move: '' };
+    const t = { id: uid(), name, email: cur ? cur.email : '', players: [], hidden: [], phase: 1, levels: ['', ''], move: '', minUnit: 4 };
     db.teams.push(t);
     db.currentTeamId = t.id;
     ui.editId = null;
@@ -2042,6 +2137,9 @@ document.addEventListener('change', (e) => {
     team().email = el.value.trim();
     save();
     toast('Email guardado');
+  } else if (k === 'unit-min') {
+    team().minUnit = intIn(el.value, 1, 20, 4);
+    save(); render();
   } else if (k === 'stats-select') {
     go(`#/stats/${el.value}`);
   } else if (k === 'import-json') {
@@ -2306,11 +2404,11 @@ function downloadCSV(arg) {
   const data = statsData(arg);
   if (!data) return;
   const head = ['Dorsal', 'Jugador', ...(data.season ? ['PJ'] : []), 'Periodos', 'PTS', 'T1A', 'T1I', 'T2A', 'T2I', 'T3A', 'T3I', 'RO', 'RD', 'RT', 'AS', 'TAP', 'TR', 'REC', 'PER', 'FC', 'FR', 'VAL',
-    'eFG%', 'TS%', '%PÉR', 'TL/TC'];
+    'eFG%', 'TS%', '%PÉR', 'TL/TC', '+/-'];
   // Avanzadas al final (para no mover las columnas de siempre): % redondeado, tasa con 2 decimales; vacías sin valor
   const adv = (m, pctFmt) => (m.value == null || m.hidden ? '' : pctFmt ? Math.round(m.value * 100) : Math.round(m.value * 100) / 100);
   const line = (r) => [r.number, r.name, ...(data.season ? [r.gp] : []), r.nper, r.pts, r.t1m, r.t1a, r.t2m, r.t2a, r.t3m, r.t3a, r.ro, r.rd, r.reb, r.ast, r.blk, r.blkr, r.rec, r.lost, r.fc, r.fr, r.val,
-    adv(r.adv.efg, true), adv(r.adv.ts, true), adv(r.adv.tov, true), adv(r.adv.ftr, false)];
+    adv(r.adv.efg, true), adv(r.adv.ts, true), adv(r.adv.tov, true), adv(r.adv.ftr, false), r.pm ?? ''];
   const rows = [head, ...sortedPlayers(data.rows).map(line), line(data.total)];
   const csv = rows.map(r => r.map(v => {
     // Coma decimal solo en los números (los promedios); los textos, como los nombres, van tal cual

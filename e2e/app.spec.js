@@ -1,5 +1,5 @@
 // App de estadísticas en un navegador real: toques, recargas, service worker y diseño en horizontal.
-import { ev, makeData, makeGame, makeTeam, opp, sampleGame } from '../tests/helpers/fixtures.js';
+import { ev, makeData, makeGame, makeTeam, opp, sampleGame, trackedGame } from '../tests/helpers/fixtures.js';
 import { expect, seed, test } from './fixtures.js';
 
 const APP = '/minibasket-stats/';
@@ -117,8 +117,8 @@ test('descarga las estadísticas en CSV', async ({ page }) => {
   const csv = await (await download.createReadStream()).toArray();
   const lines = Buffer.concat(csv).toString('utf8').replace(/^﻿/, '').split('\r\n');
   expect(lines[0]).toMatch(/^Dorsal;Jugador;/);
-  // Columnas de siempre y, al final, las avanzadas (eFG%, TS%, %PÉR, TL/TC)
-  expect(lines.at(-1)).toBe(';Equipo;4;8;1;2;2;3;1;2;1;1;2;1;0;1;1;1;1;0;6;70;68;15;0,4');
+  // Columnas de siempre, las avanzadas (eFG%, TS%, %PÉR, TL/TC) y el +/- (vacío: partido sin registro de quintetos)
+  expect(lines.at(-1)).toBe(';Equipo;4;8;1;2;2;3;1;2;1;1;2;1;0;1;1;1;1;0;6;70;68;15;0,4;');
 });
 
 test('la evolución del marcador comparte columnas con los parciales y se puede recorrer', async ({ page }) => {
@@ -167,6 +167,24 @@ test('en la temporada, cada columna del gráfico lleva a las estadísticas de su
   await columns.nth(1).tap();
   await expect(page).toHaveURL(/#\/stats\/g2$/);
   await expect(page.locator('.badge')).toHaveText('Derrota');
+});
+
+test('los mejores quintetos de la temporada caben a lo ancho en el móvil y muestran sus partidos', async ({ page }) => {
+  const Q1 = ['p4', 'p7', 'p10', 'p12', 'p15'], Q2 = ['p4', 'p7', 'p10', 'p12', 'p21'];
+  const games = ['g1', 'g2'].map((id, i) => trackedGame(id, [[1, Q1, 5, 1], [2, Q2, 1, 4], [3, Q1, 3, 1], [4, Q2, 2, 2]], { date: `2026-10-0${i + 3}` }));
+  await seed(page, makeData({ games }));
+  await page.goto(`${APP}#/stats/temporada`);
+  const units = page.locator('.units .unit');
+  await expect(units).toHaveCount(2);
+  await expect(units.first()).toContainText('+12');   // Q1: (5−1 + 3−1) en cada uno de los dos partidos
+  const overflow = await page.evaluate(() => {
+    const card = document.querySelector('.units');
+    return card.scrollWidth - card.clientWidth;
+  });
+  expect(overflow).toBeLessThanOrEqual(0);
+  await units.first().locator('summary').click();
+  await expect(units.first().locator('.unit-games')).toContainText('vs Rival');
+  await expect(page.locator('table.stats th[data-k="pm"]')).toBeVisible();
 });
 
 test('las estadísticas avanzadas de la temporada caben a lo ancho en el móvil y explican cada métrica', async ({ page }) => {
