@@ -13,7 +13,7 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
   de la 1ª, en la 2ª se juega contra equipos nuevos en un nivel superior, el mismo o inferior. En **Equipo** se indica
   la fase en la que está el equipo, el nivel de cada fase (texto libre: «Nivel B», «Grupo 3»…) y si en la 2ª se sube,
   se baja o se sigue en el mismo nivel. Los partidos nuevos se apuntan en la fase actual.
-- **Partidos**: crear partido (rival, fecha, **local o visitante**, **8 periodos** de minibasket o **4 cuartos** para categorías superiores), continuar, abrir, editar (rival, fecha, campo y fase), borrar.
+- **Partidos**: crear partido (rival, fecha, **local o visitante** —obligatorio elegirlo—, **8 periodos** de minibasket o **4 cuartos** para categorías superiores), continuar, abrir, editar (rival, fecha, campo y fase), borrar.
   Al crear uno nuevo, si el equipo tiene partidos sin finalizar con jugadas, propone finalizarlos (solo los finalizados cuentan como victoria, derrota o empate en la temporada).
   Cuando el equipo llega a la 2ª fase, la lista se agrupa por fase, con su nivel y su balance.
 - **Partido en directo** (pensado para que quepa todo sin scroll):

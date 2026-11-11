@@ -430,6 +430,9 @@ label.btn { flex-direction: row; font-family: var(--font); }
 .seg-radio input:checked + span { border-color: var(--green); background: color-mix(in srgb, var(--green) 12%, var(--surface)); }
 .seg-radio input:checked + span b { color: var(--green); }
 .seg-radio input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 1px; }
+/* Campo sin elegir al empezar un partido */
+.venue-field.need .field-label { color: var(--amber); font-weight: 600; }
+.venue-field.need .seg-radio span { border-color: var(--amber); background: color-mix(in srgb, var(--amber) 8%, var(--field)); }
 .form-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
 /* ── Equipos ── */

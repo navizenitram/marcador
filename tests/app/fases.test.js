@@ -62,10 +62,26 @@ describe('fase y nivel del equipo', () => {
 describe('partidos por fase y de local o visitante', () => {
   it('el partido nuevo se apunta en la fase actual, de local o de visitante', async () => {
     const app = await openApp({ data: makeData({ teams: [makeTeam({ phase: 2, levels: ['', 'Nivel B'] })] }), hash: '#/partidos' });
-    expect(app.$('input[name=venue]:checked').value).toBe('home');
+    expect(app.$('input[name=venue]:checked')).toBeNull();   // hay que elegirlo
     expect(app.text('.phase-line')).toBe('Se apunta en la 2ª fase · Nivel B · Cambiar');
     await app.submit('game', { opponent: 'Lakers', venue: 'away' });
     expect(app.db.games[0]).toMatchObject({ opponent: 'Lakers', phase: 2, venue: 'away' });
+  });
+
+  it('no deja empezar un partido sin elegir local o visitante', async () => {
+    const app = await openApp({ data: makeData(), hash: '#/partidos' });
+    await app.submit('game', { opponent: 'Lakers' });
+    expect(app.db.games).toHaveLength(0);
+    expect(app.hash).toBe('#/partidos');
+    expect(app.toast).toBe('Elige si jugáis de local o de visitante');
+    expect(app.$('.venue-field').classList.contains('need')).toBe(true);
+
+    const home = app.$('input[name=venue][value=home]');
+    home.checked = true;
+    home.dispatchEvent(new app.window.Event('change', { bubbles: true }));
+    expect(app.$('.venue-field').classList.contains('need')).toBe(false);
+    await app.submit('game', { opponent: 'Lakers' });
+    expect(app.db.games[0]).toMatchObject({ opponent: 'Lakers', venue: 'home' });
   });
 
   it('la lista de partidos se agrupa por fase, con su nivel y su balance', async () => {

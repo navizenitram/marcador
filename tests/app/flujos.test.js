@@ -214,7 +214,7 @@ describe('plantilla', () => {
 describe('empezar un partido', () => {
   it('crea el partido con la plantilla ordenada y pide el quinteto inicial', async () => {
     const app = await openApp({ data: makeData(), hash: '#/partidos' });
-    await app.submit('game', { opponent: 'Lakers', date: '2026-11-01', periods: 4 });
+    await app.submit('game', { opponent: 'Lakers', date: '2026-11-01', periods: 4, venue: 'home' });
     const g = app.db.games[0];
     expect(g).toMatchObject({ opponent: 'Lakers', date: '2026-11-01', periods: 4, period: 1, teamId: 't1', teamName: 'Alevín A', finished: false });
     expect(g.roster.map((p) => p.number)).toEqual(['4', '7', '10', '12', '15', '21']);
@@ -235,7 +235,7 @@ describe('empezar un partido', () => {
 
   it('elige hasta 5 jugadores en pista y registra que juegan el periodo', async () => {
     const app = await openApp({ data: makeData(), hash: '#/partidos' });
-    await app.submit('game', { opponent: 'Lakers' });
+    await app.submit('game', { opponent: 'Lakers', venue: 'home' });
     for (const pid of [...FIVE, 'p21']) await app.act('toggle-court', { id: pid });
     expect(app.toast).toContain('Máximo 5 jugadores en pista');
     expect(app.text('.modal .count')).toBe('5/5 en pista');
@@ -264,7 +264,7 @@ describe('empezar un partido', () => {
 
     it('propone finalizar los que tienen jugadas (no los vacíos, que serían un 0-0)', async () => {
       const app = await openApp({ data: pending(), hash: '#/partidos' });
-      await app.submit('game', { opponent: 'Nuevo' });
+      await app.submit('game', { opponent: 'Nuevo', venue: 'away' });
       expect(app.text(app.modal)).toContain('El partido contra Rival del 03/10 (8-4) sigue sin finalizar');
       await app.act('confirm-yes');
       const byId = Object.fromEntries(app.db.games.map((g) => [g.id, g]));
@@ -277,7 +277,7 @@ describe('empezar un partido', () => {
     it('con varios, los lista y permite dejarlos sin finalizar', async () => {
       const data = makeData({ games: [sampleGame(), sampleGame({ id: 'g2', opponent: 'Celtics', date: '2026-10-10' })] });
       const app = await openApp({ data, hash: '#/partidos' });
-      await app.submit('game', { opponent: 'Nuevo' });
+      await app.submit('game', { opponent: 'Nuevo', venue: 'away' });
       expect(app.text(app.modal)).toContain('Hay 2 partidos sin finalizar');
       expect(app.text(app.modal)).toContain('Celtics');
       await app.act('confirm-no');
@@ -287,7 +287,7 @@ describe('empezar un partido', () => {
 
     it('sin partidos pendientes empieza directamente', async () => {
       const app = await openApp({ data: makeData({ games: [makeGame({ finished: true })] }), hash: '#/partidos' });
-      await app.submit('game', { opponent: 'Nuevo' });
+      await app.submit('game', { opponent: 'Nuevo', venue: 'away' });
       expect(app.text(app.modal)).toContain('Quinteto inicial');
     });
   });

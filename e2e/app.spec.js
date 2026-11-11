@@ -24,6 +24,10 @@ test('un partido completo: equipo, plantilla, quinteto, jugadas y estadísticas'
 
   await page.getByRole('link', { name: 'Partidos' }).click();
   await page.getByPlaceholder('Nombre del rival').fill('Lakers');
+  // Sin elegir local o visitante no empieza
+  await page.getByRole('button', { name: /Empezar partido/ }).click();
+  await expect(page.locator('#toast')).toContainText('Elige si jugáis de local o de visitante');
+  await page.locator('.venue-field label', { hasText: 'Visitante' }).click();
   await page.getByRole('button', { name: /Empezar partido/ }).click();
 
   const lineup = page.locator('.modal.lineup');

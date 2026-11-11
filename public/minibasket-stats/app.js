@@ -781,10 +781,11 @@ function seasonForm(t) {
       Los partidos nuevos se apuntan en la fase actual y las estadísticas se pueden ver por fase.</p>`;
 }
 
-/* Botones de local / visitante de los formularios de partido */
+/* Botones de local / visitante de los formularios de partido. En un partido nuevo no hay ninguno marcado:
+   hay que elegirlo (si no, se apuntarían como local partidos de fuera y el balance saldría mal). */
 function venueField(cur) {
   return `
-        <div class="field">
+        <div class="field venue-field">
           <span class="field-label">Campo</span>
           <div class="seg-radio">
             ${[['home', 'En casa'], ['away', 'Fuera']].map(([v, d]) => `
@@ -808,7 +809,7 @@ function viewGames() {
       <form data-form="game" class="stack" autocomplete="off">
         <label>Rival<input name="opponent" maxlength="24" required placeholder="Nombre del rival"></label>
         <label>Fecha<input name="date" type="date" required value="${todayISO()}"></label>
-        ${venueField('home')}
+        ${venueField('')}
         <div class="field">
           <span class="field-label">Duración</span>
           <div class="seg-radio">
@@ -1930,6 +1931,12 @@ document.addEventListener('submit', async (e) => {
 
   if (kind === 'game') {
     if (!team().players.length) return;
+    if (!asVenue(fd.get('venue'))) {
+      form.querySelector('.venue-field').classList.add('need');
+      toast('Elige si jugáis de local o de visitante');
+      vibrate(40);
+      return;
+    }
     const opponent = String(fd.get('opponent') || '').trim() || 'Rival';
     await offerFinishPending();
     const g = {
@@ -1958,6 +1965,7 @@ document.addEventListener('submit', async (e) => {
 
 document.addEventListener('change', (e) => {
   const el = e.target;
+  if (el.name === 'venue') { const f = el.closest('.venue-field'); if (f) f.classList.remove('need'); }
   const k = el.dataset && el.dataset.change;
   if (!k) return;
   if (k === 'team-name') {
