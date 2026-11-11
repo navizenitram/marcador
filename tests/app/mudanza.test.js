@@ -53,11 +53,6 @@ describe('aviso de mudanza', () => {
     const app = await openOld({ siteUrl: OLD, data: makeData() });
     expect(app.$('.move-bar')).toBeNull();
   });
-
-  it('avisa de que los datos siguen aquí después de llevarlos', async () => {
-    const app = await openOld({ data: makeData(), storage: { 'mbstats.moved': '2026-11-11T10:00:00.000Z' } });
-    expect(app.text('.move-bar')).toContain('Tus datos siguen también aquí');
-  });
 });
 
 describe('llevar los datos', () => {
@@ -69,7 +64,6 @@ describe('llevar los datos', () => {
     await app.act('confirm-yes');
     await until(app, () => app.left.length === 1);
     expect(app.left[0]).toMatch(/^https:\/\/myownbasketballstats\.com\/minibasket-stats\/#traspaso=j[\w-]+$/);
-    expect(app.window.localStorage.getItem('mbstats.moved')).toBeTruthy();
     expect(app.stored().teams).toHaveLength(2);
   });
 
@@ -85,7 +79,6 @@ describe('llevar los datos', () => {
     await app.act('confirm-no');
     await app.settle();
     expect(app.left).toEqual([]);
-    expect(app.window.localStorage.getItem('mbstats.moved')).toBeNull();
   });
 
   it('sin datos abre la app nueva sin fragmento', async () => {
@@ -113,6 +106,10 @@ describe('recibir los datos en la dirección nueva', () => {
       const old = await openOld({ data: richData(), compression });
       const code = await old.fn.encodeTransfer(old.db);
       const app = await openApp({ origin: NEW, siteUrl: NEW, hash: `#traspaso=${code}`, compression });
+      await until(app, () => !!app.modal);
+      expect(app.text(app.modal)).toContain('¿Guardar en este dispositivo los datos que traes');
+      expect(app.text(app.modal)).toContain('Alevín Ñ 🏀, Benjamín (1 partido)');
+      await app.act('confirm-yes');
       await until(app, () => app.db.teams.length === 2);
       expect(app.stored()).toEqual(old.stored());
       expect(app.db.teams[0].players.at(-1).name).toBe('Íñigo «el Rápido»');
@@ -121,6 +118,27 @@ describe('recibir los datos en la dirección nueva', () => {
       expect(app.window.location.href).not.toContain('traspaso');
     });
   }
+
+  it('no guarda nada si se cancela, aunque la app esté vacía (el enlace puede ser de otra persona)', async () => {
+    const old = await openOld({ data: richData() });
+    const code = await old.fn.encodeTransfer(old.db);
+    const app = await openApp({ origin: NEW, siteUrl: NEW, hash: `#traspaso=${code}` });
+    await until(app, () => !!app.modal);
+    await app.act('confirm-no');
+    await app.settle();
+    expect(app.db.teams).toEqual([]);
+    expect(app.stored()).toBeNull();
+    expect(app.window.location.href).not.toContain('traspaso');
+  });
+
+  it('escapa los nombres de los equipos en la confirmación', async () => {
+    const old = await openOld({ data: makeData({ teams: [makeTeam({ name: '<img src=x onerror=alert(1)>' })] }) });
+    const code = await old.fn.encodeTransfer(old.db);
+    const app = await openApp({ origin: NEW, siteUrl: NEW, hash: `#traspaso=${code}` });
+    await until(app, () => !!app.modal);
+    expect(app.modal.querySelector('img')).toBeNull();
+    expect(app.text(app.modal)).toContain('<img src=x onerror=alert(1)>');
+  });
 
   it('si ya hay datos, pregunta antes de reemplazarlos', async () => {
     const old = await openOld({ data: richData() });
@@ -145,8 +163,12 @@ describe('recibir los datos en la dirección nueva', () => {
   });
 
   it('avisa y no toca nada si el fragmento no es válido', async () => {
-    for (const code of ['xabc', 'jnoesbase64!', 'j' + Buffer.from('{"games":[]}').toString('base64url')]) {
-      const app = await openApp({ origin: NEW, siteUrl: NEW, data: makeData(), hash: `#traspaso=${code}` });
+    const valid = 'j' + Buffer.from(JSON.stringify(makeData())).toString('base64url');
+    const cases = ['xabc', 'jnoesbase64!', 'j' + Buffer.from('{"games":[]}').toString('base64url'),
+      // Comprimido pero dañado (p. ej. un enlace cortado al enviarlo): sin promesas rechazadas sin capturar
+      'zAAAA', 'z' + Buffer.from('basura que no es deflate').toString('base64url'), valid.slice(0, 20)];
+    for (const code of cases) {
+      const app = await openApp({ origin: NEW, siteUrl: NEW, data: makeData(), hash: `#traspaso=${code}`, compression: true });
       await until(app, () => !!app.toast);
       expect(app.toast).toContain('No se pudieron traer los datos');
       expect(app.stored().teams.map((t) => t.name)).toEqual(['Alevín A']);

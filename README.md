@@ -116,9 +116,10 @@ activa en el mismo proyecto de Vercel:
 - **Las apps** (`/minibasket-stats/` y `/marcador/`) no se redirigen. Sus datos viven en el `localStorage` del
   navegador, que va **por dominio**: quien ya use la app en la dirección antigua no verá sus equipos en la nueva.
   En la dirección antigua la app muestra un aviso con el botón «Llevar mis datos», que abre la app en el dominio
-  nuevo con los datos en el fragmento de la URL (`#traspaso=…`, comprimido). El fragmento no se envía al servidor:
-  los datos pasan de un navegador a otro. Al llegar, la app los guarda (o pregunta si quiere reemplazar los que ya
-  hubiera) y quita el fragmento de la URL. En la dirección antigua no se borra nada.
+  nuevo con los datos en el fragmento de la URL (`#traspaso=…`, comprimido). El fragmento no se envía al servidor,
+  aunque la URL completa sí puede quedar en el historial del navegador. Al llegar, la app pide confirmación siempre
+  (cualquiera puede fabricar un enlace así), guarda los datos y quita el fragmento de la URL. En la dirección antigua
+  no se borra nada.
 - Las direcciones antiguas están en `OLD_HOSTS` (`public/minibasket-stats/app.js`). La nueva se toma de la canonical
   de la app, que sale de `SITE_URL`.
 - En un iPhone con la app instalada en la pantalla de inicio, el botón abre Safari y la app instalada desde allí puede

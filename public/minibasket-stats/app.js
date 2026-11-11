@@ -10,7 +10,6 @@ const MAX_FOULS = 5;
 const KOFI_URL = 'https://ko-fi.com/navizenitram';
 /* Direcciones antiguas de la app. Ahí se ofrece llevar los datos a la dirección actual (ver «Mudanza») */
 const OLD_HOSTS = ['marcador-kohl.vercel.app'];
-const MOVED_KEY = 'mbstats.moved';
 
 /* Acciones que se pueden registrar para un jugador */
 const EV = {
@@ -2057,11 +2056,9 @@ function moveTarget() {
 function moveBar() {
   const target = moveTarget();
   if (!target) return '';
-  let moved = false;
-  try { moved = !!localStorage.getItem(MOVED_KEY); } catch (e) { /* sin acceso a localStorage */ }
   const has = db.teams.length || db.games.length;
   return `<div class="move-bar">
-    <span>La app se ha mudado a <b>${esc(new URL(target).host)}</b>${moved ? '. Tus datos siguen también aquí.' : '.'}</span>
+    <span>La app se ha mudado a <b>${esc(new URL(target).host)}</b>.</span>
     <button class="btn primary" data-action="move">${has ? 'Llevar mis datos' : 'Ir a la nueva dirección'}</button>
   </div>`;
 }
@@ -2091,8 +2088,9 @@ const fromUtf8 = (bytes) => decodeURIComponent(escape(binary(bytes)));
 /* Pasa los bytes por un CompressionStream o DecompressionStream y devuelve el resultado */
 async function pipeBytes(stream, bytes) {
   const writer = stream.writable.getWriter();
-  writer.write(bytes);
-  writer.close();
+  // Si los datos están dañados, el error llega por reader.read(); aquí solo se evita el aviso de promesa sin capturar
+  writer.write(bytes).catch(() => {});
+  writer.close().catch(() => {});
   const reader = stream.readable.getReader();
   const chunks = [];
   let size = 0;
@@ -2135,7 +2133,7 @@ actions.move = async () => {
   const host = esc(new URL(target).host);
   const has = db.teams.length || db.games.length;
   const msg = has
-    ? `La app se abrirá en <b>${host}</b> con ${db.teams.length === 1 ? 'tu equipo' : `tus ${db.teams.length} equipos`}${db.games.length ? ` y ${nGames(db.games.length)}` : ''}.<br><small class="muted">Los datos pasan directamente de esta dirección a la nueva, sin pasar por ningún servidor. Aquí no se borra nada.</small>`
+    ? `La app se abrirá en <b>${host}</b> con ${db.teams.length === 1 ? 'tu equipo' : `tus ${db.teams.length} equipos`}${db.games.length ? ` y ${nGames(db.games.length)}` : ''}.<br><small class="muted">Los datos viajan dentro del enlace, sin pasar por nuestros servidores. Aquí no se borra nada.</small>`
     : `La app se abrirá en <b>${host}</b>.`;
   if (!await confirmBox(msg, has ? 'Llevar mis datos' : 'Ir a la nueva dirección', false, 'Ahora no')) return;
   let url = target;
@@ -2146,7 +2144,6 @@ actions.move = async () => {
       return;
     }
     url += TRANSFER_PREFIX + code;
-    try { localStorage.setItem(MOVED_KEY, new Date().toISOString()); } catch (e) { /* noop */ }
   }
   leaveTo(url);
 };
@@ -2168,13 +2165,16 @@ async function receiveTransfer(code) {
     toast('⚠️ No se pudieron traer los datos: exporta una copia en la dirección antigua e impórtala aquí');
     return;
   }
-  const teams = (data.teams || [data.team]).length;
-  const what = `${teams} equipo${teams === 1 ? '' : 's'} y ${nGames(data.games.length)}`;
-  if (db.teams.length || db.games.length) {
-    const ok = await confirmBox(`Traes ${what} de la dirección antigua, pero aquí ya hay datos (${db.teams.length} equipo${db.teams.length === 1 ? '' : 's'} y ${nGames(db.games.length)}).<br><small class="muted">¿Quieres reemplazarlos por los que traes? Si no, se quedan los de aquí y los otros siguen en la dirección antigua.</small>`, 'Reemplazar', true, 'Quedarme con los de aquí');
-    if (!ok) return;
-  }
-  db = normalize(data);
+  const incoming = normalize(data);
+  const teams = incoming.teams.length;
+  const what = `${teams} equipo${teams === 1 ? '' : 's'} y ${nGames(incoming.games.length)}`;
+  const names = `<b>${incoming.teams.map(t => esc(t.name)).join(', ')}</b> (${nGames(incoming.games.length)})`;
+  // Siempre se pide confirmación: cualquiera puede fabricar un enlace con #traspaso=…
+  const ok = db.teams.length || db.games.length
+    ? await confirmBox(`Traes de la dirección antigua ${names}, pero aquí ya hay datos (${db.teams.length} equipo${db.teams.length === 1 ? '' : 's'} y ${nGames(db.games.length)}).<br><small class="muted">¿Quieres reemplazarlos por los que traes? Si no, se quedan los de aquí y los otros siguen en la dirección antigua.</small>`, 'Reemplazar', true, 'Quedarme con los de aquí')
+    : await confirmBox(`¿Guardar en este dispositivo los datos que traes de la dirección antigua?<br>${names}<br><small class="muted">Hazlo solo si acabas de pulsar «Llevar mis datos» en la app antigua.</small>`, 'Guardar', false, 'Cancelar');
+  if (!ok) return;
+  db = incoming;
   ui.editId = null;
   save();
   // replaceState no lanza hashchange, que ocultaría el aviso
