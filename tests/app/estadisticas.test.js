@@ -174,7 +174,7 @@ describe('playerLines y gameRows (estadísticas de un partido)', () => {
 describe('seasonRows y averageRow (temporada)', () => {
   const season = async (teams, games) => {
     const a = await openApp({ data: makeData({ teams, games }), hash: '#/partidos' });
-    return Object.fromEntries(a.fn.seasonRows().map((r) => [r.id, r]));
+    return Object.fromEntries(a.fn.seasonRows(a.fn.teamGames()).map((r) => [r.id, r]));
   };
 
   it('acumula los partidos del equipo y cuenta partidos y periodos jugados', async () => {

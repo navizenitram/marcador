@@ -106,6 +106,22 @@ describe('partidos por fase y de local o visitante', () => {
     expect(JSON.stringify(app.stored())).toBe(before);
   });
 
+  it('un partido con una fecha antigua (no aaaa-mm-dd) se puede editar sin tocar la fecha', async () => {
+    const app = await openApp({ data: makeData({ games: [makeGame({ date: '12/05/2025' })] }), hash: '#/partidos' });
+    await app.act('edit-game', { id: 'g1' });
+    const date = app.$('.modal input[name=date]');
+    expect(date.required).toBe(false);
+    await app.submit('game-edit', { date: '', venue: 'away' });
+    expect(app.stored().games[0]).toMatchObject({ date: '12/05/2025', venue: 'away' });
+  });
+
+  it('la fase de un partido solo se muestra según su propio equipo', async () => {
+    const app = await openApp({ data: phased() });
+    // El equipo actual está en la 2ª fase, pero este partido no es suyo (su equipo no existe): no se le atribuye fase
+    expect(app.fn.gameMeta({ ...app.db.games[0], teamId: 'otro', venue: 'home', phase: 2 })).toBe('Local');
+    expect(app.fn.gameMeta({ ...app.db.games[0], venue: 'home', phase: 2 })).toBe('Local · 2ª fase');
+  });
+
   it('el menú del partido muestra el campo y la fase y permite editarlo', async () => {
     const app = await openApp({ data: phased(), hash: '#/partido/g3' });
     await app.act('menu');
@@ -121,6 +137,12 @@ describe('estadísticas por fase', () => {
     expect(app.$$('.stats-select > option').map((o) => o.textContent)).toEqual(['Temporada · 3 partidos', '1ª fase · 2 partidos', '2ª fase · 1 partido']);
     expect(app.$$('.stats-select optgroup').map((o) => o.label)).toEqual(['2ª fase', '1ª fase']);
     expect(app.text('.ft-mid .g-meta')).toBe('Local · 1ª fase');
+  });
+
+  it('una fase cuando el equipo no usa fases muestra la temporada', async () => {
+    const app = await openApp({ data: makeData({ games: [sampleGame()] }), hash: '#/stats/fase-1' });
+    expect(app.hash).toBe('#/stats/temporada');
+    expect(app.text('.stats-select option:checked')).toBe('Temporada · 1 partido');
   });
 
   it('sin 2ª fase el selector es como siempre', async () => {
