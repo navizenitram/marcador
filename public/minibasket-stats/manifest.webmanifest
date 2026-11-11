@@ -1,6 +1,6 @@
 {
-  "name": "Cantera Stats",
-  "short_name": "Cantera Stats",
+  "name": "My Own Basketball Stats",
+  "short_name": "MyOwnStats",
   "description": "Estadísticas de baloncesto formativo",
   "start_url": "./",
   "scope": "./",

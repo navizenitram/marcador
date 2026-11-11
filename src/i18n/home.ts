@@ -3,17 +3,17 @@ export interface Faq { q: string; a: string; link?: { href: string; text: string
 
 export const home = {
   es: {
-    title: 'Cantera Stats · App gratis de estadísticas de baloncesto formativo y minibasket',
+    title: 'App gratis de estadísticas de baloncesto formativo · My Own Basketball Stats',
     description:
       'Apunta tiros, rebotes, recuperaciones, asistencias y faltas de cada jugador desde el móvil durante el partido. Estadísticas y valoración al momento. Gratis, sin registro y sin conexión.',
     h1: 'Apunta lo que hace cada jugador, no solo el marcador',
     lead:
-      'Cantera Stats es una app gratuita de estadísticas para minibasket y baloncesto formativo. Durante el partido tocas la acción de cada jugador en pista y, al acabar, tienes sus tiros, rebotes, pérdidas y valoración para preparar los entrenamientos.',
+      'My Own Basketball Stats es una app gratuita de estadísticas para minibasket y baloncesto formativo. Durante el partido tocas la acción de cada jugador en pista y, al acabar, tienes sus tiros, rebotes, pérdidas y valoración para preparar los entrenamientos.',
     open: 'Abrir la app gratis',
     how: 'Ver cómo funciona',
     facts: ['Sin registro', 'Funciona sin conexión', 'Tus datos se quedan en tu móvil'],
     heroAlt:
-      'Pantalla de partido en Cantera Stats: marcador 38 a 33 en el periodo 6 y una fila de botones por cada jugador en pista',
+      'Pantalla de partido en My Own Basketball Stats: marcador 38 a 33 en el periodo 6 y una fila de botones por cada jugador en pista',
     audienceTitle: 'Para quien está en la banda',
     audienceIntro: 'El marcador dice quién ha ganado. Las estadísticas te dicen por qué, y qué trabajar el martes.',
     audience: [
@@ -39,7 +39,7 @@ export const home = {
       'Si te equivocas, deshaces la última acción o borras cualquier jugada de la lista.',
       'Todo cabe en la pantalla del móvil en horizontal, sin hacer scroll.',
     ],
-    miniAlt: 'Ajustes de Cantera Stats: vista previa de los botones de un jugador e interruptores para activar o desactivar cada acción',
+    miniAlt: 'Ajustes de My Own Basketball Stats: vista previa de los botones de un jugador e interruptores para activar o desactivar cada acción',
     statsTitle: 'Las estadísticas, nada más acabar',
     stats: [
       'Resultado y parciales de cada periodo.',
@@ -50,19 +50,19 @@ export const home = {
     ],
     statsVal: 'Valoración con la fórmula de la ACB.',
     statsValLink: 'Así se calcula',
-    statsAlt: 'Estadísticas de un partido en Cantera Stats: victoria 57 a 47, parciales por periodo, evolución del marcador y líderes del partido',
+    statsAlt: 'Estadísticas de un partido en My Own Basketball Stats: victoria 57 a 47, parciales por periodo, evolución del marcador y líderes del partido',
     privacyTitle: 'Sin registro ni seguimiento',
     privacy: [
       'La app no tiene cuentas, cookies, publicidad ni analítica. Todo lo que apuntas se guarda solo en tu móvil y únicamente sale de él si tú lo compartes o lo exportas.',
       'Como trabajas con datos de menores, una buena práctica es usar solo el nombre de pila o un apodo de cada jugador.',
     ],
-    about: 'Cantera Stats es un proyecto personal, gratuito y sin anuncios. Lo construí para mi propio uso en los partidos y decidí compartirlo con entrenadores, familias y clubes. Si te resulta útil, puedes',
+    about: 'My Own Basketball Stats es un proyecto personal, gratuito y sin anuncios. Lo construí para mi propio uso en los partidos y decidí compartirlo con entrenadores, familias y clubes. Si te resulta útil, puedes',
     kofi: 'invitarme a un café',
     faqTitle: 'Preguntas frecuentes',
     paper: '¿Prefieres el papel?',
     paperLink: 'Descarga la plantilla en PDF',
     faqs: [
-      { q: '¿Cuánto cuesta?', a: 'Nada. Cantera Stats es gratis y no tiene anuncios. Es un proyecto personal: si te resulta útil, puedes invitarme a un café en Ko-fi.' },
+      { q: '¿Cuánto cuesta?', a: 'Nada. My Own Basketball Stats es gratis y no tiene anuncios. Es un proyecto personal: si te resulta útil, puedes invitarme a un café en Ko-fi.' },
       { q: '¿Tengo que instalar algo o crear una cuenta?', a: 'No. Se abre en el navegador del móvil o de la tablet y no pide ningún dato. Si quieres, puedes añadirla a la pantalla de inicio y se abrirá como una app más.' },
       { q: '¿Funciona sin cobertura en el pabellón?', a: 'Sí. Una vez la has abierto por primera vez, funciona sin conexión.' },
       { q: '¿Qué pasa con los datos si cambio de móvil?', a: 'Los datos se guardan solo en tu dispositivo. Para pasarlos a otro, exporta una copia de seguridad desde Ajustes e impórtala en el nuevo.' },
@@ -85,17 +85,17 @@ export const home = {
     ] as Faq[],
   },
   ca: {
-    title: "Cantera Stats · App gratuïta d'estadístiques de bàsquet formatiu i minibàsquet",
+    title: "App gratuïta d'estadístiques de bàsquet formatiu · My Own Basketball Stats",
     description:
       "Apunta els tirs, rebots, recuperacions, assistències i faltes de cada jugador des del mòbil durant el partit. Estadístiques i valoració a l'instant. Gratis, sense registre i sense connexió.",
     h1: 'Apunta el que fa cada jugador, no només el marcador',
     lead:
-      "Cantera Stats és una app gratuïta d'estadístiques per a minibàsquet i bàsquet formatiu. Durant el partit toques l'acció de cada jugador a la pista i, en acabar, tens els seus tirs, rebots, pèrdues i valoració per preparar els entrenaments.",
+      "My Own Basketball Stats és una app gratuïta d'estadístiques per a minibàsquet i bàsquet formatiu. Durant el partit toques l'acció de cada jugador a la pista i, en acabar, tens els seus tirs, rebots, pèrdues i valoració per preparar els entrenaments.",
     open: "Obre l'app gratis",
     how: 'Mira com funciona',
     facts: ['Sense registre', 'Funciona sense connexió', 'Les dades es queden al teu mòbil'],
     heroAlt:
-      'Pantalla de partit a Cantera Stats: marcador 38 a 33 al període 6 i una fila de botons per a cada jugador a la pista',
+      'Pantalla de partit a My Own Basketball Stats: marcador 38 a 33 al període 6 i una fila de botons per a cada jugador a la pista',
     audienceTitle: 'Per a qui és a la banda',
     audienceIntro: 'El marcador diu qui ha guanyat. Les estadístiques et diuen per què, i què cal treballar dimarts.',
     audience: [
@@ -121,7 +121,7 @@ export const home = {
       "Si t'equivoques, desfàs l'última acció o esborres qualsevol jugada de la llista.",
       'Tot cap a la pantalla del mòbil en horitzontal, sense haver de desplaçar-la.',
     ],
-    miniAlt: "Ajustos de Cantera Stats: vista prèvia dels botons d'un jugador i interruptors per activar o desactivar cada acció",
+    miniAlt: "Ajustos de My Own Basketball Stats: vista prèvia dels botons d'un jugador i interruptors per activar o desactivar cada acció",
     statsTitle: 'Les estadístiques, en acabar el partit',
     stats: [
       'Resultat i parcials de cada període.',
@@ -132,19 +132,19 @@ export const home = {
     ],
     statsVal: "Valoració amb la fórmula de l'ACB.",
     statsValLink: 'Així es calcula (en castellà)',
-    statsAlt: "Estadístiques d'un partit a Cantera Stats: victòria 57 a 47, parcials per període, evolució del marcador i líders del partit",
+    statsAlt: "Estadístiques d'un partit a My Own Basketball Stats: victòria 57 a 47, parcials per període, evolució del marcador i líders del partit",
     privacyTitle: 'Sense registre ni seguiment',
     privacy: [
       "L'app no té comptes, galetes, publicitat ni analítica. Tot el que apuntes es desa només al teu mòbil i només en surt si tu ho comparteixes o ho exportes.",
       'Com que treballes amb dades de menors, una bona pràctica és fer servir només el nom de pila o un sobrenom de cada jugador.',
     ],
-    about: 'Cantera Stats és un projecte personal, gratuït i sense anuncis. El vaig construir per al meu propi ús als partits i vaig decidir compartir-lo amb entrenadors, famílies i clubs. Si et resulta útil, pots',
+    about: 'My Own Basketball Stats és un projecte personal, gratuït i sense anuncis. El vaig construir per al meu propi ús als partits i vaig decidir compartir-lo amb entrenadors, famílies i clubs. Si et resulta útil, pots',
     kofi: 'convidar-me a un cafè',
     faqTitle: 'Preguntes freqüents',
     paper: 'Prefereixes el paper?',
     paperLink: 'Descarrega la plantilla en PDF (en castellà)',
     faqs: [
-      { q: 'Quant costa?', a: 'Res. Cantera Stats és gratuïta i no té anuncis. És un projecte personal: si et resulta útil, pots convidar-me a un cafè a Ko-fi.' },
+      { q: 'Quant costa?', a: 'Res. My Own Basketball Stats és gratuïta i no té anuncis. És un projecte personal: si et resulta útil, pots convidar-me a un cafè a Ko-fi.' },
       { q: "En quina llengua està l'app?", a: "De moment, l'app està en castellà. Els botons fan servir abreviatures (REC, PÉR, RO, RD…) que s'entenen igual." },
       { q: "He d'instal·lar res o crear un compte?", a: "No. S'obre al navegador del mòbil o de la tauleta i no demana cap dada. Si vols, la pots afegir a la pantalla d'inici i s'obrirà com una app més." },
       { q: 'Funciona sense cobertura al pavelló?', a: "Sí. Un cop l'has oberta per primera vegada, funciona sense connexió." },

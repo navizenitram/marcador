@@ -16,7 +16,7 @@ export function openScoreboard({ storage = {} } = {}) {
   const charts = [];
 
   const dom = new JSDOM(HTML, {
-    url: 'https://cantera.test/marcador/',
+    url: 'https://marcador.test/marcador/',
     runScripts: 'dangerously',  // ejecuta el <script> en línea y los onclick="…" del HTML
     pretendToBeVisual: true,    // requestAnimationFrame
     virtualConsole,

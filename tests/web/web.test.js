@@ -20,12 +20,12 @@ describe('site.config.mjs', () => {
     return (await import('../../site.config.mjs')).SITE_URL;
   };
 
-  it('usa la URL de Vercel si no se define SITE_URL', async () => {
-    expect(await siteUrl('')).toBe('https://marcador-kohl.vercel.app');
+  it('usa el dominio propio si no se define SITE_URL', async () => {
+    expect(await siteUrl('')).toBe('https://myownbasketballstats.com');
   });
 
   it('quita las barras finales de SITE_URL', async () => {
-    expect(await siteUrl('https://canterastats.com//')).toBe('https://canterastats.com');
+    expect(await siteUrl('https://ejemplo.com//')).toBe('https://ejemplo.com');
   });
 });
 
@@ -40,17 +40,17 @@ describe('scripts/postbuild.mjs', () => {
 
   it('sustituye %SITE_URL% en las dos apps', () => withDist((dir) => {
     for (const app of ['minibasket-stats', 'marcador']) cpSync(join(ROOT, 'public', app, 'index.html'), join(dir, 'dist', app, 'index.html'));
-    run(dir, 'https://canterastats.com/');
+    run(dir, 'https://ejemplo.com/');
     for (const app of ['minibasket-stats', 'marcador']) {
       const html = readFileSync(join(dir, 'dist', app, 'index.html'), 'utf8');
       expect(html).not.toContain('%SITE_URL%');
-      expect(html).toContain(`<link rel="canonical" href="https://canterastats.com/${app}/">`);
+      expect(html).toContain(`<link rel="canonical" href="https://ejemplo.com/${app}/">`);
     }
   }));
 
   it('falla si falta alguna de las apps en dist/', () => withDist((dir) => {
     cpSync(join(ROOT, 'public/marcador/index.html'), join(dir, 'dist/marcador/index.html'));
-    expect(() => run(dir, 'https://canterastats.com')).toThrow();
+    expect(() => run(dir, 'https://ejemplo.com')).toThrow();
   }));
 });
 

@@ -1,13 +1,16 @@
 'use strict';
 
 /* ════════════════════════════════════════════════════════════════
-   Cantera Stats — SPA sin dependencias. Datos en localStorage.
+   My Own Basketball Stats — SPA sin dependencias. Datos en localStorage.
    ════════════════════════════════════════════════════════════════ */
 
 const STORE_KEY = 'mbstats.v1';
 const MAX_ON_COURT = 5;
 const MAX_FOULS = 5;
 const KOFI_URL = 'https://ko-fi.com/navizenitram';
+/* Direcciones antiguas de la app. Ahí se ofrece llevar los datos a la dirección actual (ver «Mudanza») */
+const OLD_HOSTS = ['marcador-kohl.vercel.app'];
+const MOVED_KEY = 'mbstats.moved';
 
 /* Acciones que se pueden registrar para un jugador */
 const EV = {
@@ -495,6 +498,12 @@ function parseRoute() {
   return { view: parts[0] || '', arg: parts[1] || '' };
 }
 
+/* Pantalla al abrir la app: con varios equipos (o ninguno) se elige primero el equipo */
+function startRoute() {
+  if (db.teams.length !== 1) return '#/equipos';
+  return team().players.length ? '#/partidos' : '#/equipo';
+}
+
 function go(hash) {
   if (location.hash === hash) render();
   else location.hash = hash;
@@ -523,9 +532,7 @@ function render() {
       break;
     }
     default:
-      // Al abrir la app: con varios equipos (o ninguno) se elige primero el equipo
-      if (db.teams.length !== 1) go('#/equipos');
-      else go(team().players.length ? '#/partidos' : '#/equipo');
+      go(startRoute());
       return;
   }
   // Al repintar la misma pantalla (p. ej. activar un botón en Ajustes u ordenar la tabla)
@@ -616,7 +623,7 @@ function shell(active, content) {
   <div class="page">
     <nav class="nav">
       <a class="brand ${active === 'equipos' ? 'on' : ''}" href="#/equipos" title="Cambiar de equipo">
-        ${BALL}<span class="brand-name">${t ? esc(t.name) : 'Cantera Stats'}</span>${t ? `<span class="brand-swap">${icon('updown')}</span>` : ''}
+        ${BALL}<span class="brand-name">${t ? esc(t.name) : 'My Own Basketball Stats'}</span>${t ? `<span class="brand-swap">${icon('updown')}</span>` : ''}
       </a>
       ${t ? `
       <div class="tabs">
@@ -630,7 +637,7 @@ function shell(active, content) {
       ${themeButton()}
       ${fsButton()}
     </nav>
-    <main class="content">${content}</main>
+    <main class="content">${moveBar()}${content}</main>
   </div>`;
 }
 
@@ -681,7 +688,7 @@ function viewPrivacy() {
   <section class="card privacy">
     <button class="btn" data-action="back">${icon('back')} Volver</button>
     <h1>${icon('lock')} Tu privacidad</h1>
-    <p class="lead">Cantera Stats no recoge, no envía y no rastrea ningún dato. Lo que apuntas es tuyo y se queda en tu dispositivo.</p>
+    <p class="lead">My Own Basketball Stats no recoge, no envía y no rastrea ningún dato. Lo que apuntas es tuyo y se queda en tu dispositivo.</p>
 
     <h2>Qué no hace la app</h2>
     <ul>
@@ -703,8 +710,8 @@ function viewPrivacy() {
     para su funcionamiento y seguridad. La app no utiliza ni consulta esos datos.
     El enlace "Invítame a un café" lleva a Ko-fi, una web externa con su propia política de privacidad; solo se abre si lo pulsas.</p>
 
-    <h2>Por qué existe Cantera Stats</h2>
-    <p>Construí Cantera Stats como una herramienta para mi propio uso, porque en el baloncesto formativo hay mucho más que los puntos
+    <h2>Por qué existe My Own Basketball Stats</h2>
+    <p>La construí como una herramienta para mi propio uso, porque en el baloncesto formativo hay mucho más que los puntos
     y quería una forma sencilla de seguir lo que hace cada jugador en la pista. Funcionaba tan bien que decidí compartirla de forma gratuita
     con la comunidad: entrenadores, familias y clubes.</p>
     <p>Es un proyecto personal, sin ánimo de lucro, sin anuncios y sin intereses detrás. Si te resulta útil y quieres apoyarlo,
@@ -996,7 +1003,7 @@ function viewSettings() {
       </div>
 
       <h2>Privacidad</h2>
-      <p class="muted small">Cantera Stats no recoge ni envía tus datos: no hay registro, ni publicidad, ni seguimiento. Todo se guarda solo en este dispositivo.</p>
+      <p class="muted small">My Own Basketball Stats no recoge ni envía tus datos: no hay registro, ni publicidad, ni seguimiento. Todo se guarda solo en este dispositivo.</p>
       <a class="btn" href="#/privacidad">${icon('lock')} Leer la política de privacidad</a>
 
       <h2>Apoya el proyecto</h2>
@@ -2005,11 +2012,16 @@ function download(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/* Una copia de seguridad (actual o del formato v1, con un solo equipo) */
+function isBackup(data) {
+  return !!data && typeof data === 'object' && !!(data.team || Array.isArray(data.teams)) && Array.isArray(data.games);
+}
+
 async function importJSON(file) {
   if (!file) return;
   try {
     const data = JSON.parse(await file.text());
-    if (!data || !(data.team || Array.isArray(data.teams)) || !Array.isArray(data.games)) throw new Error('Formato no válido');
+    if (!isBackup(data)) throw new Error('Formato no válido');
     const ok = await confirmBox(`¿Importar <b>${esc(file.name)}</b>?<br><small class="muted">Se reemplazarán todos los datos actuales (${db.teams.length} equipo${db.teams.length === 1 ? '' : 's'} y ${db.games.length} partidos) por los del archivo.</small>`, 'Importar', true);
     if (!ok) return;
     db = normalize(data);
@@ -2018,6 +2030,157 @@ async function importJSON(file) {
   } catch (err) {
     toast('⚠️ No se pudo importar: archivo no válido');
   }
+}
+
+/* ─────────────────────────── Mudanza ───────────────────────────
+   localStorage va por dominio: quien use la app en una dirección antigua no ve sus datos en la nueva.
+   En la antigua se ofrece un botón que abre la nueva con los datos en el fragmento de la URL
+   (#traspaso=…). El fragmento no se envía nunca al servidor: los datos viajan de navegador a navegador. */
+
+const TRANSFER_PREFIX = '#traspaso=';
+/* Los navegadores aceptan URLs de unos 2 MB; por encima se pide exportar e importar la copia */
+const MAX_TRANSFER = 1500000;
+
+/* URL de la app en la dirección actual del sitio (la canonical, que se rellena al compilar) */
+function newHome() {
+  const link = document.querySelector('link[rel="canonical"]');
+  try { return link ? new URL(link.getAttribute('href'), location.href).href : null; } catch (e) { return null; }
+}
+
+/* Se ofrece la mudanza solo en las direcciones antiguas y si la nueva es otra */
+function moveTarget() {
+  if (!OLD_HOSTS.includes(location.hostname)) return null;
+  const home = newHome();
+  return home && new URL(home).origin !== location.origin ? home : null;
+}
+
+function moveBar() {
+  const target = moveTarget();
+  if (!target) return '';
+  let moved = false;
+  try { moved = !!localStorage.getItem(MOVED_KEY); } catch (e) { /* sin acceso a localStorage */ }
+  const has = db.teams.length || db.games.length;
+  return `<div class="move-bar">
+    <span>La app se ha mudado a <b>${esc(new URL(target).host)}</b>${moved ? '. Tus datos siguen también aquí.' : '.'}</span>
+    <button class="btn primary" data-action="move">${has ? 'Llevar mis datos' : 'Ir a la nueva dirección'}</button>
+  </div>`;
+}
+
+/* Bytes → texto con un carácter por byte (por trozos: apply() con demasiados argumentos desborda la pila) */
+function binary(bytes) {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return bin;
+}
+
+/* Texto en base64url, sin relleno: solo letras, números, - y _ */
+function toBase64Url(bytes) {
+  return btoa(binary(bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function fromBase64Url(text) {
+  const bin = atob(text.replace(/-/g, '+').replace(/_/g, '/'));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+const utf8 = (text) => Uint8Array.from(unescape(encodeURIComponent(text)), (c) => c.charCodeAt(0));
+const fromUtf8 = (bytes) => decodeURIComponent(escape(binary(bytes)));
+
+/* Pasa los bytes por un CompressionStream o DecompressionStream y devuelve el resultado */
+async function pipeBytes(stream, bytes) {
+  const writer = stream.writable.getWriter();
+  writer.write(bytes);
+  writer.close();
+  const reader = stream.readable.getReader();
+  const chunks = [];
+  let size = 0;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    size += value.length;
+  }
+  const out = new Uint8Array(size);
+  let at = 0;
+  for (const c of chunks) { out.set(c, at); at += c.length; }
+  return out;
+}
+
+/* Datos → texto para la URL: «z» + JSON comprimido si el navegador sabe comprimir; si no, «j» + JSON */
+async function encodeTransfer(data) {
+  const bytes = utf8(JSON.stringify(data));
+  if (typeof CompressionStream === 'function') {
+    try { return 'z' + toBase64Url(await pipeBytes(new CompressionStream('deflate-raw'), bytes)); } catch (e) { /* sin comprimir */ }
+  }
+  return 'j' + toBase64Url(bytes);
+}
+
+async function decodeTransfer(code) {
+  let bytes = fromBase64Url(code.slice(1));
+  if (code[0] === 'z') bytes = await pipeBytes(new DecompressionStream('deflate-raw'), bytes);
+  else if (code[0] !== 'j') throw new Error('Formato no válido');
+  const data = JSON.parse(fromUtf8(bytes));
+  if (!isBackup(data)) throw new Error('Formato no válido');
+  return data;
+}
+
+/* Sale de la app hacia otra dirección (función aparte para poder sustituirla en los tests) */
+function leaveTo(url) { location.href = url; }
+
+actions.move = async () => {
+  const target = moveTarget();
+  if (!target) return;
+  const host = esc(new URL(target).host);
+  const has = db.teams.length || db.games.length;
+  const msg = has
+    ? `La app se abrirá en <b>${host}</b> con ${db.teams.length === 1 ? 'tu equipo' : `tus ${db.teams.length} equipos`}${db.games.length ? ` y ${nGames(db.games.length)}` : ''}.<br><small class="muted">Los datos pasan directamente de esta dirección a la nueva, sin pasar por ningún servidor. Aquí no se borra nada.</small>`
+    : `La app se abrirá en <b>${host}</b>.`;
+  if (!await confirmBox(msg, has ? 'Llevar mis datos' : 'Ir a la nueva dirección', false, 'Ahora no')) return;
+  let url = target;
+  if (has) {
+    const code = await encodeTransfer(db);
+    if (code.length > MAX_TRANSFER) {
+      toast('⚠️ Hay demasiados datos para llevarlos así: exporta una copia en Ajustes e impórtala en la nueva dirección');
+      return;
+    }
+    url += TRANSFER_PREFIX + code;
+    try { localStorage.setItem(MOVED_KEY, new Date().toISOString()); } catch (e) { /* noop */ }
+  }
+  leaveTo(url);
+};
+
+/* Al abrir la app con #traspaso=…: se quita de la URL antes de nada (para que no quede en el historial
+   ni se repita al recargar) y se devuelve el texto con los datos. En su lugar se pone ya la pantalla de
+   inicio: así render() no navega, y el hashchange de esa navegación no cierra después la confirmación. */
+function takeTransfer() {
+  if (!location.hash.startsWith(TRANSFER_PREFIX)) return null;
+  const code = location.hash.slice(TRANSFER_PREFIX.length);
+  history.replaceState(null, '', location.pathname + location.search + startRoute());
+  return code;
+}
+
+async function receiveTransfer(code) {
+  let data;
+  try { data = await decodeTransfer(code); }
+  catch (e) {
+    toast('⚠️ No se pudieron traer los datos: exporta una copia en la dirección antigua e impórtala aquí');
+    return;
+  }
+  const teams = (data.teams || [data.team]).length;
+  const what = `${teams} equipo${teams === 1 ? '' : 's'} y ${nGames(data.games.length)}`;
+  if (db.teams.length || db.games.length) {
+    const ok = await confirmBox(`Traes ${what} de la dirección antigua, pero aquí ya hay datos (${db.teams.length} equipo${db.teams.length === 1 ? '' : 's'} y ${nGames(db.games.length)}).<br><small class="muted">¿Quieres reemplazarlos por los que traes? Si no, se quedan los de aquí y los otros siguen en la dirección antigua.</small>`, 'Reemplazar', true, 'Quedarme con los de aquí');
+    if (!ok) return;
+  }
+  db = normalize(data);
+  ui.editId = null;
+  save();
+  // replaceState no lanza hashchange, que ocultaría el aviso
+  history.replaceState(null, '', location.pathname + location.search + startRoute());
+  render();
+  toast(`✅ Datos traspasados: ${what}`);
 }
 
 function shotTxt(r, n) { return `${r[`t${n}m`]}/${r[`t${n}a`]}`; }
@@ -2137,7 +2300,7 @@ function renderInstall() {
   if (isInstalled() || (plat === 'other' && !installPrompt)) { el.hidden = true; return; }
   let body;
   if (installPrompt) {
-    body = `<button class="btn primary big install-btn" data-action="install">${icon('download')} Instalar Cantera Stats</button>`;
+    body = `<button class="btn primary big install-btn" data-action="install">${icon('download')} Instalar la app</button>`;
   } else if (plat === 'ios') {
     body = `<ol>
       <li>Toca ${SHARE_ICON} <b>Compartir</b> en la barra de Safari</li>
@@ -2197,6 +2360,8 @@ document.addEventListener('pointerdown', keepScreenOn, true);
 
 /* ─────────────────────────── Inicio ─────────────────────────── */
 
+const incoming = takeTransfer();
 render();
 renderInstall();
 keepScreenOn();
+if (incoming) receiveTransfer(incoming);
