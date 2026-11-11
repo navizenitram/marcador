@@ -117,7 +117,8 @@ test('descarga las estadísticas en CSV', async ({ page }) => {
   const csv = await (await download.createReadStream()).toArray();
   const lines = Buffer.concat(csv).toString('utf8').replace(/^﻿/, '').split('\r\n');
   expect(lines[0]).toMatch(/^Dorsal;Jugador;/);
-  expect(lines.at(-1)).toBe(';Equipo;4;8;1;2;2;3;1;2;1;1;2;1;0;1;1;1;1;0;6');
+  // Columnas de siempre y, al final, las avanzadas (eFG%, TS%, %PÉR, TL/TC)
+  expect(lines.at(-1)).toBe(';Equipo;4;8;1;2;2;3;1;2;1;1;2;1;0;1;1;1;1;0;6;70;68;15;0,4');
 });
 
 test('la evolución del marcador comparte columnas con los parciales y se puede recorrer', async ({ page }) => {
@@ -166,6 +167,25 @@ test('en la temporada, cada columna del gráfico lleva a las estadísticas de su
   await columns.nth(1).tap();
   await expect(page).toHaveURL(/#\/stats\/g2$/);
   await expect(page.locator('.badge')).toHaveText('Derrota');
+});
+
+test('las estadísticas avanzadas de la temporada caben a lo ancho en el móvil y explican cada métrica', async ({ page }) => {
+  const shots = (pid) => [ev('t2_ok', pid), ev('t2_ko', pid), ev('t3_ok', pid), ev('t1_ok', pid), ev('t1_ko', pid), ev('lost', pid)];
+  const games = ['g1', 'g2'].map((id) => makeGame({ id, finished: true, played: { p4: [1], p7: [1] }, events: [...shots('p4'), ...shots('p7'), opp(2)] }));
+  await seed(page, makeData({ games }));
+  await page.goto(`${APP}#/stats/temporada`);
+  await page.locator('[data-action="adv"][data-v="1"]').click();
+  await expect(page.locator('table.stats thead th[data-k="ts"]')).toBeVisible();
+
+  const layout = await page.evaluate(() => {
+    const wrap = document.querySelector('.table-wrap');
+    const head = document.querySelector('.stats-head');
+    const control = head.querySelector('.btn').getBoundingClientRect().height;
+    return { overflow: wrap.scrollWidth - wrap.clientWidth, headRows: Math.round(head.getBoundingClientRect().height / control) };
+  });
+  expect(layout.overflow).toBeLessThanOrEqual(0);
+  expect(layout.headRows).toBeLessThanOrEqual(2);   // la cabecera puede ocupar dos filas, nunca más
+  await expect(page.locator('.glossary')).toContainText('Acierto real en el tiro');
 });
 
 test.describe('en una tablet', () => {

@@ -1331,6 +1331,7 @@ const ADV_COLS = [
   { k: 'tov', adv: true, fmt: 'pct', g: 'adv' },
   { k: 'ftr', adv: true, fmt: 'num', g: 'adv' },
 ];
+const ADV_KEYS = new Set(ADV_COLS.filter(c => c.adv).map(c => c.k));
 
 /* Cabecera y título de una columna avanzada (sin triples apuntados, el eFG% es el acierto en tiros de campo) */
 function advKey(c, data) { return c.k === 'efg' && data.total.adv.efg.fgOnly ? 'fg' : c.k; }
@@ -1374,7 +1375,7 @@ function cellValue(r, c) {
 /* Una columna se oculta si su acción está desactivada y no hay datos que mostrar */
 const COL_OPTS = { t1: ['t1'], t2: ['t2'], t3: ['t3'], ro: ['ro'], rd: ['rd'], reb: ['ro', 'rd'], ast: ['ast'], blk: ['blk'], blkr: ['blkr'], rec: ['rec'], lost: ['lost'], fc: ['fc'], fr: ['fr'] };
 function colVisible(k, data) {
-  if (data.total.adv && data.total.adv[k] && ADV_COLS.some(c => c.adv && c.k === k)) return !data.total.adv[k].hidden;
+  if (ADV_KEYS.has(k)) return !data.total.adv[k].hidden;
   const opts = COL_OPTS[k];
   if (!opts || opts.some(optEnabled)) return true;
   const t = data.total;
@@ -1411,7 +1412,7 @@ function statsTable(data) {
   return `
   <div class="table-wrap">
     <table class="stats">
-      <thead><tr>${cols.map((c, i) => `<th class="${colCls[i]}" data-action="sort" data-k="${c.k}" title="${c.t || ''}"${key === c.k ? ` aria-sort="${dir > 0 ? 'ascending' : 'descending'}"` : ''}>${c.h}${key === c.k ? `<i class="sort-ind ${dir > 0 ? 'asc' : 'desc'}"></i>` : ''}</th>`).join('')}</tr></thead>
+      <thead><tr>${cols.map((c, i) => `<th class="${colCls[i]}" data-action="sort" data-k="${c.k}" title="${esc(c.t || '')}"${key === c.k ? ` aria-sort="${dir > 0 ? 'ascending' : 'descending'}"` : ''}>${c.h}${key === c.k ? `<i class="sort-ind ${dir > 0 ? 'asc' : 'desc'}"></i>` : ''}</th>`).join('')}</tr></thead>
       <tbody>
         ${rows.map(r => `<tr class="${r.gp ? '' : 'dnp'}" data-pid="${r.id}">${cols.map((c, i) => cell(r, c, i)).join('')}</tr>`).join('')}
       </tbody>
