@@ -3,11 +3,13 @@
 // Mientras quede algún TODO es un borrador: noindex, fuera del sitemap (astro.config.mjs) y sin enlaces.
 import Guide from '../layouts/Guide.astro';
 import { APP_URL } from '../consts';
-import { APPS, META, OURS, REVIEWED, ROWS, pendingTodos } from '../data/comparativa.mjs';
+import { APPS, DRAFT, META, OURS, REVIEWED, ROWS, isTodo, pendingLabel, pendingTodos, updatedDate, validationErrors } from '../data/comparativa.mjs';
+
+// Datos mal rellenados (fuente sin https, fecha en otro formato…): mejor que falle el build que publicarlos
+const errors = validationErrors();
+if (errors.length) throw new Error(`Comparativa: datos mal rellenados en src/data/comparativa.mjs:\n- ${errors.join('\n- ')}`);
 
 const pending = pendingTodos();
-const draft = pending > 0;
-const isTodo = (v: string) => v.includes('TODO');
 const reviewedText = isTodo(REVIEWED)
   ? 'TODO'
   : new Date(`${REVIEWED}T12:00:00Z`).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -17,16 +19,16 @@ const reviewedText = isTodo(REVIEWED)
   description={META.description}
   h1={META.h1}
   lead={META.lead}
-  updated="2026-11-11"
+  updated={updatedDate()}
   crumb="Comparativa de apps"
   origin="comparativa"
-  noindex={draft}
+  noindex={DRAFT}
 >
-  {draft && (
+  {DRAFT && (
     <div class="callout draft-note" role="note">
       <p>
-        <strong>Borrador:</strong> faltan {pending} datos de las otras apps por revisar con su fuente oficial. Mientras tanto,
-        esta página no se indexa, no está en el sitemap y no se enlaza desde la web.
+        <strong>Borrador:</strong> {pendingLabel(pending)} (datos de las otras apps, su fuente o la fecha de revisión). Mientras
+        tanto, esta página no se indexa, no está en el sitemap y no se enlaza desde la web.
       </p>
     </div>
   )}
@@ -34,7 +36,7 @@ const reviewedText = isTodo(REVIEWED)
   <h2>Cómo hemos hecho esta comparativa</h2>
   <p>
     Los datos de My Own Basketball Stats salen de la propia app. Los de las demás, de sus webs y tiendas de apps oficiales,
-    con el enlace y la fecha de consulta en cada caso; si algo no lo hemos podido comprobar, no lo ponemos. Las apps cambian:
+    con el enlace y la fecha de consulta en cada caso; si sus fuentes no dicen algo, lo indicamos como «No consta». Las apps cambian:
     si ves un dato desactualizado, escríbenos y lo corregimos. Datos revisados el {reviewedText}.
   </p>
 
@@ -56,6 +58,7 @@ const reviewedText = isTodo(REVIEWED)
             <td>{OURS[r.key].valor}</td>
             {APPS.map((a) => {
               const c = a.cells[r.key];
+              if (c.valor === null) return <td class="nc">No consta</td>;
               return isTodo(c.valor)
                 ? <td class="todo">TODO</td>
                 : <td>{c.valor} <a class="src" href={c.fuente} rel="nofollow noopener" target="_blank">fuente, {c.consultado}</a></td>;
@@ -75,7 +78,8 @@ const reviewedText = isTodo(REVIEWED)
       <p class={isTodo(a.fit) ? 'todo' : ''}>{a.fit}</p>
       <h3>Diferencias con My Own Basketball Stats</h3>
       <p>
-        Mira la tabla de arriba: cada dato de {a.name} lleva su fuente. Lo que no está comprobado aparece como pendiente.
+        En la tabla, cada dato de {a.name} lleva su fuente oficial y la fecha en que se consultó. «No consta» quiere decir
+        que sus fuentes oficiales no lo dicen.
       </p>
       <p>
         Web oficial:{' '}
@@ -124,9 +128,10 @@ const reviewedText = isTodo(REVIEWED)
 </Guide>
 
 <style>
-  /* La tabla sale del ancho del texto (66ch) y ocupa el de la página; en el móvil se desplaza en horizontal con la
-     primera columna fija */
-  .compare-scroll { width: min(1160px, 100vw - 2.5rem); }
+  /* La tabla sale del ancho del texto (66ch) y ocupa el de la página (sin 100vw, que incluye la barra de scroll);
+     el resto del texto sigue a 66ch. En el móvil se desplaza en horizontal con la primera columna fija. */
+  :global(.prose:has(> .compare-scroll)) { max-width: none; }
+  :global(.prose:has(> .compare-scroll) > :not(.compare-scroll)) { max-width: var(--measure); }
   .compare { font-size: .95rem; min-width: 1060px; }
   .compare td, .compare th { vertical-align: top; min-width: 8.5rem; }
   .compare th[scope='row'] { min-width: 10rem; position: sticky; left: 0; background: var(--paper); z-index: 1; }
@@ -134,5 +139,6 @@ const reviewedText = isTodo(REVIEWED)
   .compare td:nth-child(2) { min-width: 13rem; background: color-mix(in srgb, var(--paper) 88%, #ff8a00); }
   .compare .src { font-size: .8rem; white-space: nowrap; }
   .todo { color: #b45309; font-weight: 600; }
+  .nc { color: var(--ink-soft); font-style: italic; }
   .draft-note { border-left-color: #b45309; }
 </style>

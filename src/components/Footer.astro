@@ -1,7 +1,7 @@
 ---
 import Ball from './Ball.astro';
 import { APP_URL, SCOREBOARD_URL, KOFI_URL, SITE_NAME_LINES, type Lang } from '../consts';
-import { COMPARISON_PATH, pendingTodos } from '../data/comparativa.mjs';
+import { COMPARISON_PATH, DRAFT } from '../data/comparativa.mjs';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const ca = lang === 'ca';
@@ -27,7 +27,7 @@ const ca = lang === 'ca';
       <ul>
         <li><a href="/guias/estadisticas-minibasket/">{ca ? 'Estadístiques en minibàsquet' : 'Estadísticas en minibasket'}</a></li>
         <li><a href="/guias/valoracion-baloncesto/">{ca ? 'Com es calcula la valoració' : 'Cómo se calcula la valoración'}</a></li>
-        {pendingTodos() === 0 && <li><a href={COMPARISON_PATH}>{ca ? "Comparativa d'apps (castellà)" : 'Comparativa de apps'}</a></li>}
+        {!DRAFT && <li><a href={COMPARISON_PATH}>{ca ? "Comparativa d'apps (castellà)" : 'Comparativa de apps'}</a></li>}
       </ul>
     </nav>
     <nav aria-label={ca ? 'Projecte' : 'Proyecto'}>

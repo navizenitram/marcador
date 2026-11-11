@@ -1,7 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import FinalCta from '../../components/FinalCta.astro';
-import { COMPARISON_PATH, pendingTodos } from '../../data/comparativa.mjs';
+import { COMPARISON_PATH, DRAFT } from '../../data/comparativa.mjs';
 
 const guides = [
   {
@@ -20,7 +20,7 @@ const guides = [
     text: 'Una hoja en PDF para apuntar en papel tiros, rebotes, asistencias, pérdidas y faltas de cada jugador.',
   },
   // La comparativa solo se enlaza cuando tiene todos los datos revisados
-  ...(pendingTodos() === 0 ? [{
+  ...(!DRAFT ? [{
     href: COMPARISON_PATH,
     title: 'Apps de estadísticas de baloncesto: comparativa',
     text: 'En qué se diferencian las apps más usadas: precio, cuenta, privacidad y funciones, con sus fuentes oficiales.',

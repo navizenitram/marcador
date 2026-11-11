@@ -6,18 +6,28 @@
 //     valor       lo que dice la fuente, con palabras neutras («De pago (desde X €/mes)», «Sí», «No», «Solo iOS»…)
 //     fuente      URL oficial de la app (web, tienda de apps o documentación), no de terceros
 //     consultado  fecha en la que se miró, aaaa-mm-dd
-// - Si no se puede verificar un dato, se deja en TODO: es mejor una celda pendiente que un dato inventado.
+// - Si las fuentes oficiales no dicen algo, valor: null → la página muestra «No consta» (y no bloquea la publicación).
+//   Nunca se escribe un dato que no se haya podido comprobar.
 // - `better` (en qué es mejor que nosotros) y `fit` (para quién encaja) se escriben solo con lo que diga la fuente.
-// - REVIEWED es la fecha de la última revisión completa (se muestra en la página).
-// Mientras quede algún TODO, la página es un borrador: noindex, fuera del sitemap y sin enlaces (tests/web).
+// - `nameCheck`: quítalo cuando el nombre de la app esté confirmado.
+// - REVIEWED es la fecha de la última revisión completa (se muestra en la página y fija «Actualizado el» y el año).
+// Mientras quede algún TODO, la página es un borrador (DRAFT): noindex, fuera del sitemap y sin enlaces. Si un dato
+// está mal rellenado (fuente sin https, fecha en otro formato…), el build falla (validationErrors). Ver tests/web.
 
 export const COMPARISON_PATH = '/comparativa-apps-estadisticas-baloncesto/';
 
 /** Fecha de la última revisión completa de los datos de la competencia (aaaa-mm-dd) */
 export const REVIEWED = 'TODO';
 
+/** Fecha de la página mientras es un borrador; al publicarla, se usa REVIEWED */
+export const DRAFT_DATE = '2026-11-11';
+
+export const isTodo = (v) => typeof v === 'string' && v.includes('TODO');
+export const updatedDate = (reviewed = REVIEWED) => (isTodo(reviewed) ? DRAFT_DATE : reviewed);
+export const titleFor = (reviewed = REVIEWED) => `Apps de estadísticas de baloncesto: comparativa ${updatedDate(reviewed).slice(0, 4)}`;
+
 export const META = {
-  title: 'Apps de estadísticas de baloncesto: comparativa 2026',
+  title: titleFor(),
   description:
     'My Own Basketball Stats frente a GameChanger, Easy Stats, Breakthrough Stats y otras apps: precio, cuenta, privacidad y funciones, con sus fuentes.',
   h1: 'Apps de estadísticas de baloncesto: comparativa honesta',
@@ -74,31 +84,47 @@ export const APPS = [
   { name: 'GameChanger', url: 'TODO', better: ['TODO'], fit: 'TODO', cells: todoCells() },
   { name: 'Easy Stats', url: 'TODO', better: ['TODO'], fit: 'TODO', cells: todoCells() },
   { name: 'Breakthrough Stats', url: 'TODO', better: ['TODO'], fit: 'TODO', cells: todoCells() },
-  // TODO: confirmar el nombre exacto («Hoopops», «SportEasy» o ambas) antes de publicar
-  { name: 'Hoopops / SportEasy', url: 'TODO', better: ['TODO'], fit: 'TODO', cells: todoCells() },
+  { name: 'Hoopops / SportEasy', nameCheck: 'TODO: confirmar el nombre exacto («Hoopops», «SportEasy» o ambas)', url: 'TODO', better: ['TODO'], fit: 'TODO', cells: todoCells() },
 ];
 
-const isTodo = (v) => typeof v === 'string' && v.includes('TODO');
+const ISO = /^\d{4}-\d{2}-\d{2}$/;
+const HTTPS = /^https:\/\//;
 
-/** Cuántos datos quedan por revisar (celdas, enlaces, textos y la fecha de revisión) */
-export function pendingTodos() {
-  let n = isTodo(REVIEWED) ? 1 : 0;
-  for (const a of APPS) {
-    n += [a.url, a.fit, ...a.better].filter(isTodo).length;
-    for (const c of Object.values(a.cells)) if ([c.valor, c.fuente, c.consultado].some(isTodo)) n++;
+/** Cuántos datos quedan por revisar: fecha de revisión, nombre sin confirmar, enlace, textos y celdas en TODO */
+export function pendingTodos(apps = APPS, reviewed = REVIEWED) {
+  let n = isTodo(reviewed) ? 1 : 0;
+  for (const a of apps) {
+    n += [a.name, a.nameCheck, a.url, a.fit, ...(a.better || [])].filter(isTodo).length;
+    for (const c of Object.values(a.cells)) if (c.valor !== null && [c.valor, c.fuente, c.consultado].some(isTodo)) n++;
   }
   return n;
 }
 
-/** Celdas de la competencia rellenas a medias: con valor pero sin fuente https o sin fecha aaaa-mm-dd */
-export function invalidCells() {
+/** Datos mal rellenados (vacío si todo está bien). Lo que sigue en TODO no es un error: es un pendiente. */
+export function validationErrors(apps = APPS, reviewed = REVIEWED) {
   const bad = [];
-  for (const a of APPS) {
+  if (!isTodo(reviewed) && !ISO.test(reviewed)) bad.push('REVIEWED: fecha aaaa-mm-dd');
+  for (const a of apps) {
     for (const [k, c] of Object.entries(a.cells)) {
+      if (c.valor === null) {
+        if (!isTodo(c.fuente) && c.fuente && !HTTPS.test(c.fuente)) bad.push(`${a.name} · ${k}: fuente https`);
+        continue;
+      }
       if (isTodo(c.valor)) continue;
-      if (!/^https:\/\//.test(c.fuente) || !/^\d{4}-\d{2}-\d{2}$/.test(c.consultado)) bad.push(`${a.name} · ${k}`);
+      if (typeof c.valor !== 'string' || !c.valor.trim() || !HTTPS.test(c.fuente) || !ISO.test(c.consultado)) bad.push(`${a.name} · ${k}: fuente https y fecha aaaa-mm-dd`);
     }
-    if (!isTodo(a.url) && !/^https:\/\//.test(a.url)) bad.push(`${a.name} · url`);
+    if (!isTodo(a.url) && !HTTPS.test(a.url)) bad.push(`${a.name} · url: https`);
+    if (!Array.isArray(a.better) || !a.better.length || a.better.some(b => typeof b !== 'string' || !b.trim())) bad.push(`${a.name} · better: al menos una línea`);
+    if (typeof a.fit !== 'string' || !a.fit.trim()) bad.push(`${a.name} · fit: texto`);
   }
   return bad;
 }
+
+/** Borrador mientras quede algo por revisar: noindex, fuera del sitemap y sin enlaces */
+export const DRAFT = pendingTodos() > 0;
+
+/** Filtro del sitemap (astro.config.mjs): la comparativa, solo cuando no es un borrador */
+export const includeInSitemap = (page, draft = DRAFT) => !(draft && page.includes(COMPARISON_PATH));
+
+/** Texto del aviso de borrador */
+export const pendingLabel = (n) => (n === 1 ? 'Falta 1 dato por revisar' : `Faltan ${n} datos por revisar`);
