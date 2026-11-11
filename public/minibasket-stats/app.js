@@ -1125,6 +1125,7 @@ function viewStats(arg) {
     ${data.season ? seasonSummary(data.scopeGames) : gameSummary(g)}
     ${leaders(data)}
     <section class="card table-card">${statsTable(data)}</section>
+    ${data.season && data.rows.some(r => r.gp) ? `<p class="muted small report-hint">${esc(tr('report.hint'))}</p>` : ''}
     ${unitsCard(data)}
     ${ui.adv ? `<p class="muted small adv-note">${esc(tr('adv.note'))} Toca la cabecera de una columna para ordenar.</p>${glossary(data)}` : `
     <p class="muted small formula"><b>VAL</b> (valoración ACB) = puntos + rebotes + asistencias + recuperaciones + tapones + faltas recibidas − tiros fallados (cada uno resta 1) − tapones recibidos − pérdidas − faltas cometidas.
@@ -1501,7 +1502,12 @@ function statsTable(data) {
     : c.k === 'fg' ? r.t2a + r.t3a === 0
     : c.k === 'pm' ? r.pm == null
     : c.shot ? r[`t${c.shot}a`] === 0 : c.k !== 'val' && r[c.k] === 0);
-  const cell = (r, c, i) => `<td class="${colCls[i]}${isZero(r, c) ? ' zero' : ''}${c.k === 'fc' && !data.season && r.fc >= MAX_FOULS ? ' neg' : ''}" data-k="${c.k}">${cellValue(r, c)}</td>`;
+  // En la temporada o una fase, el nombre de quien ha jugado abre su informe (no en la fila del equipo)
+  const scopeArg = data.season ? (data.phase ? `fase-${data.phase}` : 'temporada') : '';
+  const value = (r, c) => (c.k === 'name' && scopeArg && r.gp && r.id !== '_team'
+    ? `<button class="pname-btn" data-action="report" data-pid="${r.id}" data-arg="${scopeArg}" title="${esc(tr('report.action'))}">${esc(r.name)}</button>`
+    : cellValue(r, c));
+  const cell = (r, c, i) => `<td class="${colCls[i]}${isZero(r, c) ? ' zero' : ''}${c.k === 'fc' && !data.season && r.fc >= MAX_FOULS ? ' neg' : ''}" data-k="${c.k}">${value(r, c)}</td>`;
   return `
   <div class="table-wrap">
     <table class="stats">
@@ -1958,6 +1964,11 @@ const actions = {
     try { await navigator.clipboard.writeText(ui.modal.text); toast('📋 Copiado'); }
     catch (e) { toast('No se pudo copiar'); }
   },
+  report(el) { shareReport(el.dataset.arg, el.dataset.pid); },
+  'download-text'() {
+    const m = ui.modal;
+    if (m && m.filename) download(new Blob([m.text], { type: 'text/plain;charset=utf-8' }), m.filename);
+  },
   async 'native-share'() {
     const m = ui.modal;
     try { await navigator.share({ title: m.subject, text: m.text }); } catch (e) { /* cancelado */ }
@@ -2388,14 +2399,45 @@ function shareStats(arg) {
   openModal({ kind: 'share', text, subject, mailto });
 }
 
+/* Un enlace mailto: muy largo puede no abrirse en algunos clientes de correo; por encima, se propone copiar */
+const MAX_MAILTO = 8000;
+
+/* Dominio para el pie del informe: el de la dirección pública (canonical) o, si no se ha rellenado, el de siempre */
+function siteHost() {
+  const home = newHome();
+  return home && !home.includes('%') ? new URL(home).host : 'myownbasketballstats.com';
+}
+
+/* Informe de un jugador en la temporada o una fase (arg: 'temporada' o 'fase-N'), en el modal de enviar */
+function shareReport(arg, pid) {
+  const scope = seasonScope(arg);
+  if (!scope) return;
+  const t = team();
+  const total = totalsRow(seasonRows(scope.games), scope.games.length);
+  const current = t.players.find(p => p.id === pid);   // nombre y dorsal de hoy, como en la tabla
+  const model = MBCore.reportModel(scope.games, pid, MBCore.recordedOpts(total, t.hidden), current);
+  if (!model) return;
+  const scopeLabel = scope.phase ? phaseLabel(t, scope.phase) : tr('report.season');
+  const text = MBCore.reportText(model, {
+    t: tr, fmtNum: MBI18n.fmtNum, fmtPct: MBI18n.fmtPct, fmtDate: (d) => fmtDate(d, true),
+    scope: scopeLabel, team: t.name, site: siteHost(), locale: MBI18n.locale(),
+  });
+  const subject = `${tr('report.title', { number: model.number, name: model.name, scope: scopeLabel })} · ${t.name}`;
+  const mailto = `mailto:${encodeURIComponent(t.email || '')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
+  const filename = `informe-${model.number}-${model.name}-${arg}`.replace(/[^\w\-áéíóúñü]+/gi, '_') + '.txt';
+  openModal({ kind: 'share', title: tr('report.share'), text, subject, mailto: mailto.length > MAX_MAILTO ? null : mailto, filename });
+}
+
 function renderShare(m) {
   return `
-  <div class="modal-head"><h3>Enviar estadísticas</h3></div>
+  <div class="modal-head"><h3>${esc(m.title || 'Enviar estadísticas')}</h3></div>
   <pre class="share-preview">${esc(m.text)}</pre>
+  ${m.mailto ? '' : `<p class="muted small">${esc(tr('report.mailTooLong'))}</p>`}
   <div class="modal-actions">
     <button class="btn" data-action="copy-text">${icon('copy')} Copiar</button>
     ${navigator.share ? `<button class="btn" data-action="native-share">${icon('share')} Compartir</button>` : ''}
-    <a class="btn primary" href="${esc(m.mailto)}">${icon('mail')} Email${team().email ? ` a ${esc(team().email)}` : ''}</a>
+    ${m.filename ? `<button class="btn" data-action="download-text">${icon('download')} ${esc(tr('share.download'))}</button>` : ''}
+    ${m.mailto ? `<a class="btn primary" href="${esc(m.mailto)}">${icon('mail')} Email${team().email ? ` a ${esc(team().email)}` : ''}</a>` : ''}
     <button class="btn" data-action="modal-close">Cerrar</button>
   </div>`;
 }

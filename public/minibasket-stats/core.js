@@ -262,8 +262,123 @@
     };
   }
 
+  /* ── Informe de un jugador (temporada o fase) ──
+     reportModel reúne los datos; reportText los escribe en texto para enviar por email, copiar o compartir. */
+  const PM_MIN_PERIODS = 4;          // con menos periodos con datos, el +/- del informe no se da
+  const EVOLUTION_BY_GAME = 8;       // hasta este número de partidos, una línea por partido; si no, una por mes
+  const round1 = (n) => Math.round(n * 10) / 10;
+  const byDate = (a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0);
+
+  /* current: { number, name } actuales del equipo (pueden haber cambiado tras el último partido); si no, los del partido */
+  function reportModel(games, pid, rec, current) {
+    let player = null, periods = 0, teamPm = null;
+    const line = blankLine(), evolution = [], phases = new Map();
+    let pm = null;
+    for (const g of [...games].sort(byDate)) {
+      const own = plusMinus(g);
+      const p = g.roster.find(x => x.id === pid);
+      const nper = (g.played[pid] || []).length;
+      if (!p || (!nper && !g.events.some(e => e.pid === pid))) continue;
+      player = p;
+      periods += nper;
+      const l = playerLines(g)[pid] || finish(blankLine());
+      sumLines(line, l);
+      evolution.push({ date: g.date, opponent: g.opponent, pts: l.pts, val: l.val });
+      const ph = phases.get(g.phase) || { phase: g.phase, games: 0, pts: 0 };
+      ph.games++; ph.pts += l.pts;
+      phases.set(g.phase, ph);
+      if (own && own[pid]) {
+        pm = pm || { pf: 0, pc: 0, pm: 0, periods: 0, games: 0 };
+        pm.pf += own[pid].pf; pm.pc += own[pid].pc; pm.pm += own[pid].pm; pm.periods += own[pid].periods; pm.games++;
+        // El dato del equipo, de los mismos partidos (y los mismos tramos registrados) que el del jugador
+        for (const s of stints(g)) teamPm = (teamPm || 0) + s.pf - s.pc;
+      }
+    }
+    if (!player) return null;
+    finish(line);
+    const n = evolution.length;
+    if (pm) pm.periods = r3(pm.periods);
+    return {
+      number: (current || player).number, name: (current || player).name, games: n, periods,
+      first: evolution[0].date, last: evolution[n - 1].date,
+      line, per: { pts: round1(line.pts / n), reb: round1(line.reb / n), val: round1(line.val / n) },
+      evolution,
+      phases: phases.size > 1 ? [...phases.values()].sort((a, b) => a.phase - b.phase) : [],
+      pm, teamPm: pm ? teamPm : null,
+      adv: advanced(line, 'season', rec),
+    };
+  }
+
+  /* ctx: { t, fmtNum, fmtPct, fmtDate (aaaa-mm-dd → corta), scope, team, site, locale } */
+  function reportText(m, ctx) {
+    const { t, fmtNum, fmtPct } = ctx;
+    const signed = (n) => (n > 0 ? `+${fmtNum(n)}` : n < 0 ? `−${fmtNum(-n)}` : '0');
+    const shot = (made, att) => (att ? `${made}/${att} (${fmtPct(made / att)})` : '0/0');
+    const L = m.line;
+    const out = [
+      t('report.title', { number: m.number, name: m.name, scope: ctx.scope }),
+      t('report.subtitle', { team: ctx.team, games: t('report.games', { n: m.games }), first: ctx.fmtDate(m.first), last: ctx.fmtDate(m.last) }),
+      '',
+      t('report.summary'),
+      t('report.played', { games: m.games, periods: m.periods }),
+      t('report.points', { pts: L.pts, ptsPer: fmtNum(m.per.pts), reb: L.reb, rebPer: fmtNum(m.per.reb) }),
+      t('report.more', { ast: L.ast, rec: L.rec, val: L.val, valPer: fmtNum(m.per.val) }),
+      '',
+      t('report.shooting'),
+      t('report.shots', { t1: shot(L.t1m, L.t1a), t2: shot(L.t2m, L.t2a), t3: shot(L.t3m, L.t3a) }),
+      '',
+      t('report.evolution'),
+    ];
+    if (m.evolution.length <= EVOLUTION_BY_GAME) {
+      for (const e of m.evolution) out.push(t('report.evoGame', { date: ctx.fmtDate(e.date), opponent: e.opponent, pts: e.pts, val: e.val }));
+    } else {
+      const months = new Map();
+      for (const e of m.evolution) {
+        const k = (e.date || '').slice(0, 7);
+        const x = months.get(k) || { date: e.date, n: 0, pts: 0, val: 0 };
+        x.n++; x.pts += e.pts; x.val += e.val;
+        months.set(k, x);
+      }
+      const monthName = new Intl.DateTimeFormat(ctx.locale || 'es', { month: 'short', timeZone: 'UTC' });
+      // El año, solo si el mismo mes aparece en años distintos (un ámbito de más de 12 meses)
+      const mm = [...months.keys()].map(k => k.slice(5));
+      for (const [k, x] of months) {
+        const repeated = mm.filter(m => m === k.slice(5)).length > 1;
+        const name = /^\d{4}-\d{2}$/.test(k)
+          ? monthName.format(new Date(`${k}-15T12:00:00Z`)).replace('.', '') + (repeated ? ` ${k.slice(0, 4)}` : '')
+          : '–';
+        out.push(t('report.evoMonth', { month: name, games: t('report.games', { n: x.n }), pts: fmtNum(x.pts / x.n), val: fmtNum(x.val / x.n) }));
+      }
+    }
+    if (m.phases.length) out.push(m.phases.map(p => t('report.phase', { phase: p.phase, pts: fmtNum(p.pts / p.games) })).join(' · '));
+
+    if (m.pm) {
+      out.push('', t('report.pmHead', { name: m.name }));
+      if (m.pm.periods < PM_MIN_PERIODS) out.push(t('report.pmFew', { min: PM_MIN_PERIODS }));
+      else {
+        out.push(t('report.pmLine', { name: m.name, pf: m.pm.pf, pc: m.pm.pc, pm: signed(m.pm.pm),
+          periods: t('report.periods', { n: fmtNum(m.pm.periods) }), games: t('report.games', { n: m.pm.games }) }));
+        out.push(t('report.pmTeam', { pm: signed(m.teamPm) }));
+        out.push(t('report.pmWhat', { name: m.name }), t('report.pmNot', { name: m.name }), t('report.pmHow'));
+      }
+    }
+
+    const adv = ['ts', 'efg', 'tov', 'ftr'].map(k => [k === 'efg' && m.adv.efg.fgOnly ? 'fg' : k, m.adv[k]]).filter(([, x]) => x.value != null && !x.hidden);
+    if (adv.length) {
+      out.push('', t('report.advHead'));
+      for (const [k, x] of adv) {
+        const v = k === 'ftr' ? fmtNum(x.value, 2) : fmtPct(x.value);
+        out.push(t('report.advLine', { name: t(`adv.${k}.name`), abbr: t(`adv.${k}.abbr`), value: `${v}${x.low ? '*' : ''}`, desc: t(`adv.${k}.desc`) }));
+      }
+      if (adv.some(([, x]) => x.low)) out.push(t('report.advLow'));
+    }
+    out.push('', ctx.site);
+    // Espacios normales (Intl usa espacios finos o duros en «48 %»), mejor para el correo
+    return out.join('\n').replace(/[  ]/g, ' ');
+  }
+
   root.MBCore = Object.freeze({
     EV_PTS, blankLine, addEvent, sumLines, finish, score, periodScores, playerLines, scoreFlow, lineupAt,
-    ADV_MIN, advanced, recordedOpts, stints, plusMinus, combos, rankCombos,
+    ADV_MIN, advanced, recordedOpts, stints, plusMinus, combos, rankCombos, PM_MIN_PERIODS, reportModel, reportText,
   });
 })(globalThis);

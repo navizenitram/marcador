@@ -44,6 +44,9 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
     partido, los quintetos usados. Toca una fila para ver en qué partidos jugó. La tabla lleva el **+/-** de cada
     jugador. Solo cuentan los partidos con registro de quintetos (desde la v3). Sin reloj: si hay cambios dentro de un
     periodo, ese periodo se reparte según las jugadas apuntadas con cada quinteto («≈»).
+  - **Informe del jugador**: en la temporada o una fase, toca el nombre de un jugador. Texto para la familia con
+    resumen, tiro, evolución, +/- (con el dato del equipo y qué significa) y avanzadas explicadas, para enviar por
+    email, copiar, compartir (WhatsApp) o descargar en .txt.
   - **Enviar**: email (`mailto:`), copiar o compartir (menú nativo del móvil). También descarga en **CSV** (con las
     avanzadas en las últimas columnas).
 - **Ajustes**: botones del partido que se quieren usar (con vista previa), copia de seguridad y enlace de apoyo (Ko-fi).
