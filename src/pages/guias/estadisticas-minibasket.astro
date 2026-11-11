@@ -7,7 +7,7 @@ import { APP_URL, TEMPLATE_PDF } from '../../consts';
   description="Guía práctica para entrenadores y familias: qué estadísticas tomar en minibasket y baloncesto formativo, cómo apuntarlas durante el partido y cómo convertirlas en objetivos de entrenamiento."
   h1="Estadísticas en minibasket: qué apuntar y cómo usarlas"
   lead="En baloncesto formativo el resultado importa menos que lo que aprende el equipo. Unas pocas estadísticas bien tomadas te dicen qué está mejorando y qué conviene trabajar en el próximo entrenamiento."
-  updated="2026-11-08"
+  updated="2026-11-11"
   crumb="Estadísticas en minibasket"
   origin="guia-estadisticas"
 >
@@ -89,6 +89,36 @@ import { APP_URL, TEMPLATE_PDF } from '../../consts';
     pero en formación tiene trampas: por ejemplo, penaliza a quien se atreve a tirar.
   </p>
 
+  <h2>Si la temporada tiene dos fases</h2>
+  <p>
+    En muchas competiciones de minibasket la temporada se divide en dos fases independientes. Según la clasificación de la
+    primera, en la segunda se juega contra equipos nuevos y en un nivel superior, igual o inferior, para que los partidos
+    estén más igualados. Eso cambia cómo conviene leer los datos:
+  </p>
+  <ul>
+    <li>
+      <strong>Compara dentro de cada fase.</strong> Si en la segunda fase subís de nivel, es normal que bajen los puntos y
+      los porcentajes. Eso no tiene por qué ser un paso atrás: el rival es más fuerte.
+    </li>
+    <li>
+      <strong>Apunta el nivel de cada fase.</strong> Al cabo de unos meses no recordarás en qué grupo jugabais, y el dato
+      explica muchas diferencias.
+    </li>
+    <li>
+      <strong>Mira la evolución dentro de la fase.</strong> Contra rivales parecidos, la mejora de un mes a otro se ve con
+      más claridad.
+    </li>
+    <li>
+      <strong>Separa los partidos de local y de visitante.</strong> Muchos equipos jóvenes rinden distinto fuera de casa:
+      otra pista, otros aros, más nervios.
+    </li>
+  </ul>
+  <p>
+    En Cantera Stats indicas en la ficha del equipo en qué fase estás y su nivel, y si cada partido es de local o de
+    visitante. Las estadísticas se pueden ver de cada fase por separado o de toda la temporada, con el balance de local y
+    de visitante.
+  </p>
+
   <h2>De los datos al entrenamiento</h2>
   <p>
     Las estadísticas solo sirven si cambian lo que haces el martes. Elige un objetivo por semana, entrénalo y míralo en el
@@ -123,7 +153,7 @@ import { APP_URL, TEMPLATE_PDF } from '../../consts';
     <p>
       Puedes apuntarlo todo en papel con la <a href={TEMPLATE_PDF} data-umami-event="descargar-plantilla" data-umami-event-origen="guia-estadisticas">plantilla imprimible</a>.
       Si prefieres no sumar a mano, Cantera Stats lo hace por ti: tocas la acción de cada jugador y al acabar tienes los
-      totales, los porcentajes, los parciales por periodo y la valoración, también de toda la temporada.
+      totales, los porcentajes, los parciales por periodo y la valoración, también de cada fase y de toda la temporada.
     </p>
     <div class="actions">
       <a class="btn btn-primary" href={APP_URL} data-umami-event="abrir-app" data-umami-event-origen="guia-estadisticas-cuerpo">Abrir la app gratis</a>

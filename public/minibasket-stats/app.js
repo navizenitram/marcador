@@ -65,7 +65,23 @@ function enabledOthers() { return OTHER_ACTIONS.filter(actEnabled); }
 const SAFE_ID = /^[\w-]{1,64}$/;
 const safeKey = (s) => SAFE_ID.test(s) && !(s in Object.prototype);
 const SAFE_DATE = /^[\d./-]{1,24}$/;   // la app guarda aaaa-mm-dd; basta con que sean dígitos y separadores
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;   // la que guarda la app y entiende un <input type=date>
 const MAX_PERIODS = 12;
+
+/* Fases de la temporada. En minibasket la temporada se divide en dos fases independientes: según la clasificación
+   de la 1ª, en la 2ª se juega contra equipos nuevos y en un nivel superior, el mismo o inferior (para que los
+   equipos estén más igualados). Cada equipo guarda la fase en la que está y el nivel de cada fase; cada partido,
+   la fase en la que se jugó y si se jugó de local o de visitante. */
+const PHASES = [1, 2];
+const MOVES = Object.assign(Object.create(null), {
+  up: { short: 'Sube', text: 'sube de nivel' },
+  same: { short: 'Igual', text: 'mismo nivel' },
+  down: { short: 'Baja', text: 'baja de nivel' },
+});
+const VENUES = Object.assign(Object.create(null), { home: 'Local', away: 'Visitante' });
+/* Fase y campo válidos a partir de lo que venga (datos guardados, copia importada o formulario) */
+const asPhase = (v) => (PHASES.includes(+v) ? +v : 1);
+const asVenue = (v) => (typeof v === 'string' && v in VENUES ? v : '');
 
 const objects = (v) => (Array.isArray(v) ? v.filter(x => x && typeof x === 'object') : []);
 /* Entero entre min y max; si no es un número (o es 0), el valor por defecto */
@@ -132,6 +148,10 @@ function normalize(d) {
     t.email = String(t.email || '');
     t.players = players(t.players);
     t.hidden = Array.isArray(t.hidden) ? t.hidden : [];
+    // Fase de la temporada en la que está el equipo y nivel en el que juega cada fase
+    t.phase = asPhase(t.phase);
+    t.levels = PHASES.map((n, i) => String((Array.isArray(t.levels) && t.levels[i]) || '').slice(0, 24));
+    t.move = t.move in MOVES ? t.move : '';
   }
   const teamIds = new Set(d.teams.map(t => t.id));
   for (const g of d.games) {
@@ -141,6 +161,8 @@ function normalize(d) {
     g.periods = intIn(g.periods, 1, MAX_PERIODS, 8);
     g.period = intIn(g.period, 1, g.periods, 1);
     if (typeof g.date !== 'string' || !SAFE_DATE.test(g.date)) g.date = '';
+    g.phase = asPhase(g.phase);
+    g.venue = asVenue(g.venue);
     g.roster = players(g.roster);
     g.onCourt = Array.isArray(g.onCourt) ? g.onCourt.filter(x => x != null && x !== '').map(fixId) : [];
     // Los periodos (de cada jugador y de cada jugada) tienen que ser números; no se recortan a g.periods
@@ -242,6 +264,37 @@ function getGame(id) { return db.games.find(g => g.id === id); }
 function perAbbr(g, n) { return (g.periods === 4 ? 'Q' : 'P') + n; }
 function perName(g) { return g.periods === 4 ? 'Cuarto' : 'Periodo'; }
 function perCount(g) { return g.periods === 4 ? '4 cuartos' : `${g.periods} periodos`; }
+
+/* Fases: «2ª fase»; el nivel y si se sube o se baja respecto a la 1ª: «Nivel B · sube de nivel» */
+function phaseName(n) { return `${n}ª fase`; }
+function phaseLevel(t, n) {
+  const parts = [(t && t.levels[n - 1]) || ''];
+  if (n === 2 && t && MOVES[t.move]) parts.push(MOVES[t.move].text);
+  return parts.filter(Boolean).join(' · ');
+}
+function phaseLabel(t, n) { return [phaseName(n), phaseLevel(t, n)].filter(Boolean).join(' · '); }
+/* Las fases solo se muestran en listas y estadísticas cuando el equipo ha llegado a la 2ª */
+function phasesUsed(t) { return !!t && (t.phase === 2 || db.games.some(g => g.teamId === t.id && g.phase === 2)); }
+
+/* Campo y fase de un partido, para los textos: «Local · 2ª fase» (la fase, solo si el equipo usa fases) */
+function gameMeta(g) {
+  const t = db.teams.find(t => t.id === g.teamId);
+  return [VENUES[g.venue] || '', phasesUsed(t) ? phaseName(g.phase) : ''].filter(Boolean).join(' · ');
+}
+
+/* Victorias, derrotas y empates de una lista de partidos (los sin finalizar aún no tienen resultado) */
+function winLoss(games) {
+  const r = { w: 0, l: 0, t: 0, done: 0, pf: 0, pc: 0 };
+  for (const g of games) {
+    if (!g.finished) continue;
+    const s = score(g);
+    r.done++; r.pf += s.us; r.pc += s.them;
+    if (s.us > s.them) r.w++; else if (s.us < s.them) r.l++; else r.t++;
+  }
+  return r;
+}
+
+function nGames(n) { return `${n} partido${n === 1 ? '' : 's'}`; }
 
 function pLabel(p) { return p ? `#${p.number} ${p.name}` : '¿?'; }
 
@@ -389,8 +442,9 @@ function gameRows(g) {
   });
 }
 
-function seasonRows() {
-  const games = teamGames().sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0));
+/* Filas de la temporada (o de una fase): la suma de los partidos indicados */
+function seasonRows(list) {
+  const games = [...list].sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0));
   const map = {};
   const ensure = (p) => {
     if (!map[p.id]) map[p.id] = { id: p.id, number: p.number, name: p.name, line: blankLine(), gp: 0, nper: 0 };
@@ -584,21 +638,19 @@ function shell(active, content) {
 function viewTeams() {
   const cards = db.teams.map(t => {
     const games = db.games.filter(g => g.teamId === t.id);
-    let w = 0, l = 0;
     // Como en la temporada: un partido sin finalizar aún no tiene resultado
-    for (const g of games) {
-      if (!g.finished) continue;
-      const sc = score(g);
-      if (sc.us > sc.them) w++; else if (sc.us < sc.them) l++;
-    }
+    const { w, l } = winLoss(games);
     const live = games.some(g => !g.finished);
+    // Fase y nivel actuales (sin «sube / baja de nivel», que no cabe en la tarjeta)
+    const phase = phasesUsed(t) || t.levels[0] ? [phaseName(t.phase), t.levels[t.phase - 1]].filter(Boolean).join(' · ') : '';
     return `
     <li class="team-card ${t.id === db.currentTeamId ? 'current' : ''}">
       <button class="team-pick" data-action="pick-team" data-id="${t.id}">
         ${crest(t.name)}
         <span class="team-info">
           <span class="team-name">${esc(t.name)}</span>
-          <small>${t.players.length} jugador${t.players.length === 1 ? '' : 'es'} · ${games.length} partido${games.length === 1 ? '' : 's'}${games.length ? ` · ${w}V ${l}D` : ''}</small>
+          <small>${t.players.length} jugador${t.players.length === 1 ? '' : 'es'} · ${nGames(games.length)}${games.length ? ` · ${w}V ${l}D` : ''}</small>
+          ${phase ? `<small class="team-phase">${esc(phase)}</small>` : ''}
           ${live ? '<span class="team-live"><span class="dot"></span>Partido en juego</span>' : ''}
         </span>
       </button>
@@ -684,6 +736,8 @@ function viewTeam() {
         <label>Email para enviar estadísticas <span class="muted">(opcional)</span><input data-change="team-email" type="email" placeholder="entrenador@club.com" value="${esc(team().email)}"></label>
       </div>
       <p class="muted small">Los botones del partido y la copia de seguridad están en <a href="#/ajustes">Ajustes</a>.</p>
+
+      ${seasonForm(team())}
     </section>
 
     <section class="card grow">
@@ -702,6 +756,44 @@ function viewTeam() {
   </div>`);
 }
 
+/* Fase de la temporada en la que está el equipo y nivel en el que juega cada fase */
+function seasonForm(t) {
+  return `
+      <h2>Temporada</h2>
+      <div class="stack season-form">
+        <div class="field">
+          <span class="field-label">¿En qué fase estáis?</span>
+          <div class="seg wide" role="group" aria-label="Fase actual">
+            ${PHASES.map(n => `<button class="${t.phase === n ? 'on' : ''}" data-action="team-phase" data-v="${n}" aria-pressed="${t.phase === n}">${phaseName(n)}</button>`).join('')}
+          </div>
+        </div>
+        ${PHASES.filter(n => n <= t.phase).map(n => `
+        <label>Nivel en la ${phaseName(n)} <span class="muted">(opcional)</span><input data-change="team-level" data-phase="${n}" maxlength="24" placeholder="Ej.: Nivel B, Grupo 3…" value="${esc(t.levels[n - 1])}"></label>`).join('')}
+        ${t.phase === 2 ? `
+        <div class="field">
+          <span class="field-label">Nivel de la 2ª fase respecto a la 1ª</span>
+          <div class="seg wide" role="group" aria-label="Nivel respecto a la 1ª fase">
+            ${Object.entries(MOVES).map(([k, m]) => `<button class="${t.move === k ? 'on' : ''}" data-action="team-move" data-v="${k}" aria-pressed="${t.move === k}">${m.short}</button>`).join('')}
+          </div>
+        </div>` : ''}
+      </div>
+      <p class="muted small">En minibasket la temporada suele tener dos fases independientes: según la clasificación de la 1ª, en la 2ª se juega contra equipos nuevos de un nivel superior, igual o inferior.
+      Los partidos nuevos se apuntan en la fase actual y las estadísticas se pueden ver por fase.</p>`;
+}
+
+/* Botones de local / visitante de los formularios de partido. En un partido nuevo no hay ninguno marcado:
+   hay que elegirlo (si no, se apuntarían como local partidos de fuera y el balance saldría mal). */
+function venueField(cur) {
+  return `
+        <div class="field venue-field">
+          <span class="field-label">Campo</span>
+          <div class="seg-radio">
+            ${[['home', 'En casa'], ['away', 'Fuera']].map(([v, d]) => `
+              <label><input type="radio" name="venue" value="${v}" ${cur === v ? 'checked' : ''}><span><b>${VENUES[v]}</b><small>${d}</small></span></label>`).join('')}
+          </div>
+        </div>`;
+}
+
 /* ── Partidos ── */
 const RESULT = { win: 'Victoria', loss: 'Derrota', tie: 'Empate' };
 
@@ -717,6 +809,7 @@ function viewGames() {
       <form data-form="game" class="stack" autocomplete="off">
         <label>Rival<input name="opponent" maxlength="24" required placeholder="Nombre del rival"></label>
         <label>Fecha<input name="date" type="date" required value="${todayISO()}"></label>
+        ${venueField('')}
         <div class="field">
           <span class="field-label">Duración</span>
           <div class="seg-radio">
@@ -724,32 +817,53 @@ function viewGames() {
               <label><input type="radio" name="periods" value="${n}" ${n === (lastPeriods === 4 ? 4 : 8) ? 'checked' : ''}><span><b>${t}</b><small>${d}</small></span></label>`).join('')}
           </div>
         </div>
+        <p class="muted small phase-line">Se apunta en la <b>${esc(phaseLabel(team(), team().phase))}</b> · <a href="#/equipo">Cambiar</a></p>
         <button class="btn primary big" type="submit" ${hasPlayers ? '' : 'disabled'}>${icon('play', 'solid')} Empezar partido</button>
       </form>
     </section>
 
     <section class="card grow">
       <h2>Partidos <span class="muted">(${games.length})</span></h2>
-      ${games.length ? `<ul class="games">${games.map(g => {
-        const s = score(g);
-        const res = s.us > s.them ? 'win' : s.us < s.them ? 'loss' : 'tie';
-        const d = dateParts(g.date);
-        const mark = g.finished
-          ? `<span class="g-res ${res}" title="${RESULT[res]}">${RESULT[res][0]}</span>`
-          : '<span class="g-res now" title="En juego"><span class="dot"></span></span>';
-        return `
-        <li>
-          <span class="g-date" title="${fmtDate(g.date)}"><b>${d.day}</b><small>${d.month}</small></span>
-          <span class="g-main"><b>vs ${esc(g.opponent)}</b><small>${g.finished ? 'Finalizado' : `En juego · ${perAbbr(g, g.period)}`} · ${perCount(g)}</small></span>
-          ${mark}
-          <span class="g-score ${g.finished ? res : ''}">${s.us}<i>–</i>${s.them}</span>
-          <a class="btn" href="#/partido/${g.id}">${g.finished ? 'Abrir' : 'Continuar'}</a>
-          <a class="icon-btn" href="#/stats/${g.id}" title="Estadísticas" aria-label="Estadísticas del partido contra ${esc(g.opponent)}">${icon('chart')}</a>
-          <button class="icon-btn danger" data-action="del-game" data-id="${g.id}" title="Borrar" aria-label="Borrar el partido contra ${esc(g.opponent)}">${icon('trash')}</button>
-        </li>`;
-      }).join('')}</ul>` : `<p class="empty">Todavía no hay partidos.</p>`}
+      ${games.length ? gameList(games) : `<p class="empty">Todavía no hay partidos.</p>`}
     </section>
   </div>`);
+}
+
+/* Lista de partidos. Si el equipo ha llegado a la 2ª fase, se agrupan por fase (la más reciente arriba),
+   cada una con su nivel y su balance de victorias y derrotas. */
+function gameList(games) {
+  const t = team();
+  if (!phasesUsed(t)) return gameItems(games);
+  return [...PHASES].reverse().map(n => {
+    const list = games.filter(g => g.phase === n);
+    if (!list.length) return '';
+    const r = winLoss(list);
+    return `
+      <h3 class="sub phase-head"><span>${esc(phaseLabel(t, n))}</span><span class="phase-rec">${r.w}V ${r.l}D${r.t ? ` ${r.t}E` : ''}</span></h3>
+      ${gameItems(list)}`;
+  }).join('');
+}
+
+function gameItems(games) {
+  return `<ul class="games">${games.map(g => {
+    const s = score(g);
+    const res = s.us > s.them ? 'win' : s.us < s.them ? 'loss' : 'tie';
+    const d = dateParts(g.date);
+    const mark = g.finished
+      ? `<span class="g-res ${res}" title="${RESULT[res]}">${RESULT[res][0]}</span>`
+      : '<span class="g-res now" title="En juego"><span class="dot"></span></span>';
+    return `
+    <li>
+      <span class="g-date" title="${fmtDate(g.date)}"><b>${d.day}</b><small>${d.month}</small></span>
+      <span class="g-main"><b>vs ${esc(g.opponent)}</b><small>${g.finished ? 'Finalizado' : `En juego · ${perAbbr(g, g.period)}`}${g.venue ? ` · ${VENUES[g.venue]}` : ''} · ${perCount(g)}</small></span>
+      ${mark}
+      <span class="g-score ${g.finished ? res : ''}">${s.us}<i>–</i>${s.them}</span>
+      <a class="btn" href="#/partido/${g.id}">${g.finished ? 'Abrir' : 'Continuar'}</a>
+      <a class="icon-btn" href="#/stats/${g.id}" title="Estadísticas" aria-label="Estadísticas del partido contra ${esc(g.opponent)}">${icon('chart')}</a>
+      <button class="icon-btn" data-action="edit-game" data-id="${g.id}" title="Editar" aria-label="Editar el partido contra ${esc(g.opponent)}">${icon('edit')}</button>
+      <button class="icon-btn danger" data-action="del-game" data-id="${g.id}" title="Borrar" aria-label="Borrar el partido contra ${esc(g.opponent)}">${icon('trash')}</button>
+    </li>`;
+  }).join('')}</ul>`;
 }
 
 /* ── Partido en directo ── */
@@ -916,13 +1030,23 @@ const COLS = [
   { k: 'val', h: 'VAL', t: 'Valoración', cls: 'hl c-val', g: 'val' },
 ];
 
+/* Estadísticas de varios partidos: toda la temporada ('temporada') o una de sus fases ('fase-1', 'fase-2').
+   Devuelve la fase (0 para la temporada completa) y sus partidos, o null si arg es otra cosa (un partido). */
+function seasonScope(arg) {
+  if (arg === 'temporada') return { phase: 0, games: sortedGames() };
+  const m = /^fase-(\d)$/.exec(arg || '');
+  if (!m || !PHASES.includes(+m[1])) return null;
+  return { phase: +m[1], games: sortedGames().filter(g => g.phase === +m[1]) };
+}
+
 function statsData(arg) {
   const games = sortedGames();
-  if (arg === 'temporada') {
-    let rows = seasonRows();
-    const total = totalsRow(rows, teamGames().length);
+  const scope = seasonScope(arg);
+  if (scope) {
+    let rows = seasonRows(scope.games);
+    const total = totalsRow(rows, scope.games.length);
     if (ui.avg) rows = rows.map(averageRow);
-    return { season: true, rows, total: ui.avg ? averageRow(total) : total, games };
+    return { season: true, phase: scope.phase, scopeGames: scope.games, rows, total: ui.avg ? averageRow(total) : total, games };  // scopeGames: del más reciente al más antiguo
   }
   const g = getGame(arg);
   if (!g) return null;
@@ -937,15 +1061,25 @@ function viewStats(arg) {
   }
   if (!arg) { arg = games[0].id; history.replaceState(null, '', `#/stats/${arg}`); }
   const data = statsData(arg);
-  if (!data) { history.replaceState(null, '', '#/stats/temporada'); return viewStats('temporada'); }
+  // Un partido que no existe, o una fase cuando el equipo no usa fases (no está en el selector): la temporada
+  if (!data || (data.phase && !phasesUsed(team()))) { history.replaceState(null, '', '#/stats/temporada'); return viewStats('temporada'); }
 
-  const options = `<option value="temporada" ${data.season ? 'selected' : ''}>Temporada · ${games.length} partido${games.length === 1 ? '' : 's'}</option>` +
-    games.map(g => { const s = score(g); return `<option value="${g.id}" ${!data.season && data.game.id === g.id ? 'selected' : ''}>${fmtDate(g.date, true)} · vs ${esc(g.opponent)} (${s.us}-${s.them})</option>`; }).join('');
+  // Temporada completa, cada fase (si el equipo ha llegado a la 2ª) y cada partido, agrupados por fase
+  const used = phasesUsed(team());
+  const scopes = [['temporada', `Temporada · ${nGames(games.length)}`]];
+  if (used) for (const n of PHASES) scopes.push([`fase-${n}`, `${phaseName(n)} · ${nGames(games.filter(g => g.phase === n).length)}`]);
+  const gameOpt = (g) => { const s = score(g); return `<option value="${g.id}" ${!data.season && data.game.id === g.id ? 'selected' : ''}>${fmtDate(g.date, true)} · vs ${esc(g.opponent)} (${s.us}-${s.them})</option>`; };
+  const options = scopes.map(([v, label]) => `<option value="${v}" ${data.season && arg === v ? 'selected' : ''}>${label}</option>`).join('') +
+    (used
+      ? [...PHASES].reverse().map(n => { const list = games.filter(g => g.phase === n); return list.length ? `<optgroup label="${phaseName(n)}">${list.map(gameOpt).join('')}</optgroup>` : ''; }).join('')
+      : games.map(gameOpt).join(''));
   const g = data.game;
+  const level = data.phase ? phaseLevel(team(), data.phase) : '';
 
   const head = `
     <div class="stats-head">
-      <select data-change="stats-select" class="stats-select" aria-label="Partido o temporada">${options}</select>
+      <select data-change="stats-select" class="stats-select" aria-label="Partido, fase o temporada">${options}</select>
+      ${level ? `<span class="phase-info">${esc(level)}</span>` : ''}
       ${data.season ? `
         <div class="seg">
           <button class="${ui.avg ? '' : 'on'}" data-action="avg" data-v="0">Totales</button>
@@ -960,7 +1094,7 @@ function viewStats(arg) {
 
   return shell('stats', `
     ${head}
-    ${data.season ? seasonSummary() : gameSummary(g)}
+    ${data.season ? seasonSummary(data.scopeGames) : gameSummary(g)}
     ${leaders(data)}
     <section class="card table-card">${statsTable(data)}</section>
     <p class="muted small formula"><b>VAL</b> (valoración ACB) = puntos + rebotes + asistencias + recuperaciones + tapones + faltas recibidas − tiros fallados (cada uno resta 1) − tapones recibidos − pérdidas − faltas cometidas.
@@ -971,13 +1105,14 @@ function viewStats(arg) {
 
 function gameSummary(g) {
   const s = score(g);
+  const meta = gameMeta(g);
   const ps = periodScores(g);
   const res = s.us > s.them ? 'win' : s.us < s.them ? 'loss' : 'tie';
   return `
   <section class="card summary">
     <div class="final">
       <div class="ft us"><small>${esc(g.teamName)}</small><b>${s.us}</b></div>
-      <div class="ft-mid">${g.finished ? `<span class="badge ${res}">${RESULT[res]}</span>` : '<span class="badge"><span class="dot"></span>En juego</span>'}<small>${fmtDate(g.date)}</small></div>
+      <div class="ft-mid">${g.finished ? `<span class="badge ${res}">${RESULT[res]}</span>` : '<span class="badge"><span class="dot"></span>En juego</span>'}<small>${fmtDate(g.date)}</small>${meta ? `<small class="g-meta">${meta}</small>` : ''}</div>
       <div class="ft them"><small>${esc(g.opponent)}</small><b>${s.them}</b></div>
     </div>
     <div class="ptable-wrap">
@@ -1126,21 +1261,16 @@ function flowReset(el) {
 for (const type of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel']) document.addEventListener(type, flowScrub);
 document.documentElement.addEventListener('pointerleave', () => document.querySelectorAll('.flow.scrub').forEach(flowReset));
 
-function seasonSummary() {
-  let w = 0, l = 0, t = 0, pf = 0, pc = 0, done = 0;
-  const games = teamGames();
-  for (const g of games) {
-    // Un partido sin finalizar aún no tiene resultado: no cuenta como victoria, derrota ni empate,
-    // ni entra en los promedios de puntos (un marcador a medias los rebajaría).
-    if (!g.finished) continue;
-    const s = score(g);
-    done++;
-    pf += s.us; pc += s.them;
-    if (s.us > s.them) w++; else if (s.us < s.them) l++; else t++;
-  }
+function seasonSummary(games) {
+  // Un partido sin finalizar aún no tiene resultado: no cuenta como victoria, derrota ni empate,
+  // ni entra en los promedios de puntos (un marcador a medias los rebajaría).
+  const { w, l, t, done, pf, pc } = winLoss(games);
   const open = games.length - done;
   const avg = (v) => (done ? round1(v / done) : '–');
   const box = (v, lbl, cls = '') => `<div class="kpi ${cls}"><b>${v}</b><small>${lbl}</small></div>`;
+  // Balance de local y de visitante, si algún partido finalizado lo tiene apuntado
+  const venues = Object.keys(VENUES).map(v => [v, winLoss(games.filter(g => g.venue === v))]).filter(([, r]) => r.done);
+  const venueBox = ([v, r]) => { return box(`${r.w}–${r.l}${r.t ? `–${r.t}` : ''}`, `${VENUES[v]} (V–D${r.t ? '–E' : ''})`); };
   return `
   <section class="card summary">
     <div class="kpis">
@@ -1155,8 +1285,9 @@ function seasonSummary() {
         ${box(avg(pf), 'Puntos a favor / partido')}
         ${box(avg(pc), 'Puntos en contra / partido')}
       </div>
+      ${venues.length ? `<div class="kpi-row">${venues.map(venueBox).join('')}</div>` : ''}
     </div>
-    ${seasonTrend()}
+    ${seasonTrend(games)}
   </section>`;
 }
 
@@ -1165,8 +1296,8 @@ function seasonSummary() {
    Los partidos sin finalizar se dibujan solo con el contorno, y los que no tienen ninguna jugada no salen. */
 const TREND_MAX = 24;
 
-function seasonTrend() {
-  const all = teamGames()
+function seasonTrend(games) {
+  const all = games
     .filter(g => g.finished || g.events.length)
     .sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0));
   const items = all.slice(-TREND_MAX).map(g => { const s = score(g); return { g, s, d: s.us - s.them }; });
@@ -1274,6 +1405,7 @@ function refreshModal() {
   else if (m.kind === 'log') html = renderLog(m);
   else if (m.kind === 'confirm') html = renderConfirm(m);
   else if (m.kind === 'share') html = renderShare(m);
+  else if (m.kind === 'edit-game') html = renderEditGame(m);
   modalEl.innerHTML = `<div class="modal-back"><div class="modal ${m.kind}">${html}</div></div>`;
   modalEl.hidden = false;
 }
@@ -1347,12 +1479,14 @@ function renderSwap(m) {
 
 function renderMenu(m) {
   const g = getGame(m.gid);
+  const meta = gameMeta(g);
   return `
-  <div class="modal-head"><h3>vs ${esc(g.opponent)} · ${fmtDate(g.date)}</h3></div>
+  <div class="modal-head"><h3>vs ${esc(g.opponent)} · ${fmtDate(g.date)}${meta ? ` <small class="muted">· ${meta}</small>` : ''}</h3></div>
   <div class="menu-list">
     <button class="btn" data-action="lineup">${icon('swap')} Jugadores en pista</button>
     <button class="btn" data-action="log">${icon('list')} Jugadas registradas (${g.events.length})</button>
     <a class="btn" href="#/stats/${g.id}">${icon('chart')} Estadísticas del partido</a>
+    <button class="btn" data-action="edit-game" data-id="${g.id}">${icon('edit')} Editar partido</button>
     <button class="btn" data-action="theme">${isLight() ? `${icon('moon')} Modo oscuro` : `${icon('sun')} Modo claro`}</button>
     ${document.fullscreenEnabled ? `<button class="btn" data-action="fullscreen">${icon(document.fullscreenElement ? 'compress' : 'expand')} Pantalla completa</button>` : ''}
     ${g.finished
@@ -1360,6 +1494,32 @@ function renderMenu(m) {
       : `<button class="btn finish" data-action="finish" data-id="${g.id}">${icon('flag')} Finalizar partido</button>`}
     <a class="btn" href="#/partidos">${icon('exit')} Salir a partidos</a>
   </div>`;
+}
+
+/* Rival, fecha, campo y fase de un partido ya creado (la duración no se cambia: la usan sus jugadas) */
+function renderEditGame(m) {
+  const g = getGame(m.gid);
+  const t = db.teams.find(t => t.id === g.teamId);
+  return `
+  <div class="modal-head"><h3>Editar partido</h3></div>
+  <form data-form="game-edit" class="stack" autocomplete="off">
+    <div class="form-pair">
+      <label>Rival<input name="opponent" maxlength="24" required value="${esc(g.opponent)}"></label>
+      <label>Fecha<input name="date" type="date" ${ISO_DATE.test(g.date) ? 'required ' : ''}value="${esc(g.date)}"></label>
+    </div>
+    ${venueField(g.venue)}
+    <div class="field">
+      <span class="field-label">Fase</span>
+      <div class="seg-radio">
+        ${PHASES.map(n => `
+          <label><input type="radio" name="phase" value="${n}" ${g.phase === n ? 'checked' : ''}><span><b>${phaseName(n)}</b><small>${esc(phaseLevel(t, n)) || '&nbsp;'}</small></span></label>`).join('')}
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn" data-action="modal-close">Cancelar</button>
+      <button class="btn primary" type="submit">${icon('check')} Guardar</button>
+    </div>
+  </form>`;
 }
 
 function eventText(g, e) {
@@ -1620,6 +1780,10 @@ const actions = {
     if (ui.modal) closeModal(true);
     if (await confirmBox(`¿Finalizar el partido contra <b>${esc(g.opponent)}</b>?<br><small class="muted">Podrás reabrirlo desde el menú del partido.</small>`, `${icon('flag')} Finalizar`)) finishGame(g);
   },
+  'edit-game'(el) {
+    const g = getGame(el.dataset.id);
+    if (g) openModal({ kind: 'edit-game', gid: g.id });
+  },
   reopen(el) {
     const g = getGame(el.dataset.id);
     if (!g) return;
@@ -1656,6 +1820,18 @@ const actions = {
     if (hidden.includes(id)) team().hidden = hidden.filter(x => x !== id);
     else if (OPTIONS.length - hidden.length <= 1) { toast('Tiene que quedar al menos un botón'); return; }
     else hidden.push(id);
+    save(); vibrate(8); render();
+  },
+  'team-phase'(el) {
+    const n = +el.dataset.v;
+    if (!PHASES.includes(n) || team().phase === n) return;
+    team().phase = n;
+    save(); vibrate(8); render();
+    toast(`Los partidos nuevos se apuntarán en la ${phaseName(n)}`);
+  },
+  'team-move'(el) {
+    const t = team();
+    t.move = t.move === el.dataset.v ? '' : el.dataset.v;   // al tocar la opción elegida, se quita
     save(); vibrate(8); render();
   },
   'opts-all'() { team().hidden = []; save(); render(); toast('Todos los botones activados'); },
@@ -1731,7 +1907,7 @@ document.addEventListener('submit', async (e) => {
     const name = String(fd.get('name') || '').trim();
     if (!name) return;
     const cur = team();
-    const t = { id: uid(), name, email: cur ? cur.email : '', players: [], hidden: [] };
+    const t = { id: uid(), name, email: cur ? cur.email : '', players: [], hidden: [], phase: 1, levels: ['', ''], move: '' };
     db.teams.push(t);
     db.currentTeamId = t.id;
     ui.editId = null;
@@ -1741,8 +1917,26 @@ document.addEventListener('submit', async (e) => {
     toast(`Equipo ${esc(name)} creado. Añade sus jugadores.`);
   }
 
+  if (kind === 'game-edit') {
+    const g = ui.modal && getGame(ui.modal.gid);
+    if (!g) return;
+    g.opponent = String(fd.get('opponent') || '').trim() || g.opponent;
+    const date = String(fd.get('date') || '');
+    if (ISO_DATE.test(date)) g.date = date;   // vacío: se conserva la fecha que tenía
+    g.venue = asVenue(fd.get('venue'));
+    g.phase = asPhase(fd.get('phase'));
+    save(); closeModal(true); render();
+    toast('Partido actualizado');
+  }
+
   if (kind === 'game') {
     if (!team().players.length) return;
+    if (!asVenue(fd.get('venue'))) {
+      form.querySelector('.venue-field').classList.add('need');
+      toast('Elige si jugáis de local o de visitante');
+      vibrate(40);
+      return;
+    }
     const opponent = String(fd.get('opponent') || '').trim() || 'Rival';
     await offerFinishPending();
     const g = {
@@ -1759,6 +1953,8 @@ document.addEventListener('submit', async (e) => {
       played: {},
       events: [],
       finished: false,
+      phase: team().phase,
+      venue: asVenue(fd.get('venue')),
     };
     db.games.push(g);
     save();
@@ -1769,12 +1965,19 @@ document.addEventListener('submit', async (e) => {
 
 document.addEventListener('change', (e) => {
   const el = e.target;
+  if (el.name === 'venue') { const f = el.closest('.venue-field'); if (f) f.classList.remove('need'); }
   const k = el.dataset && el.dataset.change;
   if (!k) return;
   if (k === 'team-name') {
     team().name = el.value.trim() || 'Mi equipo';
     for (const g of db.games) if (!g.finished && g.teamId === team().id) g.teamName = team().name;
     save(); render();
+  } else if (k === 'team-level') {
+    const n = +el.dataset.phase;
+    if (!PHASES.includes(n)) return;
+    team().levels[n - 1] = el.value.trim().slice(0, 24);
+    save();
+    toast(`Nivel de la ${phaseName(n)} guardado`);
   } else if (k === 'team-email') {
     team().email = el.value.trim();
     save();
@@ -1824,13 +2027,17 @@ function buildText(arg) {
   if (!data) return '';
   const out = [];
   if (data.season) {
-    const n = teamGames().length;
-    out.push(`${team().name} · Estadísticas de temporada (${n} partido${n === 1 ? '' : 's'})${ui.avg ? ' · promedio por partido' : ''}`);
-    for (const g of sortedGames()) { const s = score(g); out.push(`  ${fmtDate(g.date)} vs ${g.opponent}: ${s.us}-${s.them}${g.finished ? '' : ' (en juego)'}`); }
+    const what = data.phase ? `Estadísticas de la ${phaseLabel(team(), data.phase)}` : 'Estadísticas de temporada';
+    out.push(`${team().name} · ${what} (${nGames(data.scopeGames.length)})${ui.avg ? ' · promedio por partido' : ''}`);
+    for (const g of data.scopeGames) {
+      const s = score(g);
+      out.push(`  ${fmtDate(g.date)} vs ${g.opponent}${g.venue ? ` (${VENUES[g.venue].toLowerCase()})` : ''}: ${s.us}-${s.them}${g.finished ? '' : ' (en juego)'}`);
+    }
   } else {
     const g = data.game, s = score(g), ps = periodScores(g);
     out.push(`${g.teamName} ${s.us} - ${s.them} ${g.opponent}`);
-    out.push(`Fecha: ${fmtDate(g.date)}`);
+    const meta = gameMeta(g);
+    out.push(`Fecha: ${fmtDate(g.date)}${meta ? ` · ${meta}` : ''}`);
     out.push(`Parciales: ${ps.us.map((v, i) => `${perAbbr(g, i + 1)} ${v}-${ps.them[i]}`).join(' | ')}`);
   }
   out.push('');
@@ -1850,7 +2057,9 @@ function buildText(arg) {
 
 function statsTitle(arg) {
   const g = getGame(arg);
-  return g ? `${g.teamName} vs ${g.opponent} · ${fmtDate(g.date)}` : `${team().name} · Temporada`;
+  if (g) return `${g.teamName} vs ${g.opponent} · ${fmtDate(g.date)}`;
+  const scope = seasonScope(arg);
+  return `${team().name} · ${scope && scope.phase ? phaseName(scope.phase) : 'Temporada'}`;
 }
 
 function shareStats(arg) {
@@ -1884,7 +2093,7 @@ function downloadCSV(arg) {
     return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   }).join(';')).join('\r\n');
   const g = getGame(arg);
-  const name = g ? `estadisticas-${g.date}-vs-${g.opponent}` : `estadisticas-temporada-${todayISO()}`;
+  const name = g ? `estadisticas-${g.date}-vs-${g.opponent}` : `estadisticas-${data.phase ? `fase-${data.phase}` : 'temporada'}-${todayISO()}`;
   download(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }), name.replace(/[^\w\-áéíóúñü]+/gi, '_') + '.csv');
 }
 
