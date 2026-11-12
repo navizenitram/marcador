@@ -29,7 +29,8 @@ export const home = {
     ],
     actionsTitle: 'Qué puedes apuntar',
     actionsIntro: 'Hasta 15 botones por jugador. Activa solo los que quieras usar: con menos botones, cada uno es más grande y más fácil de tocar.',
-    miniTitle: 'Pensada para el minibasket',
+    miniTitle: 'Para crecer con datos, desde la base',
+    miniIntro: 'Pensada para el baloncesto formativo y para cualquiera que quiera mejorar a partir de sus números: del minibasket a categorías superiores.',
     mini: [
       'Partidos de 8 periodos o de 4 cuartos, de local o de visitante.',
       'Temporada en dos fases: indicas en cuál estás y el nivel de cada una, y si en la segunda subes, bajas o sigues igual.',
@@ -111,7 +112,8 @@ export const home = {
     ],
     actionsTitle: 'Què pots apuntar',
     actionsIntro: 'Fins a 15 botons per jugador. Activa només els que vulguis fer servir: amb menys botons, cadascun és més gran i més fàcil de tocar.',
-    miniTitle: 'Pensada per al minibàsquet',
+    miniTitle: 'Per créixer amb dades, des de la base',
+    miniIntro: 'Pensada per al bàsquet formatiu i per a tothom qui vulgui millorar a partir dels seus números: del minibàsquet a categories superiors.',
     mini: [
       'Partits de 8 períodes o de 4 quarts, a casa o a fora.',
       'Temporada en dues fases: indiques en quina ets i el nivell de cadascuna, i si a la segona puges, baixes o et quedes igual.',
