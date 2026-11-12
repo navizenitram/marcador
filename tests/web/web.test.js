@@ -7,6 +7,7 @@ import vm from 'node:vm';
 import { JSDOM } from 'jsdom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { home } from '../../src/i18n/home.ts';
+import { X_URL } from '../../src/consts.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const APP = join(ROOT, 'public/minibasket-stats');
@@ -90,8 +91,8 @@ describe('textos de la portada (src/i18n/home.ts)', () => {
     const links = [...es.faqs, ...ca.faqs].filter((f) => f.link).map((f) => f.link.href);
     expect(links.length).toBeGreaterThan(0);
     for (const href of links) {
-      // Los enlaces externos (por ejemplo, el perfil de X) solo tienen que ir por https
-      if (/^https?:/.test(href)) { expect(href.startsWith('https://'), href).toBe(true); continue; }
+      // Los únicos enlaces externos permitidos son webs conocidas (el perfil de X); el resto tienen que ser páginas del sitio
+      if (/^[a-z]+:|^\/\//i.test(href)) { expect([X_URL], href).toContain(href); continue; }
       const page = href.replace(/^\/|\/$/g, '');
       const exists = existsSync(join(ROOT, 'src/pages', `${page}.astro`)) || existsSync(join(ROOT, 'src/pages', page, 'index.astro'));
       expect(exists, href).toBe(true);

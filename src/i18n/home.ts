@@ -1,5 +1,8 @@
 // Textos de la portada en castellano y catalán. El maquetado está en src/components/Home.astro.
-export interface Faq { q: string; a: string; link?: { href: string; text: string } }
+import { X_HANDLE, X_URL } from '../consts';
+
+// external: enlace a otra web (se abre en una pestaña nueva); event: nombre del evento de Umami al pulsarlo
+export interface Faq { q: string; a: string; link?: { href: string; text: string; external?: boolean; event?: string } }
 
 export const home = {
   es: {
@@ -85,8 +88,8 @@ export const home = {
       },
       {
         q: '¿Dónde pido ayuda o propongo mejoras?',
-        a: 'En X, en @myownbbstats. Ahí anuncio las novedades de cada versión y respondo dudas, sugerencias y errores que encuentres.',
-        link: { href: 'https://x.com/myownbbstats', text: 'Escríbeme en X' },
+        a: `En X, en ${X_HANDLE}. Ahí anuncio las novedades de cada versión y respondo dudas, sugerencias y errores que encuentres.`,
+        link: { href: X_URL, text: 'Escríbeme en X', external: true, event: 'x' },
       },
     ] as Faq[],
   },
@@ -169,8 +172,8 @@ export const home = {
       },
       {
         q: 'On demano ajuda o proposo millores?',
-        a: "A X, a @myownbbstats. Allà anuncio les novetats de cada versió i responc dubtes, suggeriments i errors que trobis.",
-        link: { href: 'https://x.com/myownbbstats', text: "Escriu-me a X" },
+        a: `A X, a ${X_HANDLE}. Allà anuncio les novetats de cada versió i responc dubtes, suggeriments i errors que trobis.`,
+        link: { href: X_URL, text: 'Escriu-me a X', external: true, event: 'x' },
       },
     ] as Faq[],
   },

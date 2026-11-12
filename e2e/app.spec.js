@@ -268,3 +268,12 @@ test.describe('en vertical', () => {
     for (const [selector, offset] of Object.entries(centers)) expect(Math.abs(offset), `${selector} se desvía ${offset}px del centro`).toBeLessThanOrEqual(3);
   });
 });
+
+test('Ajustes enlaza al perfil de X para pedir ayuda y proponer mejoras', async ({ page }) => {
+  await seed(page, makeData());
+  await page.goto(`${APP}#/ajustes`);
+  await expect(page.getByRole('heading', { name: 'Ayuda y sugerencias' })).toBeVisible();
+  const link = page.getByRole('link', { name: /Escríbeme en X \(@myownbbstats\)/ });
+  await expect(link).toHaveAttribute('href', 'https://x.com/myownbbstats');
+  await expect(link).toHaveAttribute('target', '_blank');
+});

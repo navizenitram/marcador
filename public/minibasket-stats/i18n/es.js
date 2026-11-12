@@ -83,5 +83,11 @@
   'report.mailTooLong': 'El informe es demasiado largo para abrirlo directamente en el correo: cópialo y pégalo en un email, o compártelo.',
   'share.download': 'Descargar .txt',
 
+  'help.title': 'Ayuda y sugerencias',
+  'help.text': '¿Tienes dudas, has encontrado un error o se te ocurre una mejora? Escríbeme en X, donde también anuncio las novedades de cada versión.',
+  'help.button': 'Escríbeme en X ({handle})',
+  'help.privacy': 'Si necesitas ayuda o quieres proponer mejoras, escríbeme en',
+  'help.link': 'X ({handle})',
+
   'adv.glossaryNote': 'En minibasket no hay valores de referencia fiables: compara a cada jugador con la media del equipo y su evolución, no con el baloncesto profesional.',
 };
