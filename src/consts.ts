@@ -4,6 +4,9 @@ export const SITE_NAME = SITE_NAME_LINES.join(' ');
 export const APP_URL = '/minibasket-stats/';
 export const SCOREBOARD_URL = '/marcador/';
 export const KOFI_URL = 'https://ko-fi.com/navizenitram';
+// Perfil en X: novedades, ayuda y sugerencias
+export const X_URL = 'https://x.com/myownbbstats';
+export const X_HANDLE = '@myownbbstats';
 export const TEMPLATE_PDF = '/descargas/plantilla-estadisticas-baloncesto.pdf';
 
 // Analítica (Umami Cloud, sin cookies). Si no se define, no se carga ningún script.

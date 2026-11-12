@@ -1,6 +1,6 @@
 ---
 import Ball from './Ball.astro';
-import { APP_URL, SCOREBOARD_URL, KOFI_URL, SITE_NAME_LINES, type Lang } from '../consts';
+import { APP_URL, SCOREBOARD_URL, KOFI_URL, X_URL, X_HANDLE, SITE_NAME_LINES, type Lang } from '../consts';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const ca = lang === 'ca';
@@ -12,6 +12,8 @@ const ca = lang === 'ca';
       <p>{ca
         ? 'Estadístiques de bàsquet formatiu. Gratis, sense registre i sense anuncis.'
         : 'Estadísticas de baloncesto formativo. Gratis, sin registro y sin anuncios.'}</p>
+      <p>{ca ? 'Necessites ajuda o tens suggeriments? Escriu-me a X:' : '¿Necesitas ayuda o tienes sugerencias? Escríbeme en X:'}
+        <a href={X_URL} target="_blank" rel="noopener" data-umami-event="x" data-umami-event-origen="pie">{X_HANDLE}</a></p>
     </div>
     <nav aria-label={ca ? 'Eines' : 'Herramientas'}>
       <h2>{ca ? 'Eines' : 'Herramientas'}</h2>
@@ -32,6 +34,7 @@ const ca = lang === 'ca';
       <h2>{ca ? 'Projecte' : 'Proyecto'}</h2>
       <ul>
         <li><a href="/privacidad/">{ca ? 'Privacitat (castellà)' : 'Privacidad'}</a></li>
+        <li><a href={X_URL} target="_blank" rel="noopener" data-umami-event="x" data-umami-event-origen="pie-proyecto">{ca ? 'Novetats a X' : 'Novedades en X'}</a></li>
         <li><a href={KOFI_URL} target="_blank" rel="noopener" data-umami-event="kofi">{ca ? "Convida'm a un cafè" : 'Invítame a un café'}</a></li>
         <li>{ca ? <a href="/" hreflang="es" lang="es">Castellano</a> : <a href="/ca/" hreflang="ca" lang="ca">Català</a>}</li>
       </ul>

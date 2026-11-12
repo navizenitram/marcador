@@ -1,5 +1,8 @@
 // Textos de la portada en castellano y catalán. El maquetado está en src/components/Home.astro.
-export interface Faq { q: string; a: string; link?: { href: string; text: string } }
+import { X_HANDLE, X_URL } from '../consts';
+
+// external: enlace a otra web (se abre en una pestaña nueva); event: nombre del evento de Umami al pulsarlo
+export interface Faq { q: string; a: string; link?: { href: string; text: string; external?: boolean; event?: string } }
 
 export const home = {
   es: {
@@ -83,6 +86,11 @@ export const home = {
         a: 'Sí. Tienes una plantilla gratuita para imprimir con las mismas acciones que la app.',
         link: { href: '/plantilla-estadisticas-baloncesto/', text: 'Descargar la plantilla' },
       },
+      {
+        q: '¿Dónde pido ayuda o propongo mejoras?',
+        a: `En X, en ${X_HANDLE}. Ahí anuncio las novedades de cada versión y respondo dudas, sugerencias y errores que encuentres.`,
+        link: { href: X_URL, text: 'Escríbeme en X', external: true, event: 'x' },
+      },
     ] as Faq[],
   },
   ca: {
@@ -161,6 +169,11 @@ export const home = {
         q: 'Com calcula la valoració?',
         a: "Amb la mateixa fórmula que fan servir l'ACB i l'Eurolliga: suma punts, rebots, assistències, recuperacions, taps i faltes rebudes, i resta tirs fallats, pèrdues, taps rebuts i faltes comeses.",
         link: { href: '/guias/valoracion-baloncesto/', text: 'Mira la fórmula amb un exemple (en castellà)' },
+      },
+      {
+        q: 'On demano ajuda o proposo millores?',
+        a: `A X, a ${X_HANDLE}. Allà anuncio les novetats de cada versió i responc dubtes, suggeriments i errors que trobis.`,
+        link: { href: X_URL, text: 'Escriu-me a X', external: true, event: 'x' },
       },
     ] as Faq[],
   },

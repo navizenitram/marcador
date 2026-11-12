@@ -149,7 +149,11 @@ const alternates = [
         {t.faqs.map((f) => (
           <details>
             <summary>{f.q}</summary>
-            <p>{f.a}{f.link && <> <a href={f.link.href}>{f.link.text}</a>.</>}</p>
+            <p>{f.a}{f.link && <> <a
+              href={f.link.href}
+              {...(f.link.external ? { target: '_blank', rel: 'noopener' } : {})}
+              {...(f.link.event ? { 'data-umami-event': f.link.event, 'data-umami-event-origen': 'faq' } : {})}
+            >{f.link.text}</a>.</>}</p>
           </details>
         ))}
         <p class="legend-note">
