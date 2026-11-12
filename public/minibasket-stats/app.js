@@ -12,6 +12,10 @@ const MAX_FOULS = 5;
 const KOFI_URL = 'https://ko-fi.com/navizenitram';
 /* Direcciones antiguas de la app. Ahí se ofrece llevar los datos a la dirección actual (ver «Mudanza») */
 const OLD_HOSTS = ['marcador-kohl.vercel.app'];
+/* App de Android (Trusted Web Activity, ver docs/plan-android.md): la misma web abierta desde el icono de Google Play.
+   El paquete coincide con public/.well-known/assetlinks.json; la app de Android abre la URL con ?origen=android */
+const ANDROID_PACKAGE = 'com.myownbasketballstats.app';
+const ANDROID_KEY = 'mb_android';
 
 /* Acciones que se pueden registrar para un jugador (los puntos de cada tiro están en MBCore.EV_PTS, core.js) */
 const EV = {
@@ -709,14 +713,16 @@ function viewPrivacy() {
     <h2>Lo que queda fuera de la app</h2>
     <p>Como cualquier página web, el servicio que la aloja (Vercel) puede registrar datos técnicos de las visitas, como la dirección IP,
     para su funcionamiento y seguridad. La app no utiliza ni consulta esos datos.
-    El enlace "Invítame a un café" lleva a Ko-fi, una web externa con su propia política de privacidad; solo se abre si lo pulsas.</p>
+    ${ANDROID_APP ? '' : 'El enlace "Invítame a un café" lleva a Ko-fi, una web externa con su propia política de privacidad; solo se abre si lo pulsas.'}</p>
+    ${ANDROID_APP ? `<p>Google Play gestiona la descarga y las actualizaciones de la app con su propia política de privacidad, y a mí solo me muestra
+    cifras agregadas, como el número de instalaciones. La app no le envía nada de lo que apuntas.</p>` : ''}
 
     <h2>Por qué existe My Own Basketball Stats</h2>
     <p>La construí como una herramienta para mi propio uso, porque en el baloncesto formativo hay mucho más que los puntos
     y quería una forma sencilla de seguir lo que hace cada jugador en la pista. Funcionaba tan bien que decidí compartirla de forma gratuita
     con la comunidad: entrenadores, familias y clubes.</p>
-    <p>Es un proyecto personal, sin ánimo de lucro, sin anuncios y sin intereses detrás. Si te resulta útil y quieres apoyarlo,
-    puedes <a href="${KOFI_URL}" target="_blank" rel="noopener">invitarme a un café</a>.</p>
+    <p>Es un proyecto personal, sin ánimo de lucro, sin anuncios y sin intereses detrás.${ANDROID_APP ? '' : ` Si te resulta útil y quieres apoyarlo,
+    puedes <a href="${KOFI_URL}" target="_blank" rel="noopener">invitarme a un café</a>.`}</p>
     <button class="btn" data-action="back">${icon('back')} Volver</button>
   </section>`);
 }
@@ -1006,10 +1012,10 @@ function viewSettings() {
       <h2>Privacidad</h2>
       <p class="muted small">My Own Basketball Stats no recoge ni envía tus datos: no hay registro, ni publicidad, ni seguimiento. Todo se guarda solo en este dispositivo.</p>
       <a class="btn" href="#/privacidad">${icon('lock')} Leer la política de privacidad</a>
-
+      ${ANDROID_APP ? '' : `
       <h2>Apoya el proyecto</h2>
       <p class="muted small">La app es gratuita, sin anuncios y sin registro. Si te resulta útil en tus partidos, puedes invitarme a un café para que siga mejorando.</p>
-      <a class="btn kofi" href="${KOFI_URL}" target="_blank" rel="noopener">${icon('coffee')} Invítame a un café</a>
+      <a class="btn kofi" href="${KOFI_URL}" target="_blank" rel="noopener">${icon('coffee')} Invítame a un café</a>`}
     </section>
   </div>`);
 }
@@ -1130,7 +1136,7 @@ function viewStats(arg) {
     ${ui.adv ? `<p class="muted small adv-note">${esc(tr('adv.note'))} Toca la cabecera de una columna para ordenar.</p>${glossary(data)}` : `
     <p class="muted small formula"><b>VAL</b> (valoración ACB) = puntos + rebotes + asistencias + recuperaciones + tapones + faltas recibidas − tiros fallados (cada uno resta 1) − tapones recibidos − pérdidas − faltas cometidas.
     Toca la cabecera de una columna para ordenar.</p>`}
-    <p class="support">¿Te es útil la app? <a href="${KOFI_URL}" target="_blank" rel="noopener">${icon('coffee')} Invítame a un café</a></p>
+    ${ANDROID_APP ? '' : `<p class="support">¿Te es útil la app? <a href="${KOFI_URL}" target="_blank" rel="noopener">${icon('coffee')} Invítame a un café</a></p>`}
   `);
 }
 
@@ -2478,6 +2484,25 @@ async function toggleFullscreen() {
   if (ui.modal && ui.modal.kind === 'menu') { closeModal(true); render(); }
 }
 
+/* ─────────────────────── App de Android ─────────────────────── */
+
+/* La app de Google Play es una Trusted Web Activity: Chrome abre esta misma web a pantalla completa. Se reconoce porque
+   la abre con ?origen=android y porque Chrome pone como referrer android-app://<paquete>/. Se recuerda en sessionStorage
+   para que siga al recargar; no en localStorage, que la app de Android comparte con Chrome (ahí no es la app de Play).
+   En la app de Android no se ofrece instalarla ni se enlaza a Ko-fi (la política de pagos de Google Play es estricta
+   con los enlaces a pagos externos). */
+function detectAndroidApp() {
+  const launched = new URLSearchParams(location.search).get('origen') === 'android'
+    || document.referrer.startsWith(`android-app://${ANDROID_PACKAGE}/`);
+  try {
+    if (launched) sessionStorage.setItem(ANDROID_KEY, '1');
+    return launched || sessionStorage.getItem(ANDROID_KEY) === '1';
+  } catch (e) {
+    return launched;
+  }
+}
+const ANDROID_APP = detectAndroidApp();
+
 /* ─────────────── Añadir a la pantalla de inicio ─────────────── */
 // Se muestra en la pantalla de "Gira el dispositivo" si la app no está instalada.
 let installPrompt = null;   // evento beforeinstallprompt (Android / Chrome)
@@ -2499,7 +2524,7 @@ function renderInstall() {
   const el = document.getElementById('install');
   if (!el) return;
   const plat = platform();
-  if (isInstalled() || (plat === 'other' && !installPrompt)) { el.hidden = true; return; }
+  if (ANDROID_APP || isInstalled() || (plat === 'other' && !installPrompt)) { el.hidden = true; return; }
   let body;
   if (installPrompt) {
     body = `<button class="btn primary big install-btn" data-action="install">${icon('download')} Instalar la app</button>`;

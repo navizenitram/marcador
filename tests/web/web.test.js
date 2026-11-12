@@ -97,6 +97,26 @@ describe('textos de la portada (src/i18n/home.ts)', () => {
   });
 });
 
+describe('app de Android: public/.well-known/assetlinks.json', () => {
+  // Digital Asset Links: demuestra a Android que la app de Google Play y el dominio son del mismo dueño. Si no
+  // valida, la app se abre con la barra de direcciones de Chrome arriba.
+  const links = JSON.parse(readFileSync(join(ROOT, 'public/.well-known/assetlinks.json'), 'utf8'));
+
+  it('delega en la app de Android el manejo de las URL del dominio', () => {
+    expect(links).toHaveLength(1);
+    expect(links[0].relation).toEqual(['delegate_permission/common.handle_all_urls']);
+    expect(links[0].target.namespace).toBe('android_app');
+    expect(links[0].target.package_name).toMatch(/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/);
+  });
+
+  it('las huellas son SHA-256 en hexadecimal en mayúsculas, separadas por dos puntos y sin repetir', () => {
+    const prints = links[0].target.sha256_cert_fingerprints;
+    expect(Array.isArray(prints)).toBe(true);
+    for (const p of prints) expect(p).toMatch(/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/);
+    expect(new Set(prints).size).toBe(prints.length);
+  });
+});
+
 describe('PWA de estadísticas: archivos', () => {
   const sw = () => {
     const sandbox = { self: { addEventListener() {} } };

@@ -35,6 +35,14 @@ test('la plantilla en PDF se descarga', async ({ request }) => {
   expect(response.headers()['content-type']).toContain('pdf');
 });
 
+test('assetlinks.json de la app de Android se sirve tal cual, como JSON y sin redirecciones', async ({ request }) => {
+  const response = await request.get('/.well-known/assetlinks.json', { maxRedirects: 0 });
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('application/json');
+  const [link] = await response.json();
+  expect(link.target.namespace).toBe('android_app');
+});
+
 test('las etiquetas canonical llevan la URL del sitio (postbuild)', async ({ page }) => {
   for (const path of ['/minibasket-stats/', '/marcador/']) {
     await page.goto(path);

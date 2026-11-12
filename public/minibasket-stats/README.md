@@ -54,6 +54,8 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
 - **Modo claro / oscuro** (botón 🌙/☀️ en la barra superior o en el menú ☰ del partido). Se comparte con el marcador.
 - PWA: se puede "Añadir a pantalla de inicio", funciona sin conexión y en Android se abre en horizontal y pantalla completa.
 - La pantalla no se apaga mientras la app está abierta (Screen Wake Lock, en los navegadores que lo soportan).
+- **App de Android** (Google Play, en preparación): es esta misma web en una Trusted Web Activity, que la abre con
+  `?origen=android`. Ahí no se ofrece instalarla ni se enlaza a Ko-fi. Ver [docs/plan-android.md](../../docs/plan-android.md).
 
 ### Valoración
 

@@ -9,6 +9,7 @@ baloncesto formativo. El repositorio contiene tres cosas:
 | `/guias/…`, `/plantilla-estadisticas-baloncesto/` | Guías y plantilla imprimible | Astro, en `src/` |
 | `/minibasket-stats/` | La app de estadísticas (SPA sin dependencias) | `public/minibasket-stats/` ([README](public/minibasket-stats/README.md)) |
 | `/marcador/` | El marcador de minibasket | `public/marcador/index.html` |
+| `/.well-known/assetlinks.json` | Vínculo con la app de Android de Google Play ([plan](docs/plan-android.md)) | `public/.well-known/` |
 
 Las dos apps no pasan por ningún proceso de build: Astro copia `public/` tal cual. Lo único que se toca después de
 compilar es el marcador `%SITE_URL%` de sus etiquetas canonical y Open Graph (`scripts/postbuild.mjs`).
