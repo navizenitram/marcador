@@ -83,6 +83,11 @@ export const home = {
         a: 'Sí. Tienes una plantilla gratuita para imprimir con las mismas acciones que la app.',
         link: { href: '/plantilla-estadisticas-baloncesto/', text: 'Descargar la plantilla' },
       },
+      {
+        q: '¿Dónde pido ayuda o propongo mejoras?',
+        a: 'En X, en @myownbbstats. Ahí anuncio las novedades de cada versión y respondo dudas, sugerencias y errores que encuentres.',
+        link: { href: 'https://x.com/myownbbstats', text: 'Escríbeme en X' },
+      },
     ] as Faq[],
   },
   ca: {
@@ -161,6 +166,11 @@ export const home = {
         q: 'Com calcula la valoració?',
         a: "Amb la mateixa fórmula que fan servir l'ACB i l'Eurolliga: suma punts, rebots, assistències, recuperacions, taps i faltes rebudes, i resta tirs fallats, pèrdues, taps rebuts i faltes comeses.",
         link: { href: '/guias/valoracion-baloncesto/', text: 'Mira la fórmula amb un exemple (en castellà)' },
+      },
+      {
+        q: 'On demano ajuda o proposo millores?',
+        a: "A X, a @myownbbstats. Allà anuncio les novetats de cada versió i responc dubtes, suggeriments i errors que trobis.",
+        link: { href: 'https://x.com/myownbbstats', text: "Escriu-me a X" },
       },
     ] as Faq[],
   },

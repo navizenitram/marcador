@@ -90,6 +90,8 @@ describe('textos de la portada (src/i18n/home.ts)', () => {
     const links = [...es.faqs, ...ca.faqs].filter((f) => f.link).map((f) => f.link.href);
     expect(links.length).toBeGreaterThan(0);
     for (const href of links) {
+      // Los enlaces externos (por ejemplo, el perfil de X) solo tienen que ir por https
+      if (/^https?:/.test(href)) { expect(href.startsWith('https://'), href).toBe(true); continue; }
       const page = href.replace(/^\/|\/$/g, '');
       const exists = existsSync(join(ROOT, 'src/pages', `${page}.astro`)) || existsSync(join(ROOT, 'src/pages', page, 'index.astro'));
       expect(exists, href).toBe(true);

@@ -149,7 +149,9 @@ const alternates = [
         {t.faqs.map((f) => (
           <details>
             <summary>{f.q}</summary>
-            <p>{f.a}{f.link && <> <a href={f.link.href}>{f.link.text}</a>.</>}</p>
+            <p>{f.a}{f.link && <> {f.link.href.startsWith('http')
+              ? <a href={f.link.href} target="_blank" rel="noopener">{f.link.text}</a>
+              : <a href={f.link.href}>{f.link.text}</a>}.</>}</p>
           </details>
         ))}
         <p class="legend-note">

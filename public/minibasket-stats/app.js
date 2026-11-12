@@ -10,6 +10,7 @@ const FORMAT_VERSION = 3;
 const MAX_ON_COURT = 5;
 const MAX_FOULS = 5;
 const KOFI_URL = 'https://ko-fi.com/navizenitram';
+const X_URL = 'https://x.com/myownbbstats';
 /* Direcciones antiguas de la app. Ahí se ofrece llevar los datos a la dirección actual (ver «Mudanza») */
 const OLD_HOSTS = ['marcador-kohl.vercel.app'];
 
@@ -385,6 +386,7 @@ const ICONS = {
   list: '<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
   reopen: '<path d="M4 5v5h5"/><path d="M4.5 10a8 8 0 1 1 1.5 7.5"/>',
   coffee: '<path d="M5 9h12v5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5zM17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 3v2M12 3v2"/>',
+  chat: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/>',
   phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/>',
 };
 
@@ -709,7 +711,7 @@ function viewPrivacy() {
     <h2>Lo que queda fuera de la app</h2>
     <p>Como cualquier página web, el servicio que la aloja (Vercel) puede registrar datos técnicos de las visitas, como la dirección IP,
     para su funcionamiento y seguridad. La app no utiliza ni consulta esos datos.
-    El enlace "Invítame a un café" lleva a Ko-fi, una web externa con su propia política de privacidad; solo se abre si lo pulsas.</p>
+    Los enlaces "Invítame a un café" (Ko-fi) y "Escríbeme en X" llevan a webs externas con su propia política de privacidad; solo se abren si los pulsas.</p>
 
     <h2>Por qué existe My Own Basketball Stats</h2>
     <p>La construí como una herramienta para mi propio uso, porque en el baloncesto formativo hay mucho más que los puntos
@@ -717,6 +719,7 @@ function viewPrivacy() {
     con la comunidad: entrenadores, familias y clubes.</p>
     <p>Es un proyecto personal, sin ánimo de lucro, sin anuncios y sin intereses detrás. Si te resulta útil y quieres apoyarlo,
     puedes <a href="${KOFI_URL}" target="_blank" rel="noopener">invitarme a un café</a>.</p>
+    <p>Si necesitas ayuda o quieres proponer mejoras, escríbeme en <a href="${X_URL}" target="_blank" rel="noopener">X (@myownbbstats)</a>.</p>
     <button class="btn" data-action="back">${icon('back')} Volver</button>
   </section>`);
 }
@@ -1006,6 +1009,10 @@ function viewSettings() {
       <h2>Privacidad</h2>
       <p class="muted small">My Own Basketball Stats no recoge ni envía tus datos: no hay registro, ni publicidad, ni seguimiento. Todo se guarda solo en este dispositivo.</p>
       <a class="btn" href="#/privacidad">${icon('lock')} Leer la política de privacidad</a>
+
+      <h2>Ayuda y sugerencias</h2>
+      <p class="muted small">¿Tienes dudas, has encontrado un error o se te ocurre una mejora? Escríbeme en X, donde también anuncio las novedades de cada versión.</p>
+      <a class="btn" href="${X_URL}" target="_blank" rel="noopener">${icon('chat')} Escríbeme en X (@myownbbstats)</a>
 
       <h2>Apoya el proyecto</h2>
       <p class="muted small">La app es gratuita, sin anuncios y sin registro. Si te resulta útil en tus partidos, puedes invitarme a un café para que siga mejorando.</p>
