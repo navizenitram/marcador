@@ -424,11 +424,68 @@ describe('partido en directo', () => {
     expect(app.hash).toBe('#/stats/g1');
   });
 
-  it('un partido finalizado no avanza más allá del último periodo', async () => {
-    const app = await live({ period: 8, finished: true });
-    await app.act('period', { d: 1 });
-    expect(app.toast).toBe('El partido está finalizado');
-    expect(app.modal).toBeNull();
+  describe('partido finalizado: solo consulta', () => {
+    const LOCKED = ['[data-action="ev"]', '[data-action="opp"]', '[data-action="period"]', '[data-action="undo"]', '[data-action="lineup"]', '.pid'];
+
+    it('se ve el aviso y los botones que cambian el partido están desactivados', async () => {
+      const app = await live({ period: 8, finished: true, events: [ev('t2_ok', 'p4')] });
+      expect(app.text(app.$('.locked-bar'))).toContain('Partido finalizado');
+      for (const sel of LOCKED) {
+        expect(app.$$(sel).length, sel).toBeGreaterThan(0);
+        expect(app.$$(sel).every((b) => b.disabled), sel).toBe(true);
+      }
+      expect(app.$('.add-player')).toBeNull();
+      expect(app.$('a[href="#/stats/g1"]')).not.toBeNull();  // las estadísticas siguen a mano
+    });
+
+    it('si no quedó nadie en pista, en vez de filas vacías lleva a las estadísticas', async () => {
+      const app = await live({ finished: true, onCourt: [] });
+      expect(app.$('.prow')).toBeNull();
+      expect(app.text(app.$('.court'))).toContain('No quedó nadie en pista');
+      expect(app.$('.court a[href="#/stats/g1"]')).not.toBeNull();
+    });
+
+    it('aunque llegue un toque, no apunta jugadas ni cambia de periodo', async () => {
+      const app = await live({ period: 3, finished: true, events: [ev('t2_ok', 'p4')] });
+      const before = JSON.stringify(app.db.games[0]);
+      for (const [action, data] of [['ev', { type: 't2_ok', pid: 'p4' }], ['opp', { pts: '2' }], ['period', { d: '1' }], ['undo'], ['lineup']]) {
+        const el = app.$(app.actionSelector(action, data));
+        el.disabled = false;  // como si el botón no estuviera bloqueado
+        await app.click(el);
+        expect(app.toast, action).toBe('El partido está finalizado. Reábrelo para cambiarlo');
+        expect(app.modal, action).toBeNull();
+      }
+      expect(JSON.stringify(app.db.games[0])).toBe(before);
+    });
+
+    it('el menú ofrece reabrir, no cambiar quinteto, y el listado de jugadas no deja borrar', async () => {
+      const app = await live({ finished: true, events: [ev('t2_ok', 'p4')] });
+      await app.act('menu');
+      expect(app.$('#modal [data-action="reopen"]')).not.toBeNull();
+      expect(app.$('#modal [data-action="finish"]')).toBeNull();
+      expect(app.$('#modal [data-action="lineup"]')).toBeNull();
+      await app.act('log');
+      expect(app.$$('.log-row')).toHaveLength(1);
+      expect(app.$('[data-action="del-event"]')).toBeNull();
+      expect(app.text(app.modal)).toContain('reábrelo para borrar jugadas');
+    });
+
+    it('al reabrir desde el aviso se puede volver a apuntar', async () => {
+      const app = await live({ finished: true });
+      await app.click('.locked-bar [data-action="reopen"]');
+      expect(app.db.games[0].finished).toBe(false);
+      expect(app.toast).toBe('Partido reabierto');
+      expect(app.$('.locked-bar')).toBeNull();
+      await app.act('ev', { pid: 'p4', type: 't2_ok' });
+      expect(app.db.games[0].events).toHaveLength(1);
+    });
+
+    it('en la lista y en las estadísticas el botón dice «Ver», no «Abrir»', async () => {
+      const app = await openApp({ data: makeData({ games: [sampleGame({ finished: true })] }), hash: '#/partidos' });
+      expect(app.text(app.$('.games a[href="#/partido/g1"]'))).toBe('Ver');
+      await app.go('#/stats/g1');
+      expect(app.text(app.$('a[href="#/partido/g1"]'))).toBe('Ver partido');
+    });
   });
 
   it('se finaliza y se reabre desde el menú', async () => {

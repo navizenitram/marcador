@@ -354,6 +354,17 @@ label.btn { flex-direction: row; font-family: var(--font); }
 .opp-btns button:active { transform: scale(.92); background: color-mix(in srgb, var(--blue) 28%, var(--surface)); }
 
 .court { flex: 1; min-height: 0; display: grid; grid-template-rows: repeat(5, minmax(0, 1fr)); gap: 4px; padding: 4px 6px; }
+.locked-bar {
+  flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px 4px 12px;
+  background: color-mix(in srgb, var(--amber) 12%, var(--surface)); border-bottom: 1px solid color-mix(in srgb, var(--amber) 35%, var(--border));
+  font-size: 14px; color: var(--text);
+}
+.locked-bar > span { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.locked-bar .ic { width: 16px; height: 16px; color: var(--amber); flex: none; }
+.locked-bar small { color: var(--muted); font-size: 13px; }
+.locked-bar .btn { min-height: 32px; padding: 4px 12px; font-size: 14px; }
+/* Partido finalizado: los nombres y puntos se leen bien; los botones de jugadas quedan apagados (button:disabled) */
+.live.finished .pid:disabled { opacity: 1; }
 .prow { display: grid; grid-template-columns: clamp(86px, 14.5vw, 170px) 1fr; gap: 4px; min-height: 0; }
 .prow.f-warn .pid { border-color: color-mix(in srgb, var(--amber) 70%, transparent); }
 .prow.f-out .pid { border-color: color-mix(in srgb, var(--red) 70%, transparent); background: color-mix(in srgb, var(--red) 10%, var(--surface)); }
@@ -415,6 +426,8 @@ label.btn { flex-direction: row; font-family: var(--font); }
 :root[data-theme="light"] .act { color: color-mix(in srgb, var(--c) 82%, #000); }
 
 .empty-row { display: block; }
+.court-empty { grid-template-rows: 1fr; place-items: center; }
+.court-empty .btn { margin-top: 12px; }
 .add-player {
   width: 100%; height: 100%; border: 1.5px dashed var(--border2); border-radius: 10px; color: var(--muted);
   font-size: 16px; font-weight: 700; letter-spacing: .03em; display: flex; align-items: center; justify-content: center; gap: 8px;
