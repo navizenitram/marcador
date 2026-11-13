@@ -933,7 +933,7 @@ function viewLive(g) {
       <button class="icon-btn" data-action="lineup" title="Quinteto en pista" aria-label="Quinteto en pista"${ro}>${icon('swap')}</button>
       <a class="icon-btn" href="#/stats/${g.id}" title="Estadísticas" aria-label="Estadísticas">${icon('chart')}</a>
     </header>
-    ${g.finished ? `<div class="locked-bar" role="status">
+    ${g.finished ? `<div class="locked-bar">
       <span>${icon('flag')} <b>Partido finalizado</b><small> · solo consulta</small></span>
       <button class="btn" data-action="reopen" data-id="${g.id}">${icon('reopen')} Reabrir</button>
     </div>` : ''}
@@ -1563,7 +1563,7 @@ function closeModal(silent) {
   if (m.kind === 'confirm' && m.resolve) m.resolve(false);
   if (m.kind === 'lineup') {
     const g = getGame(m.gid);
-    if (g) { markPlayed(g); save(); }
+    if (g && !g.finished) { markPlayed(g); save(); }
     if (!silent) render();
   }
 }
@@ -1717,11 +1717,27 @@ function currentGame() {
   return null;
 }
 
-/* Un partido finalizado no se cambia: avisa y devuelve false. Para apuntar algo hay que reabrirlo. */
-function editable(g) {
-  if (!g || !g.finished) return !!g;
+/* Acciones que cambian un partido (jugadas, quinteto, periodo). En un partido finalizado no se ejecutan:
+   el despachador de clics las corta antes de llegar al handler, así que una acción nueva que cambie el partido
+   solo tiene que añadirse aquí. Para apuntar algo hay que reabrirlo. */
+const GAME_EDITS = new Set([
+  'ev', 'opp', 'undo', 'undo-event', 'period', 'lineup', 'swap',
+  'toggle-court', 'clear-court', 'swap-in', 'bench-out', 'del-event',
+]);
+
+/* Partido al que afecta una acción: el de la jugada que se deshace desde el aviso, el de la ventana abierta
+   o el de la pantalla del partido */
+function actionGame(el) {
+  if (el.dataset.action === 'undo-event') return db.games.find(g => g.events.some(e => e.id === el.dataset.id)) || null;
+  return (ui.modal && ui.modal.gid && getGame(ui.modal.gid)) || currentGame();
+}
+
+function lockedGame(el) {
+  if (!GAME_EDITS.has(el.dataset.action)) return false;
+  const g = actionGame(el);
+  if (!g || !g.finished) return false;
   toast('El partido está finalizado. Reábrelo para cambiarlo');
-  return false;
+  return true;
 }
 
 function markPlayed(g) {
@@ -1852,17 +1868,15 @@ const actions = {
   /* Partido en directo */
   ev(el) {
     const g = currentGame();
-    if (editable(g)) record(g, el.dataset.type, el.dataset.pid);
+    if (g) record(g, el.dataset.type, el.dataset.pid);
   },
   opp(el) {
     const g = currentGame();
-    if (editable(g)) recordOpp(g, parseInt(el.dataset.pts, 10));
+    if (g) recordOpp(g, parseInt(el.dataset.pts, 10));
   },
   undo() {
     const g = currentGame();
-    if (!g) return;
-    if (!editable(g)) return;
-    if (!g.events.length) { toast('Nada que deshacer'); return; }
+    if (!g || !g.events.length) { toast('Nada que deshacer'); return; }
     // La última por orden (seq), no por hora: el reloj del móvil puede retroceder
     const last = g.events.reduce((a, b) => (b.seq >= a.seq ? b : a));
     removeEvent(g, last.id);
@@ -1871,14 +1885,14 @@ const actions = {
   },
   'undo-event'(el) {
     const g = currentGame() || db.games.find(x => x.events.some(e => e.id === el.dataset.id));
-    if (!editable(g)) return;
+    if (!g) return;
     const e = removeEvent(g, el.dataset.id);
     toastEl.hidden = true;
     if (e) { render(); toast(`↶ Deshecho: ${eventText(g, e)}`); }
   },
   async period(el) {
     const g = currentGame();
-    if (!editable(g)) return;
+    if (!g) return;
     const d = parseInt(el.dataset.d, 10);
     if (d > 0 && g.period >= g.periods) {
       if (await confirmBox(`Es el último periodo. ¿Finalizar el partido?`, `${icon('flag')} Finalizar`)) finishGame(g);
@@ -1896,7 +1910,7 @@ const actions = {
   },
   lineup() {
     const g = currentGame();
-    if (!editable(g)) return;
+    if (!g) return;
     syncRoster(g);
     openModal({ kind: 'lineup', gid: g.id, title: `Jugadores en pista · ${perAbbr(g, g.period)}` });
   },
@@ -1918,7 +1932,7 @@ const actions = {
   'lineup-done'() { closeModal(); },
   swap(el) {
     const g = currentGame();
-    if (!editable(g)) return;
+    if (!g) return;
     syncRoster(g);
     openModal({ kind: 'swap', gid: g.id, outId: el.dataset.pid || null });
   },
@@ -1951,7 +1965,6 @@ const actions = {
   },
   'del-event'(el) {
     const g = getGame(ui.modal.gid);
-    if (!editable(g)) return;
     removeEvent(g, el.dataset.id);
     refreshModal(); render();
   },
@@ -2062,7 +2075,10 @@ document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-action]');
   if (!el || el.disabled) return;
   const fn = actions[el.dataset.action];
-  if (fn) { e.preventDefault(); fn(el, e); }
+  if (!fn) return;
+  e.preventDefault();
+  if (lockedGame(el)) return;
+  fn(el, e);
 });
 
 document.addEventListener('submit', async (e) => {

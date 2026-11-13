@@ -448,7 +448,7 @@ describe('partido en directo', () => {
     it('aunque llegue un toque, no apunta jugadas ni cambia de periodo', async () => {
       const app = await live({ period: 3, finished: true, events: [ev('t2_ok', 'p4')] });
       const before = JSON.stringify(app.db.games[0]);
-      for (const [action, data] of [['ev', { type: 't2_ok', pid: 'p4' }], ['opp', { pts: '2' }], ['period', { d: '1' }], ['undo'], ['lineup']]) {
+      for (const [action, data] of [['ev', { type: 't2_ok', pid: 'p4' }], ['opp', { pts: '2' }], ['period', { d: '1' }], ['undo'], ['lineup'], ['swap', { pid: 'p4' }]]) {
         const el = app.$(app.actionSelector(action, data));
         el.disabled = false;  // como si el botón no estuviera bloqueado
         await app.click(el);
@@ -456,6 +456,40 @@ describe('partido en directo', () => {
         expect(app.modal, action).toBeNull();
       }
       expect(JSON.stringify(app.db.games[0])).toBe(before);
+    });
+
+    it('tampoco cambia nada desde una ventana que ya estuviera abierta', async () => {
+      // La ventana se abre con el partido en juego y el partido se finaliza con ella abierta (p. ej., desde otra pestaña)
+      const app = await live({ events: [ev('t2_ok', 'p4')] });
+      const block = async (open, finish, ...acts) => {
+        await open();
+        app.db.games[0].finished = true;
+        const before = JSON.stringify(app.db.games[0]);
+        for (const [action, data] of acts) {
+          await app.act(action, data);
+          expect(app.toast, action).toBe('El partido está finalizado. Reábrelo para cambiarlo');
+        }
+        if (finish) await finish();
+        expect(JSON.stringify(app.db.games[0])).toBe(before);
+        app.db.games[0].finished = false;
+        if (app.modal) app.fn.closeModal(true);
+        app.fn.render();
+        await app.settle();
+      };
+      await block(() => app.act('lineup'), () => app.act('lineup-done'), ['toggle-court', { id: 'p21' }], ['clear-court']);
+      await block(() => app.act('swap', { pid: 'p4' }), null, ['swap-in', { id: 'p21' }], ['bench-out']);
+      await block(async () => { await app.act('menu'); await app.act('log'); }, null, ['del-event', { id: app.db.games[0].events[0].id }]);
+    });
+
+    it('el «Deshacer» del aviso no borra jugadas de un partido finalizado', async () => {
+      const app = await live({ events: [ev('t2_ok', 'p4')] });
+      const id = app.db.games[0].events[0].id;
+      await app.go('#/partidos');
+      app.fn.toast('Prueba', id);  // el aviso con «Deshacer» fuera de la pantalla del partido
+      app.db.games[0].finished = true;
+      await app.act('undo-event', { id });
+      expect(app.db.games[0].events).toHaveLength(1);
+      expect(app.toast).toBe('El partido está finalizado. Reábrelo para cambiarlo');
     });
 
     it('el menú ofrece reabrir, no cambiar quinteto, y el listado de jugadas no deja borrar', async () => {
