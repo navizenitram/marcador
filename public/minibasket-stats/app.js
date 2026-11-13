@@ -870,7 +870,7 @@ function gameItems(games) {
       <span class="g-main"><b>vs ${esc(g.opponent)}</b><small>${g.finished ? 'Finalizado' : `En juego · ${perAbbr(g, g.period)}`}${g.venue ? ` · ${VENUES[g.venue]}` : ''} · ${perCount(g)}</small></span>
       ${mark}
       <span class="g-score ${g.finished ? res : ''}">${s.us}<i>–</i>${s.them}</span>
-      <a class="btn" href="#/partido/${g.id}">${g.finished ? 'Abrir' : 'Continuar'}</a>
+      <a class="btn" href="#/partido/${g.id}">${g.finished ? 'Ver' : 'Continuar'}</a>
       <a class="icon-btn" href="#/stats/${g.id}" title="Estadísticas" aria-label="Estadísticas del partido contra ${esc(g.opponent)}">${icon('chart')}</a>
       <button class="icon-btn" data-action="edit-game" data-id="${g.id}" title="Editar" aria-label="Editar el partido contra ${esc(g.opponent)}">${icon('edit')}</button>
       <button class="icon-btn danger" data-action="del-game" data-id="${g.id}" title="Borrar" aria-label="Borrar el partido contra ${esc(g.opponent)}">${icon('trash')}</button>
@@ -881,6 +881,8 @@ function gameItems(games) {
 /* ── Partido en directo ── */
 function viewLive(g) {
   const s = score(g);
+  // Un partido finalizado se abre solo para consultarlo: para apuntar o cambiar algo hay que reabrirlo
+  const ro = g.finished ? ' disabled' : '';
   const lines = playerLines(g);
   const rosterById = Object.fromEntries(g.roster.map(p => [p.id, p]));
   const rows = [];
@@ -888,16 +890,16 @@ function viewLive(g) {
     const pid = g.onCourt[i];
     const p = pid && rosterById[pid];
     if (!p) {
-      rows.push(`<div class="prow empty-row"><button class="add-player" data-action="swap" data-pid="">${icon('plus')} Añadir jugador a pista</button></div>`);
+      rows.push(`<div class="prow empty-row">${g.finished ? '' : `<button class="add-player" data-action="swap" data-pid="">${icon('plus')} Añadir jugador a pista</button>`}</div>`);
       continue;
     }
     const l = lines[pid] || finish(blankLine());
     const fouls = l.fc;
     const fcls = fouls >= MAX_FOULS ? 'f-out' : fouls === MAX_FOULS - 1 ? 'f-warn' : '';
-    const btn = (t) => `<button class="act ${EV[t].cls}" data-action="ev" data-type="${t}" data-pid="${pid}" aria-label="${EV[t].text}">${actLabel(t)}</button>`;
+    const btn = (t) => `<button class="act ${EV[t].cls}" data-action="ev" data-type="${t}" data-pid="${pid}" aria-label="${EV[t].text}"${ro}>${actLabel(t)}</button>`;
     rows.push(`
       <div class="prow ${fcls}">
-        <button class="pid" data-action="swap" data-pid="${pid}" title="Cambiar jugador">
+        <button class="pid" data-action="swap" data-pid="${pid}" title="Cambiar jugador"${ro}>
           <span class="num">${esc(p.number)}${foulDots(fouls)}</span>
           <span class="pinfo"><span class="pname">${esc(p.name)}</span>
           <span class="pline"><b>${l.pts}</b> pts · <span class="fouls">${fouls} F</span>${fouls >= MAX_FOULS ? ' · ELIM.' : ''}</span></span>
@@ -906,13 +908,13 @@ function viewLive(g) {
       </div>`);
   }
   return `
-  <div class="live">
+  <div class="live${g.finished ? ' finished' : ''}">
     <header class="live-top">
       <button class="icon-btn" data-action="menu" title="Menú" aria-label="Menú">${icon('menu')}</button>
       <div class="period" style="--p:${round1(g.period / g.periods * 100) / 100}">
-        <button data-action="period" data-d="-1" aria-label="${perName(g)} anterior" ${g.period <= 1 ? 'disabled' : ''}>${icon('left')}</button>
+        <button data-action="period" data-d="-1" aria-label="${perName(g)} anterior" ${g.period <= 1 || g.finished ? 'disabled' : ''}>${icon('left')}</button>
         <div><b>${perAbbr(g, g.period)}</b><small>de ${g.periods}</small></div>
-        <button data-action="period" data-d="1" aria-label="${perName(g)} siguiente">${icon('right')}</button>
+        <button data-action="period" data-d="1" aria-label="${perName(g)} siguiente"${ro}>${icon('right')}</button>
       </div>
       <div class="board">
         <span class="tname us">${esc(g.teamName)}</span>
@@ -922,16 +924,22 @@ function viewLive(g) {
         <span class="tname them">${esc(g.opponent)}</span>
       </div>
       <div class="opp-btns" title="Puntos del rival">
-        <button data-action="opp" data-pts="1">+1</button>
-        <button data-action="opp" data-pts="2">+2</button>
-        <button data-action="opp" data-pts="3">+3</button>
-        <button data-action="opp" data-pts="-1" class="minus">−1</button>
+        <button data-action="opp" data-pts="1"${ro}>+1</button>
+        <button data-action="opp" data-pts="2"${ro}>+2</button>
+        <button data-action="opp" data-pts="3"${ro}>+3</button>
+        <button data-action="opp" data-pts="-1" class="minus"${ro}>−1</button>
       </div>
-      <button class="icon-btn" data-action="undo" title="Deshacer última acción" aria-label="Deshacer última acción">${icon('undo')}</button>
-      <button class="icon-btn" data-action="lineup" title="Quinteto en pista" aria-label="Quinteto en pista">${icon('swap')}</button>
+      <button class="icon-btn" data-action="undo" title="Deshacer última acción" aria-label="Deshacer última acción"${ro}>${icon('undo')}</button>
+      <button class="icon-btn" data-action="lineup" title="Quinteto en pista" aria-label="Quinteto en pista"${ro}>${icon('swap')}</button>
       <a class="icon-btn" href="#/stats/${g.id}" title="Estadísticas" aria-label="Estadísticas">${icon('chart')}</a>
     </header>
-    <main class="court">${rows.join('')}</main>
+    ${g.finished ? `<div class="locked-bar">
+      <span>${icon('flag')} <b>Partido finalizado</b><small> · solo consulta</small></span>
+      <button class="btn" data-action="reopen" data-id="${g.id}">${icon('reopen')} Reabrir</button>
+    </div>` : ''}
+    ${g.finished && !g.onCourt.length
+      ? `<main class="court court-empty"><p class="empty">No quedó nadie en pista al finalizar.<br><a class="btn" href="#/stats/${g.id}">${icon('chart')} Ver estadísticas del partido</a></p></main>`
+      : `<main class="court">${rows.join('')}</main>`}
   </div>`;
 }
 
@@ -1123,7 +1131,7 @@ function viewStats(arg) {
       </div>
       <span class="grow"></span>
       ${!data.season && !g.finished ? `<button class="btn" data-action="finish" data-id="${g.id}" title="Finalizar partido">${icon('flag')} Finalizar</button>` : ''}
-      ${!data.season ? `<a class="btn" href="#/partido/${g.id}">${g.finished ? 'Abrir partido' : `${icon('play', 'solid')} Volver al partido`}</a>` : ''}
+      ${!data.season ? `<a class="btn" href="#/partido/${g.id}">${g.finished ? 'Ver partido' : `${icon('play', 'solid')} Volver al partido`}</a>` : ''}
       <button class="btn" data-action="share" data-arg="${esc(arg)}">${icon('mail')} Enviar</button>
       <button class="btn" data-action="csv" data-arg="${esc(arg)}">${icon('download')} CSV</button>
     </div>`;
@@ -1555,7 +1563,7 @@ function closeModal(silent) {
   if (m.kind === 'confirm' && m.resolve) m.resolve(false);
   if (m.kind === 'lineup') {
     const g = getGame(m.gid);
-    if (g) { markPlayed(g); save(); }
+    if (g && !g.finished) { markPlayed(g); save(); }
     if (!silent) render();
   }
 }
@@ -1620,7 +1628,7 @@ function renderMenu(m) {
   return `
   <div class="modal-head"><h3>vs ${esc(g.opponent)} · ${fmtDate(g.date)}${meta ? ` <small class="muted">· ${meta}</small>` : ''}</h3></div>
   <div class="menu-list">
-    <button class="btn" data-action="lineup">${icon('swap')} Jugadores en pista</button>
+    ${g.finished ? '' : `<button class="btn" data-action="lineup">${icon('swap')} Jugadores en pista</button>`}
     <button class="btn" data-action="log">${icon('list')} Jugadas registradas (${g.events.length})</button>
     <a class="btn" href="#/stats/${g.id}">${icon('chart')} Estadísticas del partido</a>
     <button class="btn" data-action="edit-game" data-id="${g.id}">${icon('edit')} Editar partido</button>
@@ -1675,9 +1683,10 @@ function renderLog(m) {
       <div class="log-row ${e.type === 'opp' ? 'opp' : (EV[e.type] && EV[e.type].cls) || ''}">
         <span class="lp">${perAbbr(g, e.period)}</span>
         <span class="lt">${eventText(g, e)}</span>
-        <button class="icon-btn danger" data-action="del-event" data-id="${e.id}" title="Eliminar" aria-label="Eliminar jugada">${icon('x')}</button>
+        ${g.finished ? '' : `<button class="icon-btn danger" data-action="del-event" data-id="${e.id}" title="Eliminar" aria-label="Eliminar jugada">${icon('x')}</button>`}
       </div>`).join('') : '<p class="empty">Aún no hay jugadas.</p>'}
   </div>
+  ${g.finished ? '<p class="muted">Partido finalizado: reábrelo para borrar jugadas.</p>' : ''}
   <div class="modal-actions"><button class="btn primary" data-action="modal-close">Cerrar</button></div>`;
 }
 
@@ -1706,6 +1715,29 @@ function currentGame() {
   if (view === 'partido') return getGame(arg);
   if (ui.modal && ui.modal.gid) return getGame(ui.modal.gid);
   return null;
+}
+
+/* Acciones que cambian un partido (jugadas, quinteto, periodo). En un partido finalizado no se ejecutan:
+   el despachador de clics las corta antes de llegar al handler, así que una acción nueva que cambie el partido
+   solo tiene que añadirse aquí. Para apuntar algo hay que reabrirlo. */
+const GAME_EDITS = new Set([
+  'ev', 'opp', 'undo', 'undo-event', 'period', 'lineup', 'swap',
+  'toggle-court', 'clear-court', 'swap-in', 'bench-out', 'del-event',
+]);
+
+/* Partido al que afecta una acción: el de la jugada que se deshace desde el aviso, el de la ventana abierta
+   o el de la pantalla del partido */
+function actionGame(el) {
+  if (el.dataset.action === 'undo-event') return db.games.find(g => g.events.some(e => e.id === el.dataset.id)) || null;
+  return (ui.modal && ui.modal.gid && getGame(ui.modal.gid)) || currentGame();
+}
+
+function lockedGame(el) {
+  if (!GAME_EDITS.has(el.dataset.action)) return false;
+  const g = actionGame(el);
+  if (!g || !g.finished) return false;
+  toast('El partido está finalizado. Reábrelo para cambiarlo');
+  return true;
 }
 
 function markPlayed(g) {
@@ -1863,7 +1895,6 @@ const actions = {
     if (!g) return;
     const d = parseInt(el.dataset.d, 10);
     if (d > 0 && g.period >= g.periods) {
-      if (g.finished) { toast('El partido está finalizado'); return; }
       if (await confirmBox(`Es el último periodo. ¿Finalizar el partido?`, `${icon('flag')} Finalizar`)) finishGame(g);
       return;
     }
@@ -2044,7 +2075,10 @@ document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-action]');
   if (!el || el.disabled) return;
   const fn = actions[el.dataset.action];
-  if (fn) { e.preventDefault(); fn(el, e); }
+  if (!fn) return;
+  e.preventDefault();
+  if (lockedGame(el)) return;
+  fn(el, e);
 });
 
 document.addEventListener('submit', async (e) => {
