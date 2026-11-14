@@ -311,9 +311,11 @@ function selectTeam(id) { if (db.currentTeamId !== id) { db.currentTeamId = id; 
    copia a los datos como cualquier otro equipo (se puede editar, exportar o eliminar). Si se oculta o se elimina,
    db.demoOff evita que vuelva a salir; se recupera desde Ajustes.
 
-   MBDemo = { team: { id, name, players: [{ id, number, name }] }, source, games: [{ id, date, opponent, venue,
-   periods, plays }] }. plays, en el orden del partido: [periodo, [índices]] quinteto en pista (índices de
-   team.players), [periodo, 'tipo', índice] jugada de un jugador y [periodo, puntos] puntos del rival. */
+   MBDemo = { team: { id, name, level, players: [{ id, number, name }] }, note, games: [{ id, date, opponent, venue,
+   periods, result, plays }] }. level es el nivel de la 1ª fase y note, de dónde salen los datos (se ve en la tarjeta).
+   plays, en el orden del partido: [periodo, [índices]] quinteto en pista (índices de team.players),
+   [periodo, 'tipo', índice] jugada de un jugador y [periodo, puntos] puntos del rival. result ([propios, rival]) no
+   lo usa la app: es el resultado real, para comprobar en los tests que las jugadas lo dan. */
 const DEMO = typeof MBDemo === 'object' && MBDemo && MBDemo.team && Array.isArray(MBDemo.games) ? MBDemo : null;
 let demoCache = null;
 
@@ -322,13 +324,16 @@ function demoData() {
   if (!DEMO) return null;
   if (demoCache) return demoCache;
   const players = DEMO.team.players.map(p => ({ id: p.id, number: String(p.number), name: p.name }));
-  const t = { id: DEMO.team.id, name: DEMO.team.name, email: '', players, hidden: [], phase: 1, levels: ['', ''], move: '', minUnit: 4 };
+  const t = { id: DEMO.team.id, name: DEMO.team.name, email: '', players, hidden: [], phase: 1, levels: [String(DEMO.team.level || '').slice(0, 24), ''], move: '', minUnit: 4 };
   applyProfile(t, 'completo');
   const games = DEMO.games.map((d, i) => {
     const g = {
       id: d.id, createdAt: i + 1, date: d.date, opponent: d.opponent, teamId: t.id, teamName: t.name, periods: d.periods || 4, period: 1,
-      roster: players.map(p => ({ ...p })), onCourt: [], played: {}, events: [], finished: true, phase: 1, venue: asVenue(d.venue), lineups: [], seq: 0,
+      roster: [], onCourt: [], played: {}, events: [], finished: true, phase: 1, venue: asVenue(d.venue), lineups: [], seq: 0,
     };
+    // En el partido figuran quienes lo jugaron (estuvieron en pista o tienen jugadas), no toda la plantilla
+    const used = new Set(d.plays.flatMap(([, what, who]) => (Array.isArray(what) ? what : typeof what === 'string' ? [who] : [])));
+    g.roster = players.filter((p, n) => used.has(n)).map(p => ({ ...p }));
     const start = Date.parse(`${d.date}T12:00:00`) || 0;
     for (const [period, what, who] of d.plays) {
       const seq = ++g.seq;
@@ -777,7 +782,7 @@ function demoCard() {
           <span class="team-name">${esc(t.name)}</span>
           <small>${t.players.length} jugadores · ${nGames(games.length)} · ${w}V ${l}D</small>
           <span class="demo-tag">${esc(tr('demo.tag'))}</span>
-          <small>${esc(tr('demo.hint'))}</small>
+          <small>${esc(DEMO.note || tr('demo.hint'))}</small>
         </span>
       </button>
       <button class="icon-btn" data-action="demo-hide" title="${esc(tr('demo.hide'))}" aria-label="${esc(tr('demo.hide'))}">${icon('x')}</button>

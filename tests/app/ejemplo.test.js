@@ -134,3 +134,73 @@ describe('equipo de ejemplo', () => {
     expect(card(app)).not.toBeNull();
   });
 });
+
+/* El equipo de ejemplo de verdad (demo.js, generado por scripts/demo.mjs con los datos de acb.com) */
+describe('equipo de ejemplo de la app (demo.js)', () => {
+  const open = async () => {
+    const app = await openApp({ demo: true });
+    await app.act('demo-open');
+    return app;
+  };
+
+  it('se ofrece al abrir la app por primera vez, con de dónde salen los datos', async () => {
+    const app = await openApp({ demo: true });
+    expect(app.text()).toContain('Bienvenido/a');
+    expect(app.text(card(app))).toContain('Joventut Badalona');
+    expect(app.text(card(app))).toContain('acb.com');
+  });
+
+  it('las jugadas de cada partido dan su resultado real', async () => {
+    const app = await open();
+    const demo = app.window.MBDemo;
+    expect(demo.games.length).toBeGreaterThanOrEqual(7);
+    for (const d of demo.games) {
+      const g = app.db.games.find((x) => x.id === d.id);
+      const { us, them } = app.fn.score(g);
+      expect([us, them], `${d.date} ${d.opponent}`).toEqual(d.result);
+      expect(g.finished).toBe(true);
+      expect(['home', 'away']).toContain(g.venue);
+    }
+  });
+
+  it('siempre hay cinco jugadores de la plantilla en pista y los datos no necesitan arreglos', async () => {
+    const app = await open();
+    const ids = new Set(app.db.teams[0].players.map((p) => p.id));
+    expect(ids.size).toBe(app.db.teams[0].players.length);
+    for (const g of app.db.games) {
+      expect(g.lineups.length).toBeGreaterThan(4);
+      for (const l of g.lineups) {
+        expect(l.on).toHaveLength(5);
+        expect(new Set(l.on).size).toBe(5);
+        expect(l.on.every((id) => ids.has(id))).toBe(true);
+      }
+      expect(g.events.every((e) => e.type === 'opp' || ids.has(e.pid))).toBe(true);
+    }
+    expect(app.fn.normalize(app.stored())).toEqual(app.stored());
+  });
+
+  it('las estadísticas de un partido son las del acta: Joventut 113-89 Barça (18/10/2026)', async () => {
+    const app = await open();
+    const g = app.db.games.find((x) => x.id === 'demo-105410');
+    expect(app.fn.periodScores(g)).toEqual({ us: [23, 26, 33, 31], them: [26, 19, 23, 21] });
+    const lines = app.fn.playerLines(g);
+    const pm = app.window.MBCore.plusMinus(g);
+    // dorsal: [puntos, rebotes, asistencias, valoración, +/-] del acta de acb.com
+    const acta = { 9: [19, 3, 6, 25, 19], 10: [17, 3, 8, 24, 2], 4: [17, 2, 2, 20, 22], 12: [10, 0, 5, 15, 36], 55: [3, 4, 0, 2, 0] };
+    for (const [number, line] of Object.entries(acta)) {
+      const l = lines[`demo-p${number}`];
+      expect([l.pts, l.reb, l.ast, l.val, pm[`demo-p${number}`].pm], `dorsal ${number}`).toEqual(line);
+    }
+  });
+
+  it('la temporada y sus estadísticas se abren sin errores', async () => {
+    const app = await open();
+    expect(app.hash).toBe('#/partidos');
+    expect(app.text()).toContain('vs Barça');
+    await app.go('#/stats/temporada');
+    expect(app.text()).toContain('Ricky Rubio');
+    await app.go('#/equipo');
+    expect(app.text()).toContain('Plantilla (17)');
+    expect(app.db.teams[0].levels[0]).toBe('Liga Endesa 2026-27');
+  });
+});
