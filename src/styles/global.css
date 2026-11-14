@@ -137,7 +137,7 @@ p, li { text-wrap: pretty; }
 .key i { font-style: normal; font-size: .8rem; font-weight: 700; }
 .key-made { color: #00e676; } .key-miss { color: #ff8a80; }
 .key-rec { color: #29b6f6; } .key-lost { color: #ff9100; }
-.key-reb { color: #b388ff; } .key-ast { color: #ff80ab; }
+.key-rbo { color: #ffe24a; } .key-reb { color: #b388ff; } .key-ast { color: #ff80ab; }
 .key-blk { color: #1de9b6; } .key-foul { color: #ff5252; }
 .legend-note { margin-top: 2rem; color: var(--ink-soft); max-width: var(--measure); }
 

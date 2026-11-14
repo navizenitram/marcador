@@ -46,6 +46,7 @@
   --orange: #ff9100;
   --red: #ff5252;
   --purple: #b388ff;
+  --yellow: #ffe24a;
   --pink: #ff80ab;
   --teal: #1de9b6;
   --miss: #ff8a80;
@@ -94,6 +95,7 @@
   --orange: #ea580c;
   --red: #dc2626;
   --purple: #7c3aed;
+  --yellow: #ca9a04;
   --pink: #db2777;
   --teal: #0d9488;
   --miss: #e05252;
@@ -412,11 +414,12 @@ label.btn { flex-direction: row; font-family: var(--font); }
 .act.miss { --c: var(--miss); --fill: 10%; border-color: color-mix(in srgb, var(--red) 30%, var(--surface)); }
 .act.pos { --c: var(--blue); }
 .act.neg { --c: var(--orange); }
-.act.reb { --c: var(--purple); }
+.act.rbo { --c: var(--yellow); }   /* rebote de ataque */
+.act.reb { --c: var(--purple); }   /* rebote defensivo y rebote sin distinguir */
 .act.foul { --c: var(--red); border-color: color-mix(in srgb, var(--red) 46%, var(--surface)); }
 .act.ast { --c: var(--pink); }
 .act.blk { --c: var(--teal); }
-.act.pos b, .act.neg b, .act.reb b, .act.foul b, .act.ast b, .act.blk b { font-family: var(--font); font-size: clamp(12px, min(4.6vh, 2.6vw), 22px); letter-spacing: .3px; }
+.act.pos b, .act.neg b, .act.rbo b, .act.reb b, .act.foul b, .act.ast b, .act.blk b { font-family: var(--font); font-size: clamp(12px, min(4.6vh, 2.6vw), 22px); letter-spacing: .3px; }
 .act:active { transform: scale(.92); filter: var(--press); }
 .act.flash { animation: flash .5s ease-out; }
 @keyframes flash {
@@ -563,6 +566,7 @@ h3.sub { font-size: 12.5px; letter-spacing: .13em; text-transform: uppercase; co
 .seg button.on { background: var(--surface3); color: var(--text); box-shadow: inset 0 -2px 0 var(--green), var(--elev); }
 .seg.wide { display: flex; width: 100%; }
 .seg.wide button { flex: 1 1 0; min-width: 0; padding: 0 8px; }
+.reb-mode { margin-bottom: 6px; }
 .phase-info { font-family: var(--font-text); font-size: 13.5px; font-weight: 500; color: var(--amber); }
 
 .summary { display: flex; align-items: center; gap: 18px; margin-bottom: 10px; }
@@ -754,6 +758,7 @@ table.stats tfoot td.zero { color: var(--muted); }
 .log-row.miss { border-left-color: var(--miss); }
 .log-row.pos { border-left-color: var(--blue); }
 .log-row.neg { border-left-color: var(--orange); }
+.log-row.rbo { border-left-color: var(--yellow); }
 .log-row.reb { border-left-color: var(--purple); }
 .log-row.foul { border-left-color: var(--red); }
 .log-row.ast { border-left-color: var(--pink); }

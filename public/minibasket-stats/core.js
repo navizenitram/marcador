@@ -17,7 +17,8 @@
   const periodIndex = (g, e) => Math.min(Math.max((e.period || 1) - 1, 0), g.periods - 1);
 
   function blankLine() {
-    return { t1m: 0, t1a: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ro: 0, rd: 0, ast: 0, blk: 0, blkr: 0, rec: 0, lost: 0, fc: 0, fr: 0 };
+    // rb: rebotes sin distinguir ataque y defensa (el botón único REB, jugada de tipo 'reb')
+    return { t1m: 0, t1a: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ro: 0, rd: 0, rb: 0, ast: 0, blk: 0, blkr: 0, rec: 0, lost: 0, fc: 0, fr: 0 };
   }
 
   function addEvent(l, type) {
@@ -28,6 +29,7 @@
       case 't2_ko': l.t2a++; break;
       case 't3_ok': l.t3m++; l.t3a++; break;
       case 't3_ko': l.t3a++; break;
+      case 'reb': l.rb++; break;
       default: if (type in l) l[type]++;
     }
   }
@@ -43,7 +45,7 @@
      Cada tiro fallado resta 1, sea de 1, 2 o 3. */
   function finish(l) {
     l.pts = l.t1m + 2 * l.t2m + 3 * l.t3m;
-    l.reb = l.ro + l.rd;
+    l.reb = l.ro + l.rd + l.rb;
     l.miss = (l.t1a - l.t1m) + (l.t2a - l.t2m) + (l.t3a - l.t3m);
     l.val = l.pts + l.reb + l.ast + l.blk + l.rec + l.fr - l.miss - l.blkr - l.lost - l.fc;
     return l;

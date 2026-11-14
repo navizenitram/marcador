@@ -40,6 +40,13 @@ describe('estadísticas de un partido sin DOM', () => {
     expect(lines.p4.val).toBe(0);
   });
 
+  it('el rebote sin distinguir (botón único REB) cuenta en los rebotes totales y en la valoración', () => {
+    const l = core.blankLine();
+    core.addEvent(l, 'reb'); core.addEvent(l, 'reb'); core.addEvent(l, 'ro');
+    core.finish(l);
+    expect(plain(l)).toMatchObject({ rb: 2, ro: 1, rd: 0, reb: 3, val: 3 });
+  });
+
   it('sumLines acumula una línea sobre otra', () => {
     const a = core.blankLine(), b = core.blankLine();
     core.addEvent(b, 't2_ok'); core.addEvent(b, 'rd');

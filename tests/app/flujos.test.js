@@ -4,6 +4,7 @@ import { openApp, THEME_KEY } from '../helpers/app.js';
 import { ev, makeData, makeGame, makeTeam, opp, PLAYERS, sampleGame } from '../helpers/fixtures.js';
 
 const FIVE = ['p4', 'p7', 'p10', 'p12', 'p15'];
+const OPTION_IDS = ['t1', 't2', 't3', 'ro', 'rd', 'reb', 'rec', 'lost', 'ast', 'blk', 'blkr', 'fc', 'fr'];
 
 /** App abierta en un partido en juego con cinco jugadores en pista */
 const live = (game = {}, team = makeTeam()) =>
@@ -590,6 +591,44 @@ describe('ajustes: botones del partido', () => {
     await app.act('toggle-opt', { id: 't2' });
     expect(app.toast).toBe('Tiene que quedar al menos un botón');
     expect(app.db.teams[0].hidden).not.toContain('t2');
+  });
+
+  it('en la pista los rebotes van justo después de los tiros, en su propio grupo y con colores distintos', async () => {
+    const app = await live();
+    const acts = rowOf(app, 'p4').querySelector('.acts');
+    const order = [...acts.children].map((b) => (b.classList.contains('sep') ? '|' : b.dataset.type));
+    expect(order).toEqual(['t1_ok', 't1_ko', 't2_ok', 't2_ko', 't3_ok', 't3_ko', '|', 'ro', 'rd', '|', 'rec', 'lost', 'ast', 'blk', 'blkr', 'fc', 'fr']);
+    expect(app.$('.court [data-type="ro"]').className).not.toBe(app.$('.court [data-type="rd"]').className);
+  });
+
+  it('con «Un solo botón» los rebotes se apuntan con REB y cuentan en los rebotes totales', async () => {
+    const app = await live();
+    await app.go('#/ajustes');
+    await app.act('reb-mode', { v: 'one' });
+    expect(app.db.teams[0].rebOne).toBe(true);
+    expect(app.$$('.preview .act').map((b) => b.dataset.type || b.textContent)).toContain('REBRebote');
+    expect(app.$$('.opts [data-action="toggle-opt"]').map((b) => b.dataset.id)).not.toContain('ro');
+
+    await app.go('#/partido/g1');
+    expect(app.$$('.court [data-type="ro"], .court [data-type="rd"]')).toHaveLength(0);
+    await tap(app, 'p4', 'reb', 2);
+    expect(app.toast).toContain('Rebote');
+
+    await app.go('#/stats/g1');
+    const headers = app.$$('table.stats thead th').map((th) => th.textContent.replace(/[▲▼]/g, '').trim());
+    expect(headers).toContain('RT');
+    expect(headers).not.toContain('RO');   // sin datos de ataque ni defensa, esas columnas no aparecen
+
+    await app.go('#/ajustes');
+    await app.act('reb-mode', { v: 'split' });
+    expect('rebOne' in app.db.teams[0]).toBe(false);
+  });
+
+  it('al pasar a un solo botón de rebote nunca se queda la pista sin botones', async () => {
+    const all = OPTION_IDS.filter((id) => id !== 'rd');
+    const app = await openApp({ data: makeData({ teams: [makeTeam({ hidden: [...all] })] }), hash: '#/ajustes' });
+    await app.act('reb-mode', { v: 'one' });
+    expect(app.$$('.preview .act').map((b) => b.textContent)).toEqual(['REBRebote']);
   });
 
   it('las columnas de acciones desactivadas se ocultan en las estadísticas salvo que tengan datos', async () => {
