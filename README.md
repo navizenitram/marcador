@@ -142,7 +142,10 @@ que menciona a Vercel como servicio de alojamiento) y subir la versión de la ca
 
 ## Recursos generados
 
-- `public/img/app-*.webp`: capturas reales de la app con datos de ejemplo, en un viewport de 844×390 a 2x.
+- `public/img/app-*.webp`: capturas reales de la app con datos de ejemplo, en un viewport de 844×390 a 2x y en modo
+  oscuro. Se rehacen con `node scripts/capturas.mjs` (Chromium de Playwright; los datos de ejemplo, con un equipo en
+  el perfil mini, se generan en el propio script y salen siempre iguales). Si cambian, revisa los textos alternativos
+  (`heroAlt`, `miniAlt` y `statsAlt` en `src/i18n/home.ts`).
 - `public/og/og.png`: imagen para compartir (1200×630). Fuente: `assets-src/og.html`.
 - `public/descargas/plantilla-estadisticas-baloncesto.pdf`: plantilla A4 apaisada. Fuente: `assets-src/plantilla-estadisticas.html`.
 
