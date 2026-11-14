@@ -39,7 +39,7 @@ test('un partido completo: equipo, plantilla, quinteto, jugadas y estadísticas'
   const row = (name) => page.locator('.court .prow', { hasText: name });
   await row('Ana').locator('[data-type="t2_ok"]').tap();
   await row('Bruno').locator('[data-type="t3_ok"]').tap();
-  await row('Carla').locator('[data-type="rd"]').tap();
+  await row('Carla').locator('[data-type="reb"]').tap();   // un equipo nuevo empieza en pre-mini: rebote con un solo botón
   await page.locator('[data-action="opp"][data-pts="2"]').tap();
   await expect(scoreUs(page)).toHaveText('5');
   await expect(scoreThem(page)).toHaveText('2');

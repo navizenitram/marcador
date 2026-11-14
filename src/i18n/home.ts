@@ -31,7 +31,7 @@ export const home = {
       { h: 'Revisa y comparte', p: 'Estadísticas del partido y de la temporada, parciales por periodo y valoración. Envíalas por WhatsApp o email, o descárgalas en CSV.' },
     ],
     actionsTitle: 'Qué puedes apuntar',
-    actionsIntro: 'Hasta 15 botones por jugador. Activa solo los que quieras usar: con menos botones, cada uno es más grande y más fácil de tocar.',
+    actionsIntro: 'Hasta 15 botones por jugador. Elige un perfil según la categoría (escoleta, pre-mini, mini o total) y activa o desactiva los que quieras: con menos botones, cada uno es más grande y más fácil de tocar.',
     miniTitle: 'Para crecer con datos, desde la base',
     miniIntro: 'Pensada para el baloncesto formativo y para cualquiera que quiera mejorar a partir de sus números: del minibasket a categorías superiores.',
     mini: [
@@ -119,7 +119,7 @@ export const home = {
       { h: 'Revisa i comparteix', p: 'Estadístiques del partit i de la temporada, parcials per període i valoració. Envia-les per WhatsApp o correu electrònic, o descarrega-les en CSV.' },
     ],
     actionsTitle: 'Què pots apuntar',
-    actionsIntro: 'Fins a 15 botons per jugador. Activa només els que vulguis fer servir: amb menys botons, cadascun és més gran i més fàcil de tocar.',
+    actionsIntro: 'Fins a 15 botons per jugador. Tria un perfil segons la categoria (escoleta, pre-mini, mini o total) i activa o desactiva els que vulguis: amb menys botons, cadascun és més gran i més fàcil de tocar.',
     miniTitle: 'Per créixer amb dades, des de la base',
     miniIntro: 'Pensada per al bàsquet formatiu i per a tothom qui vulgui millorar a partir dels seus números: del minibàsquet a categories superiors.',
     mini: [

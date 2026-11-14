@@ -24,7 +24,14 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
     `1✓ 1✗ 2✓ 2✗ 3✓ 3✗ | RO RD | REC PÉR AS TAP TR FC FR`
     (rebote de ataque, rebote defensivo, recuperación, pérdida, asistencia, tapón, tapón recibido, falta cometida, falta recibida).
     Los rebotes van justo después de los tiros; el de ataque (amarillo) y el defensivo (morado) tienen colores distintos.
-  - Los botones se eligen en **Ajustes** (cada entrenador activa solo lo que quiere apuntar). En **Rebotes** se puede
+  - Los botones se eligen en **Ajustes** con un **perfil** según la categoría y, si se quiere, botón a botón
+    (cada entrenador activa solo lo que quiere apuntar):
+    - **Escoleta**: solo puntos (tiros anotados y fallados).
+    - **Pre-mini** (el de los equipos nuevos): puntos, rebote con un solo botón, recuperación, pérdida y falta cometida.
+    - **Mini**: lo de pre-mini con asistencias y faltas recibidas.
+    - **Total**: todos los botones, con rebote de ataque y defensivo.
+
+    Si se cambia algún botón a mano y ya no coincide con ningún perfil, aparece como «Personalizado». En **Rebotes** se puede
     elegir **un solo botón** (REB) que no distingue ataque y defensa: cuenta en los rebotes totales (RT) y en la valoración.
   - Tocar el nombre del jugador → cambio con alguien del banquillo.
   - Las faltas de cada jugador se ven de un vistazo (un punto por falta bajo su dorsal), con aviso visual a las 4 y jugador eliminado a las 5.
@@ -54,7 +61,7 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
     avanzadas, el +/- y los rebotes sin distinguir (REB, ya incluidos en RT) en las últimas columnas).
   - Si en un ámbito se mezclan rebotes de ataque y defensivos con los del botón único, la tabla añade la columna
     **REB** para que RO + RD + REB cuadre con RT.
-- **Ajustes**: botones del partido que se quieren usar (con vista previa), rebotes en dos botones o en uno, copia de seguridad y enlace de apoyo (Ko-fi).
+- **Ajustes**: perfil y botones del partido que se quieren usar (con vista previa), rebotes en dos botones o en uno, copia de seguridad y enlace de apoyo (Ko-fi).
 - **Copia de seguridad**: exportar / importar todos los datos en JSON (útil para cambiar de dispositivo).
 - **Modo claro / oscuro** (botón 🌙/☀️ en la barra superior o en el menú ☰ del partido). Se comparte con el marcador.
 - PWA: se puede "Añadir a pantalla de inicio", funciona sin conexión y en Android se abre en horizontal y pantalla completa.

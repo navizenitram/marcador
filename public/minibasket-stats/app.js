@@ -58,6 +58,34 @@ const OPTIONS = [
   { id: 'fr', acts: ['fr'], name: 'Falta recibida', desc: 'Le hacen falta' },
 ];
 
+/* Perfiles: combinaciones de botones según la categoría. Al elegir uno se aplican sus botones (y su modo de rebote);
+   después cada botón se puede activar o desactivar a mano. El perfil no se guarda: se deduce de los botones activos,
+   y si no coinciden con ninguno, son «Personalizado». Los equipos nuevos empiezan en DEFAULT_PROFILE. */
+const PRE_MINI = ['t1', 't2', 't3', 'reb', 'rec', 'lost', 'fc'];
+const PROFILES = [
+  { id: 'escoleta', name: 'Escoleta', desc: 'Solo puntos', opts: ['t1', 't2', 't3'] },
+  { id: 'premini', name: 'Pre-mini', desc: 'Puntos, rebote (un botón), recuperación, pérdida y falta cometida', opts: PRE_MINI },
+  { id: 'mini', name: 'Mini', desc: 'Lo de pre-mini con asistencias y faltas recibidas', opts: [...PRE_MINI, 'ast', 'fr'] },
+  { id: 'total', name: 'Total', desc: 'Todos los botones, con rebote de ataque y defensivo', opts: OPTIONS.map(o => o.id).filter(id => id !== 'reb') },
+];
+const DEFAULT_PROFILE = 'premini';
+
+/* Deja el equipo con los botones de un perfil. Sin botones de rebote (escoleta), el modo de rebote no cambia. */
+function applyProfile(t, id) {
+  const p = PROFILES.find(x => x.id === id);
+  if (!p) return null;
+  t.hidden = OPTIONS.map(o => o.id).filter(x => !p.opts.includes(x));
+  const one = p.opts.includes('reb') ? true : p.opts.includes('ro') ? false : rebOne(t);
+  if (one) t.rebOne = true; else delete t.rebOne;
+  return p;
+}
+
+/* Perfil del equipo actual según sus botones activos (null si no coincide con ninguno) */
+function currentProfile() {
+  const on = OPTIONS.filter(o => optEnabled(o.id)).map(o => o.id);
+  return PROFILES.find(p => p.opts.length === on.length && p.opts.every(id => on.includes(id))) || null;
+}
+
 /* Modo de rebote: true, un único botón REB; false, RO y RD. Por defecto, el del equipo actual. */
 function rebOne(t = team()) { return !!(t && t.rebOne); }
 /* Opciones que se ofrecen según el modo de rebote: RO y RD, o un único botón REB */
@@ -1009,6 +1037,9 @@ function viewSettings() {
   const others = offered.filter(o => o.acts.some(a => OTHER_ACTIONS.includes(a)));
   const n = offered.filter(o => optEnabled(o.id)).length;
   const one = rebOne();
+  const prof = currentProfile();
+  const profile = (p) => `<button class="profile ${prof === p ? 'on' : ''}" data-action="profile" data-v="${p.id}" aria-pressed="${prof === p}">
+      <b>${p.name}</b><small>${p.desc}</small></button>`;
   const rebMode = (v, label) => `<button class="${one === (v === 'one') ? 'on' : ''}" data-action="reb-mode" data-v="${v}" aria-pressed="${one === (v === 'one')}">${label}</button>`;
   return shell('ajustes', `
   <section class="card preview-card">
@@ -1024,10 +1055,13 @@ function viewSettings() {
     <section class="card grow">
       <div class="card-head">
         <h2>Botones del partido · ${esc(team().name)} <span class="muted">(${n}/${offered.length})</span></h2>
-        ${n < offered.length ? '<button class="btn" data-action="opts-all">Activar todos</button>' : ''}
       </div>
-      <p class="muted small">Elige qué acciones quieres apuntar durante el partido. Las desactivadas no aparecen en la pista ni en las estadísticas
-      (salvo que haya datos de partidos anteriores) y no cuentan en la valoración. Con menos botones, cada uno es más grande.</p>
+      <p class="muted small">Elige un perfil según la categoría y, si quieres, activa o desactiva cada botón a tu gusto. Las acciones desactivadas
+      no aparecen en la pista ni en las estadísticas (salvo que haya datos de partidos anteriores) y no cuentan en la valoración.
+      Con menos botones, cada uno es más grande.</p>
+      <h3 class="sub">Perfil</h3>
+      <div class="profiles" role="group" aria-label="Perfil de botones">${PROFILES.map(profile).join('')}</div>
+      ${prof ? '' : '<p class="muted small profile-custom"><b>Personalizado:</b> has cambiado botones a mano. Toca un perfil para volver a sus botones.</p>'}
       <h3 class="sub">Tiros</h3>
       <div class="opts">${shots.map(item).join('')}</div>
       <h3 class="sub">Rebotes</h3>
@@ -2061,12 +2095,14 @@ const actions = {
   },
   'reb-mode'(el) {
     const t = team(), one = el.dataset.v === 'one';
-    if (!!t.rebOne === one) return;
+    if (rebOne(t) === one) return;
+    // Los rebotes siguen como estaban: si había alguno activo, se activan los del modo elegido; si no, quedan ocultos.
+    // (Los botones de rebote tienen el mismo id como opción y como jugada.)
+    const wasOn = REB_ACTIONS.some(id => optEnabled(id));
     if (one) t.rebOne = true; else delete t.rebOne;
-    // Si con el cambio no queda ningún botón, se activan los de rebote del modo elegido
-    // (los botones de rebote tienen el mismo id como opción y como jugada)
     const rebIds = REB_ACTIONS.filter(id => optOffered(id, one));
-    if (!OPTIONS.some(o => optEnabled(o.id))) t.hidden = t.hidden.filter(id => !rebIds.includes(id));
+    t.hidden = t.hidden.filter(id => !rebIds.includes(id));
+    if (!wasOn) t.hidden.push(...rebIds);
     save(); vibrate(8); render();
     toast(one ? 'Rebotes con un solo botón (REB)' : 'Rebotes de ataque (RO) y defensivos (RD)');
   },
@@ -2082,7 +2118,12 @@ const actions = {
     t.move = t.move === el.dataset.v ? '' : el.dataset.v;   // al tocar la opción elegida, se quita
     save(); vibrate(8); render();
   },
-  'opts-all'() { team().hidden = []; save(); render(); toast('Todos los botones activados'); },
+  profile(el) {
+    const p = applyProfile(team(), el.dataset.v);
+    if (!p) return;
+    save(); vibrate(8); render();
+    toast(`Perfil ${p.name}: ${p.opts.reduce((n, id) => n + OPTIONS.find(o => o.id === id).acts.length, 0)} botones por jugador`);
+  },
   theme() { toggleTheme(); },
   'modal-close'() { closeModal(); },
   'confirm-yes'() { const m = ui.modal; ui.modal = null; refreshModal(); m.resolve(true); },
@@ -2159,6 +2200,7 @@ document.addEventListener('submit', async (e) => {
     if (!name) return;
     const cur = team();
     const t = { id: uid(), name, email: cur ? cur.email : '', players: [], hidden: [], phase: 1, levels: ['', ''], move: '', minUnit: 4 };
+    applyProfile(t, DEFAULT_PROFILE);   // los botones se cambian después en Ajustes
     db.teams.push(t);
     db.currentTeamId = t.id;
     ui.editId = null;

@@ -67,7 +67,8 @@ describe('equipos', () => {
     const app = await openApp();
     await app.submit('team-new', { name: '  Alevín B  ' });
     expect(app.db.teams).toHaveLength(1);
-    expect(app.db.teams[0]).toMatchObject({ name: 'Alevín B', players: [], hidden: [] });
+    // Un equipo nuevo empieza con el perfil pre-mini
+    expect(app.db.teams[0]).toMatchObject({ name: 'Alevín B', players: [], hidden: ['ro', 'rd', 'ast', 'blk', 'blkr', 'fr'], rebOne: true });
     expect(app.db.currentTeamId).toBe(app.db.teams[0].id);
     expect(app.stored().teams[0].name).toBe('Alevín B');
     expect(app.hash).toBe('#/equipo');
@@ -579,10 +580,55 @@ describe('ajustes: botones del partido', () => {
     expect(app.$$('.court [data-type^="t2_"]')).toHaveLength(10);
   });
 
-  it('«Activar todos» vuelve a mostrar todas las acciones', async () => {
-    const app = await openApp({ data: makeData({ teams: [makeTeam({ hidden: ['blk', 'fr'] })] }), hash: '#/ajustes' });
-    await app.act('opts-all');
-    expect([...app.db.teams[0].hidden]).toEqual([]);
+  it('cada perfil deja sus botones en la pista y queda marcado', async () => {
+    const app = await openApp({ data: makeData(), hash: '#/ajustes' });
+    const preview = () => app.$$('.preview .act').map((b) => b.querySelector('b').textContent);
+    const marked = () => app.$$('.profile.on').map((b) => b.dataset.v);
+    const SHOTS = ['1', '1', '2', '2', '3', '3'];
+
+    expect(marked()).toEqual(['total']);   // un equipo con todos los botones (como los de antes) está en «Total»
+
+    await app.act('profile', { v: 'escoleta' });
+    expect(preview()).toEqual(SHOTS);
+    expect(marked()).toEqual(['escoleta']);
+
+    await app.act('profile', { v: 'premini' });
+    expect(preview()).toEqual([...SHOTS, 'REB', 'REC', 'PÉR', 'FC']);
+    expect(app.toast).toBe('Perfil Pre-mini: 10 botones por jugador');
+
+    await app.act('profile', { v: 'mini' });
+    expect(preview()).toEqual([...SHOTS, 'REB', 'REC', 'PÉR', 'AS', 'FC', 'FR']);
+
+    await app.act('profile', { v: 'total' });
+    expect(preview()).toEqual([...SHOTS, 'RO', 'RD', 'REC', 'PÉR', 'AS', 'TAP', 'TR', 'FC', 'FR']);
+    expect(app.db.teams[0]).toMatchObject({ hidden: ['reb'] });
+    expect('rebOne' in app.db.teams[0]).toBe(false);
+    expect(app.stored().teams[0].hidden).toEqual(['reb']);
+  });
+
+  it('al cambiar un botón a mano el perfil pasa a «Personalizado» y se puede volver a él', async () => {
+    const app = await openApp({ data: makeData(), hash: '#/ajustes' });
+    await app.act('profile', { v: 'mini' });
+    expect(app.$('.profile-custom')).toBeNull();
+    await app.act('toggle-opt', { id: 'blk' });
+    expect(app.$$('.profile.on')).toHaveLength(0);
+    expect(app.text('.profile-custom')).toContain('Personalizado');
+    await app.act('profile', { v: 'mini' });
+    expect(app.$$('.profile.on').map((b) => b.dataset.v)).toEqual(['mini']);
+  });
+
+  it('al cambiar el modo de rebote, los rebotes siguen activos u ocultos como estaban', async () => {
+    const app = await openApp({ data: makeData(), hash: '#/ajustes' });
+    const rebs = () => app.$$('.preview .act').map((b) => b.querySelector('b').textContent).filter((l) => ['RO', 'RD', 'REB'].includes(l));
+    await app.act('profile', { v: 'premini' });
+    await app.act('reb-mode', { v: 'split' });
+    expect(rebs()).toEqual(['RO', 'RD']);
+
+    await app.act('profile', { v: 'escoleta' });
+    await app.act('reb-mode', { v: 'one' });
+    await app.act('reb-mode', { v: 'split' });
+    expect(rebs()).toEqual([]);
+    expect(app.$$('.profile.on').map((b) => b.dataset.v)).toEqual(['escoleta']);
   });
 
   it('tiene que quedar al menos un botón', async () => {
