@@ -46,6 +46,7 @@
   --orange: #ff9100;
   --red: #ff5252;
   --purple: #b388ff;
+  --yellow: #ffe24a;
   --pink: #ff80ab;
   --teal: #1de9b6;
   --miss: #ff8a80;
@@ -94,6 +95,7 @@
   --orange: #ea580c;
   --red: #dc2626;
   --purple: #7c3aed;
+  --yellow: #a87c00;
   --pink: #db2777;
   --teal: #0d9488;
   --miss: #e05252;
@@ -334,7 +336,7 @@ label.btn { flex-direction: row; font-family: var(--font); }
 
 .board { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .board .tname { font-weight: 700; font-size: clamp(12px, 2.6vh, 16px); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto; }
-.board .tname.us { text-align: right; }
+.board .tname.first { text-align: right; }   /* el nombre de la izquierda, pegado a su marcador */
 .board .score {
   font-family: var(--font-digits); font-weight: 700; font-size: clamp(24px, 8vh, 40px); line-height: 1; flex: none;
   min-width: 1.75em; padding: .06em .22em 0; text-align: center; border-radius: 9px;
@@ -344,6 +346,18 @@ label.btn { flex-direction: row; font-family: var(--font); }
 .board .score.them { color: var(--blue); text-shadow: 0 0 calc(18px * var(--glow)) color-mix(in srgb, var(--blue) 60%, transparent); }
 .board .dash { color: var(--gray); font-size: 20px; font-weight: 700; flex: none; margin: 0 -3px; }
 
+/* Rendimiento en directo: valoración del equipo y +/- del quinteto en pista */
+.live-perf { display: flex; gap: 3px; flex: none; height: 100%; max-height: 46px; }
+.live-perf span {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 44px; padding: 0 7px;
+  background: var(--field); border: 1px solid var(--border); border-radius: 10px;
+}
+.live-perf small { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); line-height: 1; }
+.live-perf b { font-family: var(--font-digits); font-size: clamp(15px, 5vh, 20px); line-height: 1; color: var(--text); }
+.live-perf b.up, .pline.perf b.up { color: var(--green); }
+.live-perf b.down, .pline.perf b.down { color: var(--red); }
+.pline.perf b { color: var(--text); }
+.live-perf small.short { display: none; }
 .opp-btns { display: flex; gap: 3px; height: 100%; max-height: 46px; flex: none; }
 .opp-btns button {
   min-width: 40px; border-radius: 10px; font-family: var(--font-digits); font-weight: 700; font-size: 16px;
@@ -394,7 +408,8 @@ label.btn { flex-direction: row; font-family: var(--font); }
 .prow.f-warn .fouls { color: var(--amber); font-weight: 700; }
 .prow.f-out .fouls, .prow.f-out .pline { color: var(--red); font-weight: 700; }
 
-.acts { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)) 3px repeat(8, minmax(0, 1fr)); gap: 3px; min-width: 0; }
+/* Las columnas (tiros | rebotes | resto, con separadores de 3px) las pone actsHTML según los botones activos */
+.acts { display: grid; gap: 3px; min-width: 0; }
 .acts .sep { background: var(--border); border-radius: 2px; margin: 6px 0; }
 /* Cada familia de botones tiene su color (--c): fondo, borde y texto salen de él */
 .act {
@@ -412,11 +427,12 @@ label.btn { flex-direction: row; font-family: var(--font); }
 .act.miss { --c: var(--miss); --fill: 10%; border-color: color-mix(in srgb, var(--red) 30%, var(--surface)); }
 .act.pos { --c: var(--blue); }
 .act.neg { --c: var(--orange); }
-.act.reb { --c: var(--purple); }
+.act.rbo { --c: var(--yellow); }   /* rebote de ataque */
+.act.reb { --c: var(--purple); }   /* rebote defensivo y rebote sin distinguir */
 .act.foul { --c: var(--red); border-color: color-mix(in srgb, var(--red) 46%, var(--surface)); }
 .act.ast { --c: var(--pink); }
 .act.blk { --c: var(--teal); }
-.act.pos b, .act.neg b, .act.reb b, .act.foul b, .act.ast b, .act.blk b { font-family: var(--font); font-size: clamp(12px, min(4.6vh, 2.6vw), 22px); letter-spacing: .3px; }
+.act.pos b, .act.neg b, .act.rbo b, .act.reb b, .act.foul b, .act.ast b, .act.blk b { font-family: var(--font); font-size: clamp(12px, min(4.6vh, 2.6vw), 22px); letter-spacing: .3px; }
 .act:active { transform: scale(.92); filter: var(--press); }
 .act.flash { animation: flash .5s ease-out; }
 @keyframes flash {
@@ -563,6 +579,19 @@ h3.sub { font-size: 12.5px; letter-spacing: .13em; text-transform: uppercase; co
 .seg button.on { background: var(--surface3); color: var(--text); box-shadow: inset 0 -2px 0 var(--green), var(--elev); }
 .seg.wide { display: flex; width: 100%; }
 .seg.wide button { flex: 1 1 0; min-width: 0; padding: 0 8px; }
+.reb-mode { margin-bottom: 6px; }
+/* Perfiles de botones (Ajustes) */
+.profiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; }
+.profile {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 2px; padding: 9px 12px; text-align: left;
+  background: var(--field); border: 1.5px solid var(--border); border-radius: 10px; transition: border-color .12s, background .12s;
+}
+.profile b { font-family: var(--font); font-size: 17px; color: var(--text); }
+.profile small { font-family: var(--font-text); font-size: 12px; font-weight: 500; color: var(--muted); line-height: 1.25; }
+.profile.on { border-color: var(--green); background: color-mix(in srgb, var(--green) 12%, var(--surface)); }
+.profile.on b { color: var(--green); }
+.profile-custom { margin: 6px 0 0; }
+.profile-custom b { color: var(--amber); }
 .phase-info { font-family: var(--font-text); font-size: 13.5px; font-weight: 500; color: var(--amber); }
 
 .summary { display: flex; align-items: center; gap: 18px; margin-bottom: 10px; }
@@ -754,6 +783,7 @@ table.stats tfoot td.zero { color: var(--muted); }
 .log-row.miss { border-left-color: var(--miss); }
 .log-row.pos { border-left-color: var(--blue); }
 .log-row.neg { border-left-color: var(--orange); }
+.log-row.rbo { border-left-color: var(--yellow); }
 .log-row.reb { border-left-color: var(--purple); }
 .log-row.foul { border-left-color: var(--red); }
 .log-row.ast { border-left-color: var(--pink); }
@@ -894,8 +924,25 @@ table.stats tfoot td.zero { color: var(--muted); }
   .kpis { max-width: 400px; }
   .trend { padding-left: 12px; }
 }
+/* «VAL 3 · +4»: hasta las tablets, el +/- de cada jugador va sin etiqueta para que quepa junto al nombre */
+@media (max-width: 1024px) {
+  .pline .pm-label { display: none; }
+}
 /* Móviles pequeños: el gráfico de la temporada pasa debajo de las cifras, a todo el ancho */
 @media (max-width: 700px) {
+  /* Cabecera del partido más compacta para que el marcador no se quede sin sitio: VAL y quinteto en una sola caja,
+     una cifra encima de otra, y flechas del periodo, botones del rival y marcador algo más estrechos */
+  .live-top { gap: 3px; }
+  .live-perf { flex-direction: column; justify-content: center; gap: 2px; padding: 0 6px; background: var(--field); border: 1px solid var(--border); border-radius: 10px; }
+  .live-perf span { flex-direction: row; justify-content: space-between; align-items: baseline; gap: 5px; min-width: 0; padding: 0; background: none; border: 0; }
+  .live-perf small { font-size: 9px; }
+  .live-perf small:not(.short) + small.short { display: inline; }
+  .live-perf small:has(+ small.short) { display: none; }
+  .live-perf b { font-size: 14px; }
+  .period button { width: 24px; }
+  .opp-btns button { min-width: 32px; }
+  .board { gap: 5px; }
+  .board .score { min-width: 1.45em; }
   .summary:has(.trend) { flex-wrap: wrap; }
   .kpis { max-width: none; }
   .trend { flex-basis: 100%; min-width: 0; padding-left: 0; border-left: 0; }

@@ -31,7 +31,15 @@ export const home = {
       { h: 'Revisa y comparte', p: 'Estadísticas del partido y de la temporada, parciales por periodo y valoración. Envíalas por WhatsApp o email, o descárgalas en CSV.' },
     ],
     actionsTitle: 'Qué puedes apuntar',
-    actionsIntro: 'Hasta 15 botones por jugador. Activa solo los que quieras usar: con menos botones, cada uno es más grande y más fácil de tocar.',
+    actionsIntro: 'Hasta 15 botones por jugador, pero no hace falta apuntarlo todo. Elige un perfil según la categoría y, si quieres, activa o desactiva cada botón: con menos botones, cada uno es más grande y más fácil de tocar.',
+    profilesTitle: 'Un perfil para cada categoría',
+    profilesIntro: 'Con niños pequeños, quince botones son demasiados: acabas mirando el móvil en vez del partido. Empieza por lo justo y añade botones cuando los necesites.',
+    profiles: [
+      { h: 'Escuela', tag: 'Solo puntos · 6 botones', p: 'Tiros libres, de 2 y triples, anotados y fallados. Para los primeros partidos.' },
+      { h: 'Pre-mini', tag: 'Benjamín · 10 botones', p: 'Puntos, rebote con un solo botón, recuperación, pérdida y falta cometida. Es el perfil de los equipos nuevos.' },
+      { h: 'Mini', tag: 'Alevín · 12 botones', p: 'Lo de pre-mini, con asistencias y faltas recibidas.' },
+      { h: 'Completo', tag: 'Todos los botones · 15', p: 'También rebote de ataque y defensivo por separado, tapones y tapones recibidos.' },
+    ],
     miniTitle: 'Para crecer con datos, desde la base',
     miniIntro: 'Pensada para el baloncesto formativo y para cualquiera que quiera mejorar a partir de sus números: del minibasket a categorías superiores.',
     mini: [
@@ -75,6 +83,7 @@ export const home = {
         q: '¿Qué pasa si la temporada tiene dos fases?',
         a: 'En minibasket es lo habitual: según la clasificación de la primera fase, en la segunda jugáis contra equipos nuevos en un nivel superior, igual o inferior. En la ficha del equipo indicas en qué fase estás y el nivel de cada una. Los partidos nuevos se apuntan en la fase actual, y puedes ver las estadísticas de cada fase por separado o de toda la temporada.',
       },
+      { q: '¿Tengo que apuntar todas las acciones?', a: 'No. En Ajustes eliges un perfil según la categoría (escuela, pre-mini, mini o completo) y, después, puedes activar o desactivar cada botón. Los equipos nuevos empiezan en pre-mini: puntos, rebotes, recuperaciones, pérdidas y faltas.' },
       { q: '¿Por qué hay que usarla con el móvil en horizontal?', a: 'Para que quepan los cinco jugadores en pista con todos sus botones sin tener que hacer scroll durante el partido.' },
       {
         q: '¿Cómo calcula la valoración?',
@@ -119,7 +128,15 @@ export const home = {
       { h: 'Revisa i comparteix', p: 'Estadístiques del partit i de la temporada, parcials per període i valoració. Envia-les per WhatsApp o correu electrònic, o descarrega-les en CSV.' },
     ],
     actionsTitle: 'Què pots apuntar',
-    actionsIntro: 'Fins a 15 botons per jugador. Activa només els que vulguis fer servir: amb menys botons, cadascun és més gran i més fàcil de tocar.',
+    actionsIntro: "Fins a 15 botons per jugador, però no cal apuntar-ho tot. Tria un perfil segons la categoria i, si vols, activa o desactiva cada botó: amb menys botons, cadascun és més gran i més fàcil de tocar.",
+    profilesTitle: 'Un perfil per a cada categoria',
+    profilesIntro: "Amb nens petits, quinze botons són massa: acabes mirant el mòbil en lloc del partit. Comença pel just i afegeix botons quan els necessitis.",
+    profiles: [
+      { h: 'Escola', tag: 'Només punts · 6 botons', p: 'Tirs lliures, de 2 i triples, anotats i fallats. Per als primers partits.' },
+      { h: 'Pre-mini', tag: 'Benjamí · 10 botons', p: "Punts, rebot amb un sol botó, recuperació, pèrdua i falta comesa. És el perfil dels equips nous." },
+      { h: 'Mini', tag: 'Aleví · 12 botons', p: 'El de pre-mini, amb assistències i faltes rebudes.' },
+      { h: 'Complet', tag: 'Tots els botons · 15', p: "També rebot d'atac i defensiu per separat, taps i taps rebuts." },
+    ],
     miniTitle: 'Per créixer amb dades, des de la base',
     miniIntro: 'Pensada per al bàsquet formatiu i per a tothom qui vulgui millorar a partir dels seus números: del minibàsquet a categories superiors.',
     mini: [
@@ -164,6 +181,7 @@ export const home = {
         q: 'Què passa si la temporada té dues fases?',
         a: "En minibàsquet és l'habitual: segons la classificació de la primera fase, a la segona jugueu contra equips nous en un nivell superior, igual o inferior. A la fitxa de l'equip indiques en quina fase ets i el nivell de cadascuna. Els partits nous s'apunten a la fase actual, i pots veure les estadístiques de cada fase per separat o de tota la temporada.",
       },
+      { q: "He d'apuntar totes les accions?", a: "No. A Ajustes tries un perfil segons la categoria (a l'app, en castellà: escuela, pre-mini, mini o completo) i, després, pots activar o desactivar cada botó. Els equips nous comencen en pre-mini: punts, rebots, recuperacions, pèrdues i faltes." },
       { q: 'Per què cal fer-la servir amb el mòbil en horitzontal?', a: 'Perquè hi càpiguen els cinc jugadors de la pista amb tots els botons sense haver de desplaçar la pantalla durant el partit.' },
       {
         q: 'Com calcula la valoració?',

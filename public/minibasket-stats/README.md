@@ -19,11 +19,26 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
   Cuando el equipo llega a la 2ª fase, la lista se agrupa por fase, con su nivel y su balance.
 - **Partido en directo** (pensado para que quepa todo sin scroll):
   - Marcador arriba: los puntos propios se suman solos con los tiros anotados; botones **+1 / +2 / +3 / −1** para el rival.
+    Como en cualquier marcador, el local va a la izquierda: de visitante, el rival sale primero (también en el resultado,
+    los parciales y el texto para compartir). En los partidos antiguos sin campo elegido, el equipo propio sigue a la izquierda.
+  - Rendimiento en directo: junto al marcador, la **valoración del equipo** y el **+/- del quinteto** en pista desde que
+    entró (un cambio de periodo sin cambios no lo corta). En cada jugador, bajo sus puntos, su **valoración** y su **+/-**
+    del partido (en verde si suma, en rojo si resta). El +/- necesita el registro de quintetos (partidos desde la v3).
   - Periodo actual (‹ P3 ›). Al pasar de periodo se abre el selector de quinteto.
   - Una fila por jugador en pista (máx. 5) con hasta 15 botones:
-    `1✓ 1✗ 2✓ 2✗ 3✓ 3✗ | REC PÉR RO RD AS TAP TR FC FR`
-    (recuperación, pérdida, rebote de ataque, rebote defensivo, asistencia, tapón, tapón recibido, falta cometida, falta recibida).
-  - Los botones se eligen en **Ajustes** (cada entrenador activa solo lo que quiere apuntar).
+    `1✓ 1✗ 2✓ 2✗ 3✓ 3✗ | RO RD | REC PÉR AS TAP TR FC FR`
+    (rebote de ataque, rebote defensivo, recuperación, pérdida, asistencia, tapón, tapón recibido, falta cometida, falta recibida).
+    Los rebotes van justo después de los tiros; el de ataque (amarillo) y el defensivo (morado) tienen colores distintos.
+  - Los botones se eligen en **Ajustes** con un **perfil** según la categoría y, si se quiere, botón a botón
+    (cada entrenador activa solo lo que quiere apuntar):
+    - **Escuela** (6 botones): solo puntos (tiros anotados y fallados).
+    - **Pre-mini** (benjamín, 10 botones; el de los equipos nuevos): puntos, rebote con un solo botón, recuperación,
+      pérdida y falta cometida.
+    - **Mini** (alevín, 12 botones): lo de pre-mini con asistencias y faltas recibidas.
+    - **Completo** (15 botones): todos, con rebote de ataque y defensivo.
+
+    Si se cambia algún botón a mano y ya no coincide con ningún perfil, aparece como «Personalizado». En **Rebotes** se puede
+    elegir **un solo botón** (REB) que no distingue ataque y defensa: cuenta en los rebotes totales (RT) y en la valoración.
   - Tocar el nombre del jugador → cambio con alguien del banquillo.
   - Las faltas de cada jugador se ven de un vistazo (un punto por falta bajo su dorsal), con aviso visual a las 4 y jugador eliminado a las 5.
   - ↶ deshacer la última acción y listado de jugadas para borrar cualquier error.
@@ -49,8 +64,10 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
     resumen, tiro, evolución, +/- (con el dato del equipo y qué significa) y avanzadas explicadas, para enviar por
     email, copiar, compartir (WhatsApp) o descargar en .txt.
   - **Enviar**: email (`mailto:`), copiar o compartir (menú nativo del móvil). También descarga en **CSV** (con las
-    avanzadas en las últimas columnas).
-- **Ajustes**: botones del partido que se quieren usar (con vista previa), copia de seguridad y enlace de apoyo (Ko-fi).
+    avanzadas, el +/- y los rebotes sin distinguir (REB, ya incluidos en RT) en las últimas columnas).
+  - Si en un ámbito se mezclan rebotes de ataque y defensivos con los del botón único, la tabla añade la columna
+    **REB** para que RO + RD + REB cuadre con RT.
+- **Ajustes**: perfil y botones del partido que se quieren usar (con vista previa), rebotes en dos botones o en uno, copia de seguridad y enlace de apoyo (Ko-fi).
 - **Copia de seguridad**: exportar / importar todos los datos en JSON (útil para cambiar de dispositivo).
 - **Modo claro / oscuro** (botón 🌙/☀️ en la barra superior o en el menú ☰ del partido). Se comparte con el marcador.
 - PWA: se puede "Añadir a pantalla de inicio", funciona sin conexión y en Android se abre en horizontal y pantalla completa.

@@ -17,7 +17,8 @@
   const periodIndex = (g, e) => Math.min(Math.max((e.period || 1) - 1, 0), g.periods - 1);
 
   function blankLine() {
-    return { t1m: 0, t1a: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ro: 0, rd: 0, ast: 0, blk: 0, blkr: 0, rec: 0, lost: 0, fc: 0, fr: 0 };
+    // rb: rebotes sin distinguir ataque y defensa (el botón único REB, jugada de tipo 'reb')
+    return { t1m: 0, t1a: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ro: 0, rd: 0, rb: 0, ast: 0, blk: 0, blkr: 0, rec: 0, lost: 0, fc: 0, fr: 0 };
   }
 
   function addEvent(l, type) {
@@ -28,6 +29,7 @@
       case 't2_ko': l.t2a++; break;
       case 't3_ok': l.t3m++; l.t3a++; break;
       case 't3_ko': l.t3a++; break;
+      case 'reb': l.rb++; break;
       default: if (type in l) l[type]++;
     }
   }
@@ -43,7 +45,7 @@
      Cada tiro fallado resta 1, sea de 1, 2 o 3. */
   function finish(l) {
     l.pts = l.t1m + 2 * l.t2m + 3 * l.t3m;
-    l.reb = l.ro + l.rd;
+    l.reb = l.ro + l.rd + l.rb;
     l.miss = (l.t1a - l.t1m) + (l.t2a - l.t2m) + (l.t3a - l.t3m);
     l.val = l.pts + l.reb + l.ast + l.blk + l.rec + l.fr - l.miss - l.blkr - l.lost - l.fc;
     return l;
@@ -124,16 +126,21 @@
   const r3 = (n) => Math.round(n * 1000) / 1000;
   const bySeq = (a, b) => a.seq - b.seq;
 
-  function stints(g) {
-    if (!Number.isInteger(g.lineupFrom)) return [];
-    // Una foto de un periodo anterior al más alto alcanzado es una vuelta atrás (‹) para apuntar algo olvidado: la
-    // pista sigue mostrando a los de ahora, así que no se sabe quién jugaba entonces y sus jugadas no cuentan.
+  /* Fotos del registro de quintetos en orden, marcando las «retro». Una foto de un periodo anterior al más alto
+     alcanzado es una vuelta atrás (‹) para apuntar algo olvidado: la pista sigue mostrando a los de ahora, así que no
+     se sabe quién jugaba entonces y sus jugadas no cuentan para ningún quinteto. */
+  function lineupLog(g) {
     let top = 0;
-    const lineups = [...(g.lineups || [])].sort(bySeq).map(l => {
+    return [...(g.lineups || [])].sort(bySeq).map(l => {
       const retro = l.period < top;
       top = Math.max(top, l.period);
       return { ...l, retro };
     });
+  }
+
+  function stints(g) {
+    if (!Number.isInteger(g.lineupFrom)) return [];
+    const lineups = lineupLog(g);
     const events = g.events.filter(e => e.seq > g.lineupFrom).sort(bySeq);
     const groups = new Map();   // «jugadores|periodo» → tramo
     let i = -1;
@@ -174,6 +181,29 @@
     }
     for (const r of Object.values(out)) r.periods = r3(r.periods);
     return out;
+  }
+
+  /* +/- de los que están ahora en pista desde que entraron juntos: los puntos a favor menos los puntos en contra
+     desde la primera foto seguida del registro con esos mismos jugadores (un cambio de periodo sin cambios no lo
+     corta). Como en stints, no cuenta lo apuntado tras volver a un periodo anterior. null si el partido no tiene
+     registro de quintetos o no hay nadie en pista. */
+  function lineupRun(g) {
+    if (!Number.isInteger(g.lineupFrom) || !g.onCourt.length) return null;
+    const key = (on) => [...on].sort().join(',');
+    const now = key(g.onCourt);
+    const lineups = lineupLog(g);
+    let first = lineups.length;
+    while (first > 0 && key(lineups[first - 1].on) === now) first--;
+    if (first === lineups.length) return null;
+    let pf = 0, pc = 0, i = first - 1;
+    for (const e of [...g.events].sort(bySeq)) {
+      if (e.seq <= lineups[first].seq) continue;
+      while (i + 1 < lineups.length && lineups[i + 1].seq < e.seq) i++;   // foto en la que se apuntó la jugada
+      if (lineups[i].retro) continue;
+      if (e.type === 'opp') pc += e.pts;
+      else pf += EV_PTS[e.type] || 0;
+    }
+    return { pf, pc, pm: pf - pc };
   }
 
   /* Combinaciones de k elementos de una lista (k pequeño: parejas, tríos o el quinteto entero) */
@@ -378,7 +408,7 @@
   }
 
   root.MBCore = Object.freeze({
-    EV_PTS, blankLine, addEvent, sumLines, finish, score, periodScores, playerLines, scoreFlow, lineupAt,
+    EV_PTS, blankLine, addEvent, sumLines, finish, score, periodScores, playerLines, scoreFlow, lineupAt, lineupRun,
     ADV_MIN, advanced, recordedOpts, stints, plusMinus, combos, rankCombos, PM_MIN_PERIODS, reportModel, reportText,
   });
 })(globalThis);

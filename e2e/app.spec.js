@@ -39,7 +39,7 @@ test('un partido completo: equipo, plantilla, quinteto, jugadas y estadísticas'
   const row = (name) => page.locator('.court .prow', { hasText: name });
   await row('Ana').locator('[data-type="t2_ok"]').tap();
   await row('Bruno').locator('[data-type="t3_ok"]').tap();
-  await row('Carla').locator('[data-type="rd"]').tap();
+  await row('Carla').locator('[data-type="reb"]').tap();   // un equipo nuevo empieza en pre-mini: rebote con un solo botón
   await page.locator('[data-action="opp"][data-pts="2"]').tap();
   await expect(scoreUs(page)).toHaveText('5');
   await expect(scoreThem(page)).toHaveText('2');
@@ -77,6 +77,32 @@ test('en el partido caben los 5 jugadores con sus 15 botones, sin scroll y fáci
   expect(layout.scroll).toBeLessThanOrEqual(0);
   expect(layout.offscreen).toBe(0);
   expect(layout.minHeight).toBeGreaterThanOrEqual(44);  // tamaño mínimo recomendado para tocar con el dedo
+});
+
+test('en el móvil más estrecho, el marcador cabe junto a la valoración y el +/- del quinteto', async ({ page }) => {
+  await page.setViewportSize({ width: 568, height: 320 });
+  // Con registro de quintetos, para que salga también el +/- del quinteto; 88-88 es el marcador más ancho habitual
+  const events = [...Array(44)].map((_, i) => ({ id: `e${i}`, seq: i + 2, period: 1, type: 't2_ok', pid: 'p4' }));
+  const opps = [...Array(44)].map((_, i) => ({ id: `o${i}`, seq: i + 46, period: 1, type: 'opp', pts: 2 }));
+  await seed(page, makeData({ games: [makeGame({ onCourt: [...FIVE], lineupFrom: 1, lineups: [{ seq: 1, period: 1, on: [...FIVE] }], events: [...events, ...opps] })] }));
+  await page.goto(`${APP}#/partido/g1`);
+  await expect(page.locator('.live-perf b')).toHaveCount(2);
+  const layout = await page.evaluate(() => {
+    const box = (el) => el.getBoundingClientRect();
+    const board = box(document.querySelector('.board'));
+    const scores = [...document.querySelectorAll('.board .score')];
+    return {
+      scroll: document.documentElement.scrollWidth - innerWidth,
+      // Cada marcador entero dentro de su caja y sin recortar sus cifras
+      inside: scores.every((s) => box(s).left >= board.left - 0.5 && box(s).right <= board.right + 0.5),
+      clipped: scores.filter((s) => s.scrollWidth > s.clientWidth + 1).length,
+      texts: scores.map((s) => s.textContent),
+    };
+  });
+  expect(layout.texts).toEqual(['88', '88']);
+  expect(layout.scroll).toBeLessThanOrEqual(0);
+  expect(layout.inside).toBe(true);
+  expect(layout.clipped).toBe(0);
 });
 
 test('el service worker toma el control y guarda lo necesario para usarla sin conexión', async ({ page }) => {
@@ -118,7 +144,7 @@ test('descarga las estadísticas en CSV', async ({ page }) => {
   const lines = Buffer.concat(csv).toString('utf8').replace(/^﻿/, '').split('\r\n');
   expect(lines[0]).toMatch(/^Dorsal;Jugador;/);
   // Columnas de siempre, las avanzadas (eFG%, TS%, %PÉR, TL/TC) y el +/- (vacío: partido sin registro de quintetos)
-  expect(lines.at(-1)).toBe(';Equipo;4;8;1;2;2;3;1;2;1;1;2;1;0;1;1;1;1;0;6;70;68;15;0,4;');
+  expect(lines.at(-1)).toBe(';Equipo;4;8;1;2;2;3;1;2;1;1;2;1;0;1;1;1;1;0;6;70;68;15;0,4;;0');
 });
 
 test('la evolución del marcador comparte columnas con los parciales y se puede recorrer', async ({ page }) => {

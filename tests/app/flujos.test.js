@@ -4,6 +4,7 @@ import { openApp, THEME_KEY } from '../helpers/app.js';
 import { ev, makeData, makeGame, makeTeam, opp, PLAYERS, sampleGame } from '../helpers/fixtures.js';
 
 const FIVE = ['p4', 'p7', 'p10', 'p12', 'p15'];
+const OPTION_IDS = ['t1', 't2', 't3', 'ro', 'rd', 'reb', 'rec', 'lost', 'ast', 'blk', 'blkr', 'fc', 'fr'];
 
 /** App abierta en un partido en juego con cinco jugadores en pista */
 const live = (game = {}, team = makeTeam()) =>
@@ -66,7 +67,8 @@ describe('equipos', () => {
     const app = await openApp();
     await app.submit('team-new', { name: '  Alevín B  ' });
     expect(app.db.teams).toHaveLength(1);
-    expect(app.db.teams[0]).toMatchObject({ name: 'Alevín B', players: [], hidden: [] });
+    // Un equipo nuevo empieza con el perfil pre-mini
+    expect(app.db.teams[0]).toMatchObject({ name: 'Alevín B', players: [], hidden: ['ro', 'rd', 'ast', 'blk', 'blkr', 'fr'], rebOne: true });
     expect(app.db.currentTeamId).toBe(app.db.teams[0].id);
     expect(app.stored().teams[0].name).toBe('Alevín B');
     expect(app.hash).toBe('#/equipo');
@@ -558,6 +560,70 @@ describe('partido en directo', () => {
   });
 });
 
+describe('rendimiento en directo', () => {
+  it('la cabecera da la valoración del equipo y el +/- del quinteto; cada fila, la valoración y el +/- del jugador', async () => {
+    const app = await openApp({ data: makeData({ teams: [makeTeam()], games: [makeGame({ onCourt: [] })] }), hash: '#/partido/g1' });
+    // Quinteto inicial con el registro de quintetos, como en un partido nuevo
+    await app.act('lineup');
+    for (const id of FIVE) await app.act('toggle-court', { id });
+    await app.act('lineup-done');
+    await tap(app, 'p4', 't3_ok');
+    await tap(app, 'p7', 'lost');
+    await app.act('opp', { pts: 2 });
+
+    const perf = () => app.$$('.live-perf b').map((b) => b.textContent);
+    expect(perf()).toEqual(['2', '+1']);   // VAL 3 − 1; quinteto 3 − 2
+    expect(app.$('.live-perf b').className).toBe('up');
+    const line = (pid) => rowOf(app, pid).querySelector('.pline.perf').textContent.replace(/\s+/g, ' ').trim();
+    expect(line('p4')).toBe('VAL 3 · +/- +1');
+    expect(line('p7')).toBe('VAL -1 · +/- +1');
+    expect(rowOf(app, 'p7').querySelector('.pline.perf b').className).toBe('down');
+
+    // Tras un cambio, el +/- del quinteto empieza de cero; el del jugador sigue con el partido
+    await app.act('swap', { pid: 'p15' });
+    await app.act('swap-in', { id: 'p21' });
+    expect(perf()).toEqual(['2', '0']);
+    expect(line('p4')).toBe('VAL 3 · +/- +1');
+  });
+
+  it('en un partido sin registro de quintetos solo sale la valoración', async () => {
+    const app = await live({ events: [ev('t2_ok', 'p4')] });
+    expect(app.$$('.live-perf b').map((b) => b.textContent)).toEqual(['2']);
+    expect(rowOf(app, 'p4').querySelector('.pline.perf').textContent.trim()).toBe('VAL 2');
+  });
+});
+
+describe('marcador: el local a la izquierda', () => {
+  // Bruno anota un triple: 3-0 para el equipo propio
+  const game = (venue, extra = {}) => makeGame({ onCourt: [...FIVE], venue, events: [ev('t3_ok', 'p7')], ...extra });
+  const board = (app) => app.$$('.board > span').map((el) => `${el.className}:${el.textContent}`);
+
+  it('de local, el equipo propio va a la izquierda; de visitante, a la derecha', async () => {
+    const home = await openApp({ data: makeData({ games: [game('home')] }), hash: '#/partido/g1' });
+    expect(board(home)).toEqual(['tname us first:Alevín A', 'score us:3', 'dash:–', 'score them:0', 'tname them:Rival']);
+
+    const away = await openApp({ data: makeData({ games: [game('away')] }), hash: '#/partido/g1' });
+    expect(board(away)).toEqual(['tname them first:Rival', 'score them:0', 'dash:–', 'score us:3', 'tname us:Alevín A']);
+    expect(scoreboard(away)).toBe('3-0');   // los puntos siguen en su sitio: los del rival se suman al rival
+  });
+
+  it('sin campo elegido (partidos antiguos), el equipo propio sigue a la izquierda', async () => {
+    const app = await openApp({ data: makeData({ games: [game('')] }), hash: '#/partido/g1' });
+    expect(board(app)[0]).toBe('tname us first:Alevín A');
+  });
+
+  it('en las estadísticas de un partido de visitante, el rival va primero en el resultado y en los parciales', async () => {
+    const app = await openApp({ data: makeData({ games: [game('away', { finished: true, events: [ev('t3_ok', 'p7'), opp(2)] })] }), hash: '#/stats/g1' });
+    expect(app.$$('.final .ft').map((el) => el.className)).toEqual(['ft them', 'ft us']);
+    expect(app.$$('.ptable td.l').slice(0, 2).map((el) => el.textContent)).toEqual(['Rival', 'Alevín A']);
+    expect(app.text('.final .badge')).toBe('Victoria');
+
+    const lines = app.fn.buildText('g1').split('\n');
+    expect(lines[0]).toBe('Rival 2 - 3 Alevín A');
+    expect(lines.find((l) => l.startsWith('Parciales'))).toMatch(/^Parciales: P1 2-3 \|/);
+  });
+});
+
 describe('ajustes: botones del partido', () => {
   it('desactivar una acción la quita de la pista y de la vista previa', async () => {
     const app = await live();
@@ -578,10 +644,55 @@ describe('ajustes: botones del partido', () => {
     expect(app.$$('.court [data-type^="t2_"]')).toHaveLength(10);
   });
 
-  it('«Activar todos» vuelve a mostrar todas las acciones', async () => {
-    const app = await openApp({ data: makeData({ teams: [makeTeam({ hidden: ['blk', 'fr'] })] }), hash: '#/ajustes' });
-    await app.act('opts-all');
-    expect([...app.db.teams[0].hidden]).toEqual([]);
+  it('cada perfil deja sus botones en la pista y queda marcado', async () => {
+    const app = await openApp({ data: makeData(), hash: '#/ajustes' });
+    const preview = () => app.$$('.preview .act').map((b) => b.querySelector('b').textContent);
+    const marked = () => app.$$('.profile.on').map((b) => b.dataset.v);
+    const SHOTS = ['1', '1', '2', '2', '3', '3'];
+
+    expect(marked()).toEqual(['completo']);   // un equipo con todos los botones (como los de antes) está en «Completo»
+
+    await app.act('profile', { v: 'escuela' });
+    expect(preview()).toEqual(SHOTS);
+    expect(marked()).toEqual(['escuela']);
+
+    await app.act('profile', { v: 'premini' });
+    expect(preview()).toEqual([...SHOTS, 'REB', 'REC', 'PÉR', 'FC']);
+    expect(app.toast).toBe('Perfil Pre-mini: 10 botones por jugador');
+
+    await app.act('profile', { v: 'mini' });
+    expect(preview()).toEqual([...SHOTS, 'REB', 'REC', 'PÉR', 'AS', 'FC', 'FR']);
+
+    await app.act('profile', { v: 'completo' });
+    expect(preview()).toEqual([...SHOTS, 'RO', 'RD', 'REC', 'PÉR', 'AS', 'TAP', 'TR', 'FC', 'FR']);
+    expect(app.db.teams[0]).toMatchObject({ hidden: ['reb'] });
+    expect('rebOne' in app.db.teams[0]).toBe(false);
+    expect(app.stored().teams[0].hidden).toEqual(['reb']);
+  });
+
+  it('al cambiar un botón a mano el perfil pasa a «Personalizado» y se puede volver a él', async () => {
+    const app = await openApp({ data: makeData(), hash: '#/ajustes' });
+    await app.act('profile', { v: 'mini' });
+    expect(app.$('.profile-custom')).toBeNull();
+    await app.act('toggle-opt', { id: 'blk' });
+    expect(app.$$('.profile.on')).toHaveLength(0);
+    expect(app.text('.profile-custom')).toContain('Personalizado');
+    await app.act('profile', { v: 'mini' });
+    expect(app.$$('.profile.on').map((b) => b.dataset.v)).toEqual(['mini']);
+  });
+
+  it('al cambiar el modo de rebote, los rebotes siguen activos u ocultos como estaban', async () => {
+    const app = await openApp({ data: makeData(), hash: '#/ajustes' });
+    const rebs = () => app.$$('.preview .act').map((b) => b.querySelector('b').textContent).filter((l) => ['RO', 'RD', 'REB'].includes(l));
+    await app.act('profile', { v: 'premini' });
+    await app.act('reb-mode', { v: 'split' });
+    expect(rebs()).toEqual(['RO', 'RD']);
+
+    await app.act('profile', { v: 'escuela' });
+    await app.act('reb-mode', { v: 'one' });
+    await app.act('reb-mode', { v: 'split' });
+    expect(rebs()).toEqual([]);
+    expect(app.$$('.profile.on').map((b) => b.dataset.v)).toEqual(['escuela']);
   });
 
   it('tiene que quedar al menos un botón', async () => {
@@ -590,6 +701,82 @@ describe('ajustes: botones del partido', () => {
     await app.act('toggle-opt', { id: 't2' });
     expect(app.toast).toBe('Tiene que quedar al menos un botón');
     expect(app.db.teams[0].hidden).not.toContain('t2');
+  });
+
+  it('en la pista los rebotes van justo después de los tiros, en su propio grupo y con colores distintos', async () => {
+    const app = await live();
+    const acts = rowOf(app, 'p4').querySelector('.acts');
+    const order = [...acts.children].map((b) => (b.classList.contains('sep') ? '|' : b.dataset.type));
+    expect(order).toEqual(['t1_ok', 't1_ko', 't2_ok', 't2_ko', 't3_ok', 't3_ko', '|', 'ro', 'rd', '|', 'rec', 'lost', 'ast', 'blk', 'blkr', 'fc', 'fr']);
+    expect(app.$('.court [data-type="ro"]').className).not.toBe(app.$('.court [data-type="rd"]').className);
+  });
+
+  it('con «Un solo botón» los rebotes se apuntan con REB y cuentan en los rebotes totales', async () => {
+    const app = await live();
+    await app.go('#/ajustes');
+    await app.act('reb-mode', { v: 'one' });
+    expect(app.db.teams[0].rebOne).toBe(true);
+    expect(app.$$('.preview .act').map((b) => b.dataset.type || b.textContent)).toContain('REBRebote');
+    expect(app.$$('.opts [data-action="toggle-opt"]').map((b) => b.dataset.id)).not.toContain('ro');
+
+    await app.go('#/partido/g1');
+    expect(app.$$('.court [data-type="ro"], .court [data-type="rd"]')).toHaveLength(0);
+    await tap(app, 'p4', 'reb', 2);
+    expect(app.toast).toContain('Rebote');
+
+    await app.go('#/stats/g1');
+    const headers = app.$$('table.stats thead th').map((th) => th.textContent.replace(/[▲▼]/g, '').trim());
+    expect(headers).toContain('RT');
+    expect(headers).not.toContain('RO');   // sin datos de ataque ni defensa, esas columnas no aparecen
+
+    await app.go('#/ajustes');
+    await app.act('reb-mode', { v: 'split' });
+    expect('rebOne' in app.db.teams[0]).toBe(false);
+  });
+
+  it('si se mezclan RO/RD y REB, las estadísticas muestran la columna REB y el CSV la lleva al final', async () => {
+    const headers = (app) => app.$$('table.stats thead th').map((th) => th.textContent.replace(/[▲▼]/g, '').trim());
+    const mixed = await openApp({ data: makeData({ games: [makeGame({ events: [ev('ro', 'p4'), ev('reb', 'p4'), ev('reb', 'p7')] })] }), hash: '#/stats/g1' });
+    expect(headers(mixed)).toEqual(expect.arrayContaining(['RO', 'RD', 'REB', 'RT']));
+    const cell = (name, k) => [...mixed.$$('table.stats tbody tr')].find((tr) => tr.textContent.includes(name)).querySelector(`[data-k="${k}"]`).textContent;
+    expect([cell('Ana', 'ro'), cell('Ana', 'rb'), cell('Ana', 'reb')]).toEqual(['1', '1', '2']);
+
+    await mixed.act('csv', { arg: 'g1' });
+    const [head, ...rows] = (await mixed.downloads[0].blob.text()).replace(/^\uFEFF/, '').split('\r\n').map((l) => l.split(';'));
+    expect(head.at(-1)).toBe('REB');
+    expect(rows.find((r) => r[1] === 'Ana').at(-1)).toBe('1');
+
+    // Rebotes con el botón único y el equipo ya en «Ataque y defensa»: RO y RD se ven a 0, así que REB explica el total
+    const switched = await openApp({ data: makeData({ games: [makeGame({ events: [ev('reb', 'p4')] })] }), hash: '#/stats/g1' });
+    expect(headers(switched)).toEqual(expect.arrayContaining(['RO', 'RD', 'REB', 'RT']));
+
+    // Solo REB (sin RO ni RD): RT ya los da todos y la columna REB sobra
+    const single = await openApp({ data: makeData({ teams: [makeTeam({ rebOne: true })], games: [makeGame({ events: [ev('reb', 'p4')] })] }), hash: '#/stats/g1' });
+    expect(headers(single)).not.toContain('REB');
+    expect(headers(single)).toContain('RT');
+  });
+
+  it('un partido finalizado se consulta con los botones de rebote con los que se jugó', async () => {
+    const court = (app) => app.$$('.prow:not(.empty-row)')[0].querySelectorAll('.acts [data-type]');
+    const types = (app) => [...court(app)].map((b) => b.dataset.type).filter((t) => ['ro', 'rd', 'reb'].includes(t));
+    const done = (events, team) => openApp({
+      data: makeData({ teams: [team], games: [makeGame({ onCourt: [...FIVE], finished: true, events })] }), hash: '#/partido/g1',
+    });
+    expect(types(await done([ev('ro', 'p4')], makeTeam({ rebOne: true })))).toEqual(['ro', 'rd']);
+    expect(types(await done([ev('reb', 'p4')], makeTeam()))).toEqual(['reb']);
+    expect(types(await done([], makeTeam({ rebOne: true })))).toEqual(['reb']);   // sin rebotes: el modo del equipo
+    // Aunque después el equipo haya elegido un perfil que oculta esos botones
+    const premini = makeTeam({ hidden: ['ro', 'rd', 'ast', 'blk', 'blkr', 'fr'], rebOne: true });
+    expect(types(await done([ev('ro', 'p4')], premini))).toEqual(['ro', 'rd']);
+    expect(types(await done([ev('reb', 'p4')], makeTeam({ hidden: ['reb'] })))).toEqual(['reb']);
+    expect(types(await done([ev('rd', 'p4'), ev('reb', 'p7')], premini))).toEqual(['ro', 'rd', 'reb']);
+  });
+
+  it('al pasar a un solo botón de rebote nunca se queda la pista sin botones', async () => {
+    const all = OPTION_IDS.filter((id) => id !== 'rd');
+    const app = await openApp({ data: makeData({ teams: [makeTeam({ hidden: [...all] })] }), hash: '#/ajustes' });
+    await app.act('reb-mode', { v: 'one' });
+    expect(app.$$('.preview .act').map((b) => b.textContent)).toEqual(['REBRebote']);
   });
 
   it('las columnas de acciones desactivadas se ocultan en las estadísticas salvo que tengan datos', async () => {

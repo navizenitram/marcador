@@ -100,16 +100,16 @@ describe('vista de estadísticas avanzadas', () => {
 });
 
 describe('CSV con avanzadas', () => {
-  it('añade las cuatro columnas tras las de siempre (y el +/- al final)', async () => {
+  it('añade las cuatro columnas tras las de siempre (y luego el +/- y los rebotes sin distinguir)', async () => {
     const app = await open();
     await app.act('csv', { arg: 'g1' });
     const text = (await app.downloads[0].blob.text()).replace(/^﻿/, '');
     const [head, ...rows] = text.split('\r\n').map((l) => l.split(';'));
     expect(head.slice(0, 22)).toEqual(['Dorsal', 'Jugador', 'Periodos', 'PTS', 'T1A', 'T1I', 'T2A', 'T2I', 'T3A', 'T3I', 'RO', 'RD', 'RT', 'AS', 'TAP', 'TR', 'REC', 'PER', 'FC', 'FR', 'VAL', 'eFG%']);
-    expect(head.slice(-5)).toEqual(['eFG%', 'TS%', '%PÉR', 'TL/TC', '+/-']);
+    expect(head.slice(-6)).toEqual(['eFG%', 'TS%', '%PÉR', 'TL/TC', '+/-', 'REB']);
     const ana = rows.find((r) => r[1] === 'Ana');
-    expect(ana.slice(-5, -1)).toEqual(['55', '55', '8', '0,4']);
+    expect(ana.slice(-6, -2)).toEqual(['55', '55', '8', '0,4']);
     const carla = rows.find((r) => r[1] === 'Carla');
-    expect(carla.slice(-5, -1)).toEqual(['', '', '', '']);
+    expect(carla.slice(-6, -2)).toEqual(['', '', '', '']);
   });
 });

@@ -25,8 +25,9 @@ const EV = {
   t3_ko: { label: '3', sub: '✗', cls: 'miss', text: 'Triple fallado' },
   rec:   { label: 'REC', sub: 'Recup.', cls: 'pos', text: 'Balón recuperado' },
   lost:  { label: 'PÉR', sub: 'Pierde', cls: 'neg', text: 'Balón perdido' },
-  ro:    { label: 'RO', sub: 'Ataque', cls: 'reb', text: 'Rebote de ataque' },
+  ro:    { label: 'RO', sub: 'Ataque', cls: 'rbo', text: 'Rebote de ataque' },
   rd:    { label: 'RD', sub: 'Defen.', cls: 'reb', text: 'Rebote defensivo' },
+  reb:   { label: 'REB', sub: 'Rebote', cls: 'reb', text: 'Rebote' },
   fc:    { label: 'FC', sub: 'Comete', cls: 'foul', text: 'Falta cometida' },
   fr:    { label: 'FR', sub: 'Recibe', cls: 'pos', text: 'Falta recibida' },
   ast:   { label: 'AS', sub: 'Asiste', cls: 'ast', text: 'Asistencia' },
@@ -34,18 +35,22 @@ const EV = {
   blkr:  { label: 'TR', sub: 'Recibe', cls: 'neg', text: 'Tapón recibido' },
 };
 const SHOT_ACTIONS = ['t1_ok', 't1_ko', 't2_ok', 't2_ko', 't3_ok', 't3_ko'];
-const OTHER_ACTIONS = ['rec', 'lost', 'ro', 'rd', 'ast', 'blk', 'blkr', 'fc', 'fr'];
+/* Los rebotes van justo después de los tiros, en su propio grupo: de ataque y defensivo o, si el equipo lo prefiere
+   (team.rebOne), un único botón de rebote que no distingue (cuenta en los rebotes totales y en la valoración). */
+const REB_ACTIONS = ['ro', 'rd', 'reb'];
+const OTHER_ACTIONS = ['rec', 'lost', 'ast', 'blk', 'blkr', 'fc', 'fr'];
 
-/* Botones que cada entrenador puede activar o desactivar (vista Ajustes).
+/* Botones que cada entrenador puede activar o desactivar (vista Ajustes), por grupos.
    Los tiros van por parejas (anotado + fallado) para que los porcentajes tengan sentido. */
 const OPTIONS = [
   { id: 't1', acts: ['t1_ok', 't1_ko'], name: 'Tiros libres', desc: 'Anotado y fallado' },
   { id: 't2', acts: ['t2_ok', 't2_ko'], name: 'Tiros de 2', desc: 'Anotado y fallado' },
   { id: 't3', acts: ['t3_ok', 't3_ko'], name: 'Triples', desc: 'Anotado y fallado' },
-  { id: 'rec', acts: ['rec'], name: 'Balón recuperado', desc: 'Robo' },
-  { id: 'lost', acts: ['lost'], name: 'Balón perdido', desc: 'Pérdida' },
   { id: 'ro', acts: ['ro'], name: 'Rebote de ataque', desc: 'Rebote ofensivo' },
   { id: 'rd', acts: ['rd'], name: 'Rebote defensivo', desc: 'Rebote en defensa' },
+  { id: 'reb', acts: ['reb'], name: 'Rebote', desc: 'Sin distinguir ataque y defensa' },
+  { id: 'rec', acts: ['rec'], name: 'Balón recuperado', desc: 'Robo' },
+  { id: 'lost', acts: ['lost'], name: 'Balón perdido', desc: 'Pérdida' },
   { id: 'ast', acts: ['ast'], name: 'Asistencia', desc: 'Pase de canasta' },
   { id: 'blk', acts: ['blk'], name: 'Tapón', desc: 'Tapón puesto' },
   { id: 'blkr', acts: ['blkr'], name: 'Tapón recibido', desc: 'Le ponen un tapón' },
@@ -53,10 +58,62 @@ const OPTIONS = [
   { id: 'fr', acts: ['fr'], name: 'Falta recibida', desc: 'Le hacen falta' },
 ];
 
-function optEnabled(id) { const t = team(); return !t || !t.hidden.includes(id); }
+/* Perfiles: combinaciones de botones según la categoría. Al elegir uno se aplican sus botones (y su modo de rebote);
+   después cada botón se puede activar o desactivar a mano. El perfil no se guarda: se deduce de los botones activos,
+   y si no coinciden con ninguno, son «Personalizado». Los equipos nuevos empiezan en DEFAULT_PROFILE. */
+const PRE_MINI = ['t1', 't2', 't3', 'reb', 'rec', 'lost', 'fc'];
+const PROFILES = [
+  { id: 'escuela', name: 'Escuela', desc: 'Solo puntos', opts: ['t1', 't2', 't3'] },
+  { id: 'premini', name: 'Pre-mini', desc: 'Benjamín', opts: PRE_MINI },
+  { id: 'mini', name: 'Mini', desc: 'Alevín', opts: [...PRE_MINI, 'ast', 'fr'] },
+  { id: 'completo', name: 'Completo', desc: 'Todos los botones', opts: OPTIONS.map(o => o.id).filter(id => id !== 'reb') },
+];
+const DEFAULT_PROFILE = 'premini';
+/* Botones por jugador de un perfil (los tiros van por parejas: anotado y fallado) */
+const profileButtons = (p) => p.opts.reduce((n, id) => n + OPTIONS.find(o => o.id === id).acts.length, 0);
+
+/* Deja el equipo con los botones de un perfil. Sin botones de rebote (escuela), el modo de rebote no cambia. */
+function applyProfile(t, id) {
+  const p = PROFILES.find(x => x.id === id);
+  if (!p) return null;
+  t.hidden = OPTIONS.map(o => o.id).filter(x => !p.opts.includes(x));
+  const one = p.opts.includes('reb') ? true : p.opts.includes('ro') ? false : rebOne(t);
+  if (one) t.rebOne = true; else delete t.rebOne;
+  return p;
+}
+
+/* Perfil del equipo actual según sus botones activos (null si no coincide con ninguno) */
+function currentProfile() {
+  const on = OPTIONS.filter(o => optEnabled(o.id)).map(o => o.id);
+  return PROFILES.find(p => p.opts.length === on.length && p.opts.every(id => on.includes(id))) || null;
+}
+
+/* Modo de rebote: true, un único botón REB; false, RO y RD. Por defecto, el del equipo actual. */
+function rebOne(t = team()) { return !!(t && t.rebOne); }
+/* Opciones que se ofrecen según el modo de rebote: RO y RD, o un único botón REB */
+function optOffered(id, one = rebOne()) {
+  return id === 'reb' ? one : id === 'ro' || id === 'rd' ? !one : true;
+}
+function optEnabled(id) {
+  const t = team();
+  return optOffered(id, rebOne(t)) && (!t || !t.hidden.includes(id));
+}
 function actEnabled(type) { const o = OPTIONS.find(o => o.acts.includes(type)); return !o || optEnabled(o.id); }
-function enabledShots() { return SHOT_ACTIONS.filter(actEnabled); }
-function enabledOthers() { return OTHER_ACTIONS.filter(actEnabled); }
+
+/* Grupos de botones de una fila (tiros | rebotes | resto) según los ajustes del equipo. rebs: los botones de rebote,
+   si no son los del equipo (ver gameRebs). Se calculan una vez por pantalla, no por fila. */
+function actGroups(rebs = REB_ACTIONS.filter(actEnabled)) {
+  return [SHOT_ACTIONS.filter(actEnabled), rebs, OTHER_ACTIONS.filter(actEnabled)].filter(g => g.length);
+}
+
+/* Botones de rebote de la pista de un partido. Uno en juego, los del equipo. Uno finalizado se consulta con los que
+   se usaron en sus jugadas (RO y RD, REB o los tres si se mezclaron), aunque el equipo haya cambiado de perfil o de
+   modo después; sin rebotes apuntados, los del equipo. */
+function gameRebs(g) {
+  const used = g.finished ? REB_ACTIONS.filter(t => g.events.some(e => e.type === t)) : [];
+  if (!used.length) return REB_ACTIONS.filter(actEnabled);
+  return [...(used.some(t => t !== 'reb') ? ['ro', 'rd'] : []), ...(used.includes('reb') ? ['reb'] : [])];
+}
 
 /* ─────────────────────────── Datos ─────────────────────────── */
 
@@ -87,6 +144,13 @@ const MOVES = Object.assign(Object.create(null), {
 const VENUES = Object.assign(Object.create(null), { home: 'Local', away: 'Visitante' });
 /* Fase y campo válidos a partir de lo que venga (datos guardados, copia importada o formulario) */
 const asPhase = (v) => (PHASES.includes(+v) ? +v : 1);
+/* Orden de los equipos en los marcadores: primero el local, como se leen siempre. De visitante, el rival va primero;
+   sin campo elegido (partidos antiguos), el equipo propio. Devuelve [primero, segundo] con 'us' y 'them'. */
+const sidesOf = (g) => (g.venue === 'away' ? ['them', 'us'] : ['us', 'them']);
+/* Nombre de cada equipo de un partido */
+const sideNames = (g) => ({ us: g.teamName, them: g.opponent });
+/* Un marcador «a-b» en el orden local-visitante, a partir de los puntos propios y del rival */
+const scoreTxt = (g, us, them, sep = '-') => (g.venue === 'away' ? `${them}${sep}${us}` : `${us}${sep}${them}`);
 const asVenue = (v) => (typeof v === 'string' && v in VENUES ? v : '');
 
 const objects = (v) => (Array.isArray(v) ? v.filter(x => x && typeof x === 'object') : []);
@@ -158,6 +222,7 @@ function normalize(d) {
     t.email = String(t.email || '');
     t.players = players(t.players);
     t.hidden = Array.isArray(t.hidden) ? t.hidden : [];
+    if (t.rebOne !== true) delete t.rebOne;   // true: un único botón de rebote (REB) en vez de RO y RD
     // Fase de la temporada en la que está el equipo y nivel en el que juega cada fase
     t.phase = asPhase(t.phase);
     t.levels = PHASES.map((n, i) => String((Array.isArray(t.levels) && t.levels[i]) || '').slice(0, 24));
@@ -884,6 +949,13 @@ function viewLive(g) {
   // Un partido finalizado se abre solo para consultarlo: para apuntar o cambiar algo hay que reabrirlo
   const ro = g.finished ? ' disabled' : '';
   const lines = playerLines(g);
+  const groups = actGroups(gameRebs(g));
+  const [home, away] = sidesOf(g);   // el local a la izquierda
+  const names = sideNames(g);
+  // Rendimiento en directo: valoración del equipo, +/- del quinteto en pista y +/- de cada jugador (con registro)
+  const teamVal = Object.values(lines).reduce((n, l) => n + l.val, 0);
+  const run = MBCore.lineupRun(g);
+  const pm = MBCore.plusMinus(g);
   const rosterById = Object.fromEntries(g.roster.map(p => [p.id, p]));
   const rows = [];
   for (let i = 0; i < MAX_ON_COURT; i++) {
@@ -902,9 +974,10 @@ function viewLive(g) {
         <button class="pid" data-action="swap" data-pid="${pid}" title="Cambiar jugador"${ro}>
           <span class="num">${esc(p.number)}${foulDots(fouls)}</span>
           <span class="pinfo"><span class="pname">${esc(p.name)}</span>
-          <span class="pline"><b>${l.pts}</b> pts · <span class="fouls">${fouls} F</span>${fouls >= MAX_FOULS ? ' · ELIM.' : ''}</span></span>
+          <span class="pline"><b>${l.pts}</b> pts · <span class="fouls">${fouls} F</span>${fouls >= MAX_FOULS ? ' · ELIM.' : ''}</span>
+          <span class="pline perf">VAL <b class="${tone(l.val)}">${l.val}</b>${pm ? ` · <span class="pm-label">+/- </span><b title="+/- del jugador en el partido" class="${tone(pm[pid] ? pm[pid].pm : 0)}">${signedNum(pm[pid] ? pm[pid].pm : 0)}</b>` : ''}</span></span>
         </button>
-        ${actsHTML(btn)}
+        ${actsHTML(btn, groups)}
       </div>`);
   }
   return `
@@ -917,11 +990,15 @@ function viewLive(g) {
         <button data-action="period" data-d="1" aria-label="${perName(g)} siguiente"${ro}>${icon('right')}</button>
       </div>
       <div class="board">
-        <span class="tname us">${esc(g.teamName)}</span>
-        <span class="score us">${s.us}</span>
+        <span class="tname ${home} first">${esc(names[home])}</span>
+        <span class="score ${home}">${s[home]}</span>
         <span class="dash">–</span>
-        <span class="score them">${s.them}</span>
-        <span class="tname them">${esc(g.opponent)}</span>
+        <span class="score ${away}">${s[away]}</span>
+        <span class="tname ${away}">${esc(names[away])}</span>
+      </div>
+      <div class="live-perf">
+        <span title="Valoración del equipo en el partido"><small>VAL</small><b class="${tone(teamVal)}">${teamVal}</b></span>
+        ${run ? `<span title="+/- del quinteto en pista desde que entró"><small>Quinteto</small><small class="short">Quint.</small><b class="${tone(run.pm)}">${signedNum(run.pm)}</b></span>` : ''}
       </div>
       <div class="opp-btns" title="Puntos del rival">
         <button data-action="opp" data-pts="1"${ro}>+1</button>
@@ -943,6 +1020,9 @@ function viewLive(g) {
   </div>`;
 }
 
+/* Color de una cifra de rendimiento (valoración, +/-): verde si suma, rojo si resta */
+const tone = (n) => (n > 0 ? 'up' : n < 0 ? 'down' : '');
+
 /* Contenido de un botón de acción: en los tiros, la marca de anotado o fallado es un icono */
 function actLabel(t) {
   const { label, sub, cls } = EV[t];
@@ -954,17 +1034,11 @@ function foulDots(n) {
   return `<span class="fouls-dots" aria-hidden="true">${Array.from({ length: MAX_FOULS }, (_, i) => `<i${i < n ? ' class="on"' : ''}></i>`).join('')}</span>`;
 }
 
-/* Botones de acción de una fila, según los ajustes */
-function actsHTML(btn) {
-  const shots = enabledShots(), others = enabledOthers();
-  const cols = [];
-  if (shots.length) cols.push(`repeat(${shots.length}, minmax(0, 1fr))`);
-  if (shots.length && others.length) cols.push('3px');
-  if (others.length) cols.push(`repeat(${others.length}, minmax(0, 1fr))`);
-  return `<div class="acts" style="grid-template-columns: ${cols.join(' ')}">
-    ${shots.map(btn).join('')}
-    ${shots.length && others.length ? '<span class="sep"></span>' : ''}
-    ${others.map(btn).join('')}
+/* Botones de acción de una fila: tiros | rebotes | resto, con un separador entre grupos (ver actGroups) */
+function actsHTML(btn, groups = actGroups()) {
+  const cols = groups.map(g => `repeat(${g.length}, minmax(0, 1fr))`).join(' 3px ');
+  return `<div class="acts" style="grid-template-columns: ${cols}">
+    ${groups.map(g => g.map(btn).join('')).join('<span class="sep"></span>')}
   </div>`;
 }
 
@@ -980,9 +1054,16 @@ function viewSettings() {
       <span class="switch"><i></i></span>
     </button>`;
   };
-  const shots = OPTIONS.filter(o => o.id[0] === 't');
-  const others = OPTIONS.filter(o => o.id[0] !== 't');
-  const n = OPTIONS.filter(o => optEnabled(o.id)).length;
+  const offered = OPTIONS.filter(o => optOffered(o.id));
+  const shots = offered.filter(o => o.acts.some(a => SHOT_ACTIONS.includes(a)));
+  const rebs = offered.filter(o => o.acts.some(a => REB_ACTIONS.includes(a)));
+  const others = offered.filter(o => o.acts.some(a => OTHER_ACTIONS.includes(a)));
+  const n = offered.filter(o => optEnabled(o.id)).length;
+  const one = rebOne();
+  const prof = currentProfile();
+  const profile = (p) => `<button class="profile ${prof === p ? 'on' : ''}" data-action="profile" data-v="${p.id}" aria-pressed="${prof === p}">
+      <b>${p.name}</b><small>${p.desc} · ${profileButtons(p)} botones</small></button>`;
+  const rebMode = (v, label) => `<button class="${one === (v === 'one') ? 'on' : ''}" data-action="reb-mode" data-v="${v}" aria-pressed="${one === (v === 'one')}">${label}</button>`;
   return shell('ajustes', `
   <section class="card preview-card">
     <h2>Vista previa de un jugador en pista</h2>
@@ -996,13 +1077,21 @@ function viewSettings() {
   <div class="cols">
     <section class="card grow">
       <div class="card-head">
-        <h2>Botones del partido · ${esc(team().name)} <span class="muted">(${n}/${OPTIONS.length})</span></h2>
-        ${team().hidden.length ? '<button class="btn" data-action="opts-all">Activar todos</button>' : ''}
+        <h2>Botones del partido · ${esc(team().name)} <span class="muted">(${n}/${offered.length})</span></h2>
       </div>
-      <p class="muted small">Elige qué acciones quieres apuntar durante el partido. Las desactivadas no aparecen en la pista ni en las estadísticas
-      (salvo que haya datos de partidos anteriores) y no cuentan en la valoración. Con menos botones, cada uno es más grande.</p>
+      <p class="muted small">Elige un perfil según la categoría y, si quieres, activa o desactiva cada botón a tu gusto. Las acciones desactivadas
+      no aparecen en la pista ni en las estadísticas (salvo que haya datos de partidos anteriores) y no cuentan en la valoración.
+      Con menos botones, cada uno es más grande.</p>
+      <h3 class="sub">Perfil</h3>
+      <div class="profiles" role="group" aria-label="Perfil de botones">${PROFILES.map(profile).join('')}</div>
+      ${prof ? '' : '<p class="muted small profile-custom"><b>Personalizado:</b> has cambiado botones a mano. Toca un perfil para volver a sus botones.</p>'}
       <h3 class="sub">Tiros</h3>
       <div class="opts">${shots.map(item).join('')}</div>
+      <h3 class="sub">Rebotes</h3>
+      <div class="seg wide reb-mode" role="group" aria-label="Botones de rebote">
+        ${rebMode('split', 'Ataque y defensa')}${rebMode('one', 'Un solo botón')}
+      </div>
+      <div class="opts">${rebs.map(item).join('')}</div>
       <h3 class="sub">Otras acciones</h3>
       <div class="opts">${others.map(item).join('')}</div>
     </section>
@@ -1043,6 +1132,7 @@ const COLS = [
   { k: 't3', h: 'T3', t: 'Triples (anotados/intentados)', shot: 3, sortKey: 't3m', g: 'shots' },
   { k: 'ro', h: 'RO', t: 'Rebotes de ataque', g: 'reb' },
   { k: 'rd', h: 'RD', t: 'Rebotes de defensa', g: 'reb' },
+  { k: 'rb', h: 'REB', t: 'Rebotes sin distinguir ataque y defensa (botón único)', g: 'reb' },
   { k: 'reb', h: 'RT', t: 'Rebotes totales', g: 'reb' },
   { k: 'ast', h: 'AS', t: 'Asistencias', g: 'ball' },
   { k: 'blk', h: 'TAP', t: 'Tapones puestos', g: 'ball' },
@@ -1155,18 +1245,24 @@ function gameSummary(g) {
   const meta = gameMeta(g);
   const ps = periodScores(g);
   const res = s.us > s.them ? 'win' : s.us < s.them ? 'loss' : 'tie';
+  // El local primero: a la izquierda en el resultado y arriba en los parciales
+  const names = sideNames(g);
+  const other = { us: 'them', them: 'us' };
+  const ft = (k) => `<div class="ft ${k}"><small>${esc(names[k])}</small><b>${s[k]}</b></div>`;
+  const prow = (k) => `<tr><td class="l ${k}">${esc(names[k])}</td>${ps[k].map((v, i) => `<td class="${v > ps[other[k]][i] ? 'w' : ''}">${v}</td>`).join('')}<td class="t">${s[k]}</td></tr>`;
+  const [home, away] = sidesOf(g);
   return `
   <section class="card summary">
     <div class="final">
-      <div class="ft us"><small>${esc(g.teamName)}</small><b>${s.us}</b></div>
+      ${ft(home)}
       <div class="ft-mid">${g.finished ? `<span class="badge ${res}">${RESULT[res]}</span>` : '<span class="badge"><span class="dot"></span>En juego</span>'}<small>${fmtDate(g.date)}</small>${meta ? `<small class="g-meta">${meta}</small>` : ''}</div>
-      <div class="ft them"><small>${esc(g.opponent)}</small><b>${s.them}</b></div>
+      ${ft(away)}
     </div>
     <div class="ptable-wrap">
       <table class="ptable">
         <tr><th></th>${ps.us.map((_, i) => `<th>${perAbbr(g, i + 1)}</th>`).join('')}<th class="t">Total</th></tr>
-        <tr><td class="l us">${esc(g.teamName)}</td>${ps.us.map((v, i) => `<td class="${v > ps.them[i] ? 'w' : ''}">${v}</td>`).join('')}<td class="t">${s.us}</td></tr>
-        <tr><td class="l them">${esc(g.opponent)}</td>${ps.them.map((v, i) => `<td class="${v > ps.us[i] ? 'w' : ''}">${v}</td>`).join('')}<td class="t">${s.them}</td></tr>
+        ${prow(home)}
+        ${prow(away)}
         ${flowRow(g)}
       </table>
     </div>
@@ -1267,7 +1363,7 @@ function flowScrub(e) {
   dot.className = `flow-dot ${sideOf(d)}`;
   el.classList.add('scrub');
   const row = el.closest('tr');
-  row.querySelector('.flow-label').innerHTML = `<b>${perAbbr(g, period)} · ${p.us}–${p.them}</b>`;
+  row.querySelector('.flow-label').innerHTML = `<b>${perAbbr(g, period)} · ${scoreTxt(g, p.us, p.them, '–')}</b>`;
   const diff = row.querySelector('.flow-diff');
   diff.textContent = signed(d);
   diff.className = `t flow-diff ${sideOf(d)}`;
@@ -1480,12 +1576,14 @@ function cellValue(r, c) {
 }
 
 /* Una columna se oculta si su acción está desactivada y no hay datos que mostrar */
-const COL_OPTS = { t1: ['t1'], t2: ['t2'], t3: ['t3'], ro: ['ro'], rd: ['rd'], reb: ['ro', 'rd'], ast: ['ast'], blk: ['blk'], blkr: ['blkr'], rec: ['rec'], lost: ['lost'], fc: ['fc'], fr: ['fr'] };
+const COL_OPTS = { t1: ['t1'], t2: ['t2'], t3: ['t3'], ro: ['ro'], rd: ['rd'], reb: ['ro', 'rd', 'reb'], ast: ['ast'], blk: ['blk'], blkr: ['blkr'], rec: ['rec'], lost: ['lost'], fc: ['fc'], fr: ['fr'] };
 function colVisible(k, data) {
   if (ADV_KEYS.has(k)) return !data.total.adv[k].hidden;
   if (k === 'pm') return data.total.pm != null;   // solo si algún partido del ámbito tiene registro de quintetos
+  // Rebotes sin distinguir: solo si hay y se ven las columnas RO o RD (si no, RT ya los da todos)
+  if (k === 'rb') return data.total.rb > 0 && (colVisible('ro', data) || colVisible('rd', data));
   const opts = COL_OPTS[k];
-  if (!opts || opts.some(optEnabled)) return true;
+  if (!opts || opts.some(id => optEnabled(id))) return true;
   const t = data.total;
   const v = k[0] === 't' && k.length === 2 ? t[`${k}a`] : t[k];
   return v !== 0;
@@ -2020,9 +2118,22 @@ const actions = {
     const id = el.dataset.id;
     const hidden = team().hidden;
     if (hidden.includes(id)) team().hidden = hidden.filter(x => x !== id);
-    else if (OPTIONS.length - hidden.length <= 1) { toast('Tiene que quedar al menos un botón'); return; }
+    else if (OPTIONS.filter(o => optEnabled(o.id)).length <= 1) { toast('Tiene que quedar al menos un botón'); return; }
     else hidden.push(id);
     save(); vibrate(8); render();
+  },
+  'reb-mode'(el) {
+    const t = team(), one = el.dataset.v === 'one';
+    if (rebOne(t) === one) return;
+    // Los rebotes siguen como estaban: si había alguno activo, se activan los del modo elegido; si no, quedan ocultos.
+    // (Los botones de rebote tienen el mismo id como opción y como jugada.)
+    const wasOn = REB_ACTIONS.some(id => optEnabled(id));
+    if (one) t.rebOne = true; else delete t.rebOne;
+    const rebIds = REB_ACTIONS.filter(id => optOffered(id, one));
+    t.hidden = t.hidden.filter(id => !rebIds.includes(id));
+    if (!wasOn) t.hidden.push(...rebIds);
+    save(); vibrate(8); render();
+    toast(one ? 'Rebotes con un solo botón (REB)' : 'Rebotes de ataque (RO) y defensivos (RD)');
   },
   'team-phase'(el) {
     const n = +el.dataset.v;
@@ -2036,7 +2147,12 @@ const actions = {
     t.move = t.move === el.dataset.v ? '' : el.dataset.v;   // al tocar la opción elegida, se quita
     save(); vibrate(8); render();
   },
-  'opts-all'() { team().hidden = []; save(); render(); toast('Todos los botones activados'); },
+  profile(el) {
+    const p = applyProfile(team(), el.dataset.v);
+    if (!p) return;
+    save(); vibrate(8); render();
+    toast(`Perfil ${p.name}: ${profileButtons(p)} botones por jugador`);
+  },
   theme() { toggleTheme(); },
   'modal-close'() { closeModal(); },
   'confirm-yes'() { const m = ui.modal; ui.modal = null; refreshModal(); m.resolve(true); },
@@ -2113,6 +2229,7 @@ document.addEventListener('submit', async (e) => {
     if (!name) return;
     const cur = team();
     const t = { id: uid(), name, email: cur ? cur.email : '', players: [], hidden: [], phase: 1, levels: ['', ''], move: '', minUnit: 4 };
+    applyProfile(t, DEFAULT_PROFILE);   // los botones se cambian después en Ajustes
     db.teams.push(t);
     db.currentTeamId = t.id;
     ui.editId = null;
@@ -2407,24 +2524,31 @@ function buildText(arg) {
     }
   } else {
     const g = data.game, s = score(g), ps = periodScores(g);
-    out.push(`${g.teamName} ${s.us} - ${s.them} ${g.opponent}`);
+    const names = sideNames(g), [home, away] = sidesOf(g);
+    out.push(`${names[home]} ${s[home]} - ${s[away]} ${names[away]}`);
     const meta = gameMeta(g);
     out.push(`Fecha: ${fmtDate(g.date)}${meta ? ` · ${meta}` : ''}`);
-    out.push(`Parciales: ${ps.us.map((v, i) => `${perAbbr(g, i + 1)} ${v}-${ps.them[i]}`).join(' | ')}`);
+    out.push(`Parciales: ${ps.us.map((v, i) => `${perAbbr(g, i + 1)} ${scoreTxt(g, v, ps.them[i])}`).join(' | ')}`);
   }
   out.push('');
   const rows = [...data.rows].filter(r => r.gp > 0).sort((a, b) => b.val - a.val || byNumber(a, b));
   for (const r of rows) {
     out.push(`#${r.number} ${r.name}${data.season ? ` (${r.gp} PJ)` : ''}`);
     out.push(`   ${r.pts} pts · T1 ${shotTxt(r, 1)} · T2 ${shotTxt(r, 2)} · T3 ${shotTxt(r, 3)}`);
-    out.push(`   Reb ${r.reb} (${r.ro} of + ${r.rd} def) · As ${r.ast} · Tap ${r.blk} · TapRec ${r.blkr} · Rec ${r.rec} · Pér ${r.lost} · FC ${r.fc} · FR ${r.fr} · VAL ${r.val}`);
+    out.push(`   Reb ${rebTxt(r)} · As ${r.ast} · Tap ${r.blk} · TapRec ${r.blkr} · Rec ${r.rec} · Pér ${r.lost} · FC ${r.fc} · FR ${r.fr} · VAL ${r.val}`);
   }
   const t = data.total;
   out.push('');
-  out.push(`EQUIPO: ${t.pts} pts · T1 ${shotTxt(t, 1)} · T2 ${shotTxt(t, 2)} · T3 ${shotTxt(t, 3)} · Reb ${t.reb} · As ${t.ast} · Tap ${t.blk} · TapRec ${t.blkr} · Rec ${t.rec} · Pér ${t.lost} · FC ${t.fc} · FR ${t.fr} · VAL ${t.val}`);
+  out.push(`EQUIPO: ${t.pts} pts · T1 ${shotTxt(t, 1)} · T2 ${shotTxt(t, 2)} · T3 ${shotTxt(t, 3)} · Reb ${rebTxt(t)} · As ${t.ast} · Tap ${t.blk} · TapRec ${t.blkr} · Rec ${t.rec} · Pér ${t.lost} · FC ${t.fc} · FR ${t.fr} · VAL ${t.val}`);
   out.push('');
   out.push('VAL = puntos + rebotes + asistencias + recuperaciones + tapones + faltas recibidas − tiros fallados − tapones recibidos − pérdidas − faltas cometidas');
   return out.join('\n');
+}
+
+/* Rebotes de una fila para el texto: el total y, si se distinguieron, cuántos de ataque y cuántos defensivos */
+function rebTxt(r) {
+  if (!r.ro && !r.rd) return `${r.reb}`;
+  return `${r.reb} (${r.ro} of + ${r.rd} def${r.rb ? ` + ${r.rb} sin distinguir` : ''})`;
 }
 
 function statsTitle(arg) {
@@ -2488,11 +2612,12 @@ function downloadCSV(arg) {
   const data = statsData(arg);
   if (!data) return;
   const head = ['Dorsal', 'Jugador', ...(data.season ? ['PJ'] : []), 'Periodos', 'PTS', 'T1A', 'T1I', 'T2A', 'T2I', 'T3A', 'T3I', 'RO', 'RD', 'RT', 'AS', 'TAP', 'TR', 'REC', 'PER', 'FC', 'FR', 'VAL',
-    'eFG%', 'TS%', '%PÉR', 'TL/TC', '+/-'];
-  // Avanzadas al final (para no mover las columnas de siempre): % redondeado, tasa con 2 decimales; vacías sin valor
+    'eFG%', 'TS%', '%PÉR', 'TL/TC', '+/-', 'REB'];
+  // REB: rebotes sin distinguir (botón único); están incluidos en RT.
+  // Avanzadas y REB al final (para no mover las columnas de siempre): % redondeado, tasa con 2 decimales; vacías sin valor
   const adv = (m, pctFmt) => (m.value == null || m.hidden ? '' : pctFmt ? Math.round(m.value * 100) : Math.round(m.value * 100) / 100);
   const line = (r) => [r.number, r.name, ...(data.season ? [r.gp] : []), r.nper, r.pts, r.t1m, r.t1a, r.t2m, r.t2a, r.t3m, r.t3a, r.ro, r.rd, r.reb, r.ast, r.blk, r.blkr, r.rec, r.lost, r.fc, r.fr, r.val,
-    adv(r.adv.efg, true), adv(r.adv.ts, true), adv(r.adv.tov, true), adv(r.adv.ftr, false), r.pm ?? ''];
+    adv(r.adv.efg, true), adv(r.adv.ts, true), adv(r.adv.tov, true), adv(r.adv.ftr, false), r.pm ?? '', r.rb];
   const rows = [head, ...sortedPlayers(data.rows).map(line), line(data.total)];
   const csv = rows.map(r => r.map(v => {
     // Coma decimal solo en los números (los promedios); los textos, como los nombres, van tal cual

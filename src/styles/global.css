@@ -122,6 +122,16 @@ p, li { text-wrap: pretty; }
 .steps h3 { margin: .2rem 0 .3rem; }
 .steps p { margin: 0; color: var(--ink-soft); }
 
+/* Perfiles de botones (sección «Qué puedes apuntar») */
+.profiles { margin-bottom: 3rem; }
+.profiles h3 { font-size: 1.2rem; margin-bottom: .35rem; }
+.profiles-intro { color: var(--ink-soft); max-width: var(--measure); margin: 0 0 1.25rem; }
+.profiles ul { list-style: none; padding: 0; margin: 0; display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.profiles li { background: var(--court); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.1rem; }
+.profiles strong { display: block; font-family: var(--display); font-size: 1.3rem; line-height: 1.1; }
+.profile-tag { display: block; margin-top: .2rem; font-size: .9rem; font-weight: 700; color: var(--ball-ink); }
+.profiles li p { margin: .5rem 0 0; color: var(--ink-soft); font-size: 1rem; line-height: 1.4; }
+
 /* Leyenda de botones (mismos colores que la app) */
 .legend { display: grid; gap: 2rem; }
 .legend h3 { font-size: 1.2rem; margin-bottom: .75rem; }
@@ -137,7 +147,7 @@ p, li { text-wrap: pretty; }
 .key i { font-style: normal; font-size: .8rem; font-weight: 700; }
 .key-made { color: #00e676; } .key-miss { color: #ff8a80; }
 .key-rec { color: #29b6f6; } .key-lost { color: #ff9100; }
-.key-reb { color: #b388ff; } .key-ast { color: #ff80ab; }
+.key-rbo { color: #ffe24a; } .key-reb { color: #b388ff; } .key-ast { color: #ff80ab; }
 .key-blk { color: #1de9b6; } .key-foul { color: #ff5252; }
 .legend-note { margin-top: 2rem; color: var(--ink-soft); max-width: var(--measure); }
 
