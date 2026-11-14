@@ -63,14 +63,16 @@ const OPTIONS = [
    y si no coinciden con ninguno, son «Personalizado». Los equipos nuevos empiezan en DEFAULT_PROFILE. */
 const PRE_MINI = ['t1', 't2', 't3', 'reb', 'rec', 'lost', 'fc'];
 const PROFILES = [
-  { id: 'escoleta', name: 'Escoleta', desc: 'Solo puntos', opts: ['t1', 't2', 't3'] },
-  { id: 'premini', name: 'Pre-mini', desc: 'Puntos, rebote (un botón), recuperación, pérdida y falta cometida', opts: PRE_MINI },
-  { id: 'mini', name: 'Mini', desc: 'Lo de pre-mini con asistencias y faltas recibidas', opts: [...PRE_MINI, 'ast', 'fr'] },
-  { id: 'total', name: 'Total', desc: 'Todos los botones, con rebote de ataque y defensivo', opts: OPTIONS.map(o => o.id).filter(id => id !== 'reb') },
+  { id: 'escuela', name: 'Escuela', desc: 'Solo puntos', opts: ['t1', 't2', 't3'] },
+  { id: 'premini', name: 'Pre-mini', desc: 'Benjamín', opts: PRE_MINI },
+  { id: 'mini', name: 'Mini', desc: 'Alevín', opts: [...PRE_MINI, 'ast', 'fr'] },
+  { id: 'completo', name: 'Completo', desc: 'Todos los botones', opts: OPTIONS.map(o => o.id).filter(id => id !== 'reb') },
 ];
 const DEFAULT_PROFILE = 'premini';
+/* Botones por jugador de un perfil (los tiros van por parejas: anotado y fallado) */
+const profileButtons = (p) => p.opts.reduce((n, id) => n + OPTIONS.find(o => o.id === id).acts.length, 0);
 
-/* Deja el equipo con los botones de un perfil. Sin botones de rebote (escoleta), el modo de rebote no cambia. */
+/* Deja el equipo con los botones de un perfil. Sin botones de rebote (escuela), el modo de rebote no cambia. */
 function applyProfile(t, id) {
   const p = PROFILES.find(x => x.id === id);
   if (!p) return null;
@@ -1058,7 +1060,7 @@ function viewSettings() {
   const one = rebOne();
   const prof = currentProfile();
   const profile = (p) => `<button class="profile ${prof === p ? 'on' : ''}" data-action="profile" data-v="${p.id}" aria-pressed="${prof === p}">
-      <b>${p.name}</b><small>${p.desc}</small></button>`;
+      <b>${p.name}</b><small>${p.desc} · ${profileButtons(p)} botones</small></button>`;
   const rebMode = (v, label) => `<button class="${one === (v === 'one') ? 'on' : ''}" data-action="reb-mode" data-v="${v}" aria-pressed="${one === (v === 'one')}">${label}</button>`;
   return shell('ajustes', `
   <section class="card preview-card">
@@ -2147,7 +2149,7 @@ const actions = {
     const p = applyProfile(team(), el.dataset.v);
     if (!p) return;
     save(); vibrate(8); render();
-    toast(`Perfil ${p.name}: ${p.opts.reduce((n, id) => n + OPTIONS.find(o => o.id === id).acts.length, 0)} botones por jugador`);
+    toast(`Perfil ${p.name}: ${profileButtons(p)} botones por jugador`);
   },
   theme() { toggleTheme(); },
   'modal-close'() { closeModal(); },

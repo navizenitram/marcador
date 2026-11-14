@@ -104,6 +104,19 @@ const alternates = [
         <h2 id="que-apuntar">{t.actionsTitle}</h2>
         <p>{t.actionsIntro}</p>
       </div>
+      <div class="profiles">
+        <h3>{t.profilesTitle}</h3>
+        <p class="profiles-intro">{t.profilesIntro}</p>
+        <ul>
+          {t.profiles.map((p) => (
+            <li>
+              <strong>{p.h}</strong>
+              <span class="profile-tag">{p.tag}</span>
+              <p>{p.p}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
       <ActionLegend lang={lang} />
     </div>
   </section>

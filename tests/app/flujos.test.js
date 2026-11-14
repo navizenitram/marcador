@@ -650,11 +650,11 @@ describe('ajustes: botones del partido', () => {
     const marked = () => app.$$('.profile.on').map((b) => b.dataset.v);
     const SHOTS = ['1', '1', '2', '2', '3', '3'];
 
-    expect(marked()).toEqual(['total']);   // un equipo con todos los botones (como los de antes) está en «Total»
+    expect(marked()).toEqual(['completo']);   // un equipo con todos los botones (como los de antes) está en «Completo»
 
-    await app.act('profile', { v: 'escoleta' });
+    await app.act('profile', { v: 'escuela' });
     expect(preview()).toEqual(SHOTS);
-    expect(marked()).toEqual(['escoleta']);
+    expect(marked()).toEqual(['escuela']);
 
     await app.act('profile', { v: 'premini' });
     expect(preview()).toEqual([...SHOTS, 'REB', 'REC', 'PÉR', 'FC']);
@@ -663,7 +663,7 @@ describe('ajustes: botones del partido', () => {
     await app.act('profile', { v: 'mini' });
     expect(preview()).toEqual([...SHOTS, 'REB', 'REC', 'PÉR', 'AS', 'FC', 'FR']);
 
-    await app.act('profile', { v: 'total' });
+    await app.act('profile', { v: 'completo' });
     expect(preview()).toEqual([...SHOTS, 'RO', 'RD', 'REC', 'PÉR', 'AS', 'TAP', 'TR', 'FC', 'FR']);
     expect(app.db.teams[0]).toMatchObject({ hidden: ['reb'] });
     expect('rebOne' in app.db.teams[0]).toBe(false);
@@ -688,11 +688,11 @@ describe('ajustes: botones del partido', () => {
     await app.act('reb-mode', { v: 'split' });
     expect(rebs()).toEqual(['RO', 'RD']);
 
-    await app.act('profile', { v: 'escoleta' });
+    await app.act('profile', { v: 'escuela' });
     await app.act('reb-mode', { v: 'one' });
     await app.act('reb-mode', { v: 'split' });
     expect(rebs()).toEqual([]);
-    expect(app.$$('.profile.on').map((b) => b.dataset.v)).toEqual(['escoleta']);
+    expect(app.$$('.profile.on').map((b) => b.dataset.v)).toEqual(['escuela']);
   });
 
   it('tiene que quedar al menos un botón', async () => {

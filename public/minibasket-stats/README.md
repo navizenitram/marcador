@@ -31,10 +31,11 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
     Los rebotes van justo después de los tiros; el de ataque (amarillo) y el defensivo (morado) tienen colores distintos.
   - Los botones se eligen en **Ajustes** con un **perfil** según la categoría y, si se quiere, botón a botón
     (cada entrenador activa solo lo que quiere apuntar):
-    - **Escoleta**: solo puntos (tiros anotados y fallados).
-    - **Pre-mini** (el de los equipos nuevos): puntos, rebote con un solo botón, recuperación, pérdida y falta cometida.
-    - **Mini**: lo de pre-mini con asistencias y faltas recibidas.
-    - **Total**: todos los botones, con rebote de ataque y defensivo.
+    - **Escuela** (6 botones): solo puntos (tiros anotados y fallados).
+    - **Pre-mini** (benjamín, 10 botones; el de los equipos nuevos): puntos, rebote con un solo botón, recuperación,
+      pérdida y falta cometida.
+    - **Mini** (alevín, 12 botones): lo de pre-mini con asistencias y faltas recibidas.
+    - **Completo** (15 botones): todos, con rebote de ataque y defensivo.
 
     Si se cambia algún botón a mano y ya no coincide con ningún perfil, aparece como «Personalizado». En **Rebotes** se puede
     elegir **un solo botón** (REB) que no distingue ataque y defensa: cuenta en los rebotes totales (RT) y en la valoración.
