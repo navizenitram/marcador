@@ -19,6 +19,8 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
   Cuando el equipo llega a la 2ª fase, la lista se agrupa por fase, con su nivel y su balance.
 - **Partido en directo** (pensado para que quepa todo sin scroll):
   - Marcador arriba: los puntos propios se suman solos con los tiros anotados; botones **+1 / +2 / +3 / −1** para el rival.
+    Como en cualquier marcador, el local va a la izquierda: de visitante, el rival sale primero (también en el resultado,
+    los parciales y el texto para compartir). En los partidos antiguos sin campo elegido, el equipo propio sigue a la izquierda.
   - Periodo actual (‹ P3 ›). Al pasar de periodo se abre el selector de quinteto.
   - Una fila por jugador en pista (máx. 5) con hasta 15 botones:
     `1✓ 1✗ 2✓ 2✗ 3✓ 3✗ | RO RD | REC PÉR AS TAP TR FC FR`

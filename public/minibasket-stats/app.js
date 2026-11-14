@@ -140,6 +140,11 @@ const MOVES = Object.assign(Object.create(null), {
 const VENUES = Object.assign(Object.create(null), { home: 'Local', away: 'Visitante' });
 /* Fase y campo válidos a partir de lo que venga (datos guardados, copia importada o formulario) */
 const asPhase = (v) => (PHASES.includes(+v) ? +v : 1);
+/* Orden de los equipos en los marcadores: primero el local, como se leen siempre. De visitante, el rival va primero;
+   sin campo elegido (partidos antiguos), el equipo propio. Devuelve [primero, segundo] con 'us' y 'them'. */
+const sidesOf = (g) => (g.venue === 'away' ? ['them', 'us'] : ['us', 'them']);
+/* Un marcador «a-b» en el orden local-visitante, a partir de los puntos propios y del rival */
+const scoreTxt = (g, us, them, sep = '-') => (g.venue === 'away' ? `${them}${sep}${us}` : `${us}${sep}${them}`);
 const asVenue = (v) => (typeof v === 'string' && v in VENUES ? v : '');
 
 const objects = (v) => (Array.isArray(v) ? v.filter(x => x && typeof x === 'object') : []);
@@ -939,6 +944,8 @@ function viewLive(g) {
   const ro = g.finished ? ' disabled' : '';
   const lines = playerLines(g);
   const rebMode = gameRebOne(g);
+  const [home, away] = sidesOf(g);   // el local a la izquierda
+  const names = { us: g.teamName, them: g.opponent };
   const rosterById = Object.fromEntries(g.roster.map(p => [p.id, p]));
   const rows = [];
   for (let i = 0; i < MAX_ON_COURT; i++) {
@@ -972,11 +979,11 @@ function viewLive(g) {
         <button data-action="period" data-d="1" aria-label="${perName(g)} siguiente"${ro}>${icon('right')}</button>
       </div>
       <div class="board">
-        <span class="tname us">${esc(g.teamName)}</span>
-        <span class="score us">${s.us}</span>
+        <span class="tname ${home} first">${esc(names[home])}</span>
+        <span class="score ${home}">${s[home]}</span>
         <span class="dash">–</span>
-        <span class="score them">${s.them}</span>
-        <span class="tname them">${esc(g.opponent)}</span>
+        <span class="score ${away}">${s[away]}</span>
+        <span class="tname ${away}">${esc(names[away])}</span>
       </div>
       <div class="opp-btns" title="Puntos del rival">
         <button data-action="opp" data-pts="1"${ro}>+1</button>
@@ -1222,18 +1229,24 @@ function gameSummary(g) {
   const meta = gameMeta(g);
   const ps = periodScores(g);
   const res = s.us > s.them ? 'win' : s.us < s.them ? 'loss' : 'tie';
+  // El local primero: a la izquierda en el resultado y arriba en los parciales
+  const names = { us: g.teamName, them: g.opponent };
+  const other = { us: 'them', them: 'us' };
+  const ft = (k) => `<div class="ft ${k}"><small>${esc(names[k])}</small><b>${s[k]}</b></div>`;
+  const prow = (k) => `<tr><td class="l ${k}">${esc(names[k])}</td>${ps[k].map((v, i) => `<td class="${v > ps[other[k]][i] ? 'w' : ''}">${v}</td>`).join('')}<td class="t">${s[k]}</td></tr>`;
+  const [home, away] = sidesOf(g);
   return `
   <section class="card summary">
     <div class="final">
-      <div class="ft us"><small>${esc(g.teamName)}</small><b>${s.us}</b></div>
+      ${ft(home)}
       <div class="ft-mid">${g.finished ? `<span class="badge ${res}">${RESULT[res]}</span>` : '<span class="badge"><span class="dot"></span>En juego</span>'}<small>${fmtDate(g.date)}</small>${meta ? `<small class="g-meta">${meta}</small>` : ''}</div>
-      <div class="ft them"><small>${esc(g.opponent)}</small><b>${s.them}</b></div>
+      ${ft(away)}
     </div>
     <div class="ptable-wrap">
       <table class="ptable">
         <tr><th></th>${ps.us.map((_, i) => `<th>${perAbbr(g, i + 1)}</th>`).join('')}<th class="t">Total</th></tr>
-        <tr><td class="l us">${esc(g.teamName)}</td>${ps.us.map((v, i) => `<td class="${v > ps.them[i] ? 'w' : ''}">${v}</td>`).join('')}<td class="t">${s.us}</td></tr>
-        <tr><td class="l them">${esc(g.opponent)}</td>${ps.them.map((v, i) => `<td class="${v > ps.us[i] ? 'w' : ''}">${v}</td>`).join('')}<td class="t">${s.them}</td></tr>
+        ${prow(home)}
+        ${prow(away)}
         ${flowRow(g)}
       </table>
     </div>
@@ -1334,7 +1347,7 @@ function flowScrub(e) {
   dot.className = `flow-dot ${sideOf(d)}`;
   el.classList.add('scrub');
   const row = el.closest('tr');
-  row.querySelector('.flow-label').innerHTML = `<b>${perAbbr(g, period)} · ${p.us}–${p.them}</b>`;
+  row.querySelector('.flow-label').innerHTML = `<b>${perAbbr(g, period)} · ${scoreTxt(g, p.us, p.them, '–')}</b>`;
   const diff = row.querySelector('.flow-diff');
   diff.textContent = signed(d);
   diff.className = `t flow-diff ${sideOf(d)}`;
@@ -2495,10 +2508,10 @@ function buildText(arg) {
     }
   } else {
     const g = data.game, s = score(g), ps = periodScores(g);
-    out.push(`${g.teamName} ${s.us} - ${s.them} ${g.opponent}`);
+    out.push(g.venue === 'away' ? `${g.opponent} ${s.them} - ${s.us} ${g.teamName}` : `${g.teamName} ${s.us} - ${s.them} ${g.opponent}`);
     const meta = gameMeta(g);
     out.push(`Fecha: ${fmtDate(g.date)}${meta ? ` · ${meta}` : ''}`);
-    out.push(`Parciales: ${ps.us.map((v, i) => `${perAbbr(g, i + 1)} ${v}-${ps.them[i]}`).join(' | ')}`);
+    out.push(`Parciales: ${ps.us.map((v, i) => `${perAbbr(g, i + 1)} ${scoreTxt(g, v, ps.them[i])}`).join(' | ')}`);
   }
   out.push('');
   const rows = [...data.rows].filter(r => r.gp > 0).sort((a, b) => b.val - a.val || byNumber(a, b));

@@ -560,6 +560,37 @@ describe('partido en directo', () => {
   });
 });
 
+describe('marcador: el local a la izquierda', () => {
+  // Bruno anota un triple: 3-0 para el equipo propio
+  const game = (venue, extra = {}) => makeGame({ onCourt: [...FIVE], venue, events: [ev('t3_ok', 'p7')], ...extra });
+  const board = (app) => app.$$('.board > span').map((el) => `${el.className}:${el.textContent}`);
+
+  it('de local, el equipo propio va a la izquierda; de visitante, a la derecha', async () => {
+    const home = await openApp({ data: makeData({ games: [game('home')] }), hash: '#/partido/g1' });
+    expect(board(home)).toEqual(['tname us first:Alevín A', 'score us:3', 'dash:–', 'score them:0', 'tname them:Rival']);
+
+    const away = await openApp({ data: makeData({ games: [game('away')] }), hash: '#/partido/g1' });
+    expect(board(away)).toEqual(['tname them first:Rival', 'score them:0', 'dash:–', 'score us:3', 'tname us:Alevín A']);
+    expect(scoreboard(away)).toBe('3-0');   // los puntos siguen en su sitio: los del rival se suman al rival
+  });
+
+  it('sin campo elegido (partidos antiguos), el equipo propio sigue a la izquierda', async () => {
+    const app = await openApp({ data: makeData({ games: [game('')] }), hash: '#/partido/g1' });
+    expect(board(app)[0]).toBe('tname us first:Alevín A');
+  });
+
+  it('en las estadísticas de un partido de visitante, el rival va primero en el resultado y en los parciales', async () => {
+    const app = await openApp({ data: makeData({ games: [game('away', { finished: true, events: [ev('t3_ok', 'p7'), opp(2)] })] }), hash: '#/stats/g1' });
+    expect(app.$$('.final .ft').map((el) => el.className)).toEqual(['ft them', 'ft us']);
+    expect(app.$$('.ptable td.l').slice(0, 2).map((el) => el.textContent)).toEqual(['Rival', 'Alevín A']);
+    expect(app.text('.final .badge')).toBe('Victoria');
+
+    const lines = app.fn.buildText('g1').split('\n');
+    expect(lines[0]).toBe('Rival 2 - 3 Alevín A');
+    expect(lines.find((l) => l.startsWith('Parciales'))).toMatch(/^Parciales: P1 2-3 \|/);
+  });
+});
+
 describe('ajustes: botones del partido', () => {
   it('desactivar una acción la quita de la pista y de la vista previa', async () => {
     const app = await live();
