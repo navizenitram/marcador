@@ -8,6 +8,9 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
 ## Funcionalidades
 
 - **Varios equipos** (por ejemplo, uno por categoría): al abrir la app se elige con cuál recoger estadísticas; se cambia tocando el nombre del equipo arriba a la izquierda. Cada equipo tiene su plantilla, partidos, estadísticas y botones del partido.
+- **Equipo de ejemplo** (si existe `demo.js`, que deja el equipo en `MBDemo`; el formato está comentado en `app.js`):
+  sale en la pantalla de equipos como uno más, con su etiqueta. Al tocarlo se copia a los datos con su plantilla y sus
+  partidos finalizados, y desde ahí es un equipo normal. Se puede ocultar o eliminar, y recuperar desde **Ajustes**.
 - **Equipo**: alta de jugadores con dorsal y nombre (editar / eliminar), nombre del equipo y email por defecto.
 - **Fases de la temporada**: en minibasket la temporada se divide en dos fases independientes; según la clasificación
   de la 1ª, en la 2ª se juega contra equipos nuevos en un nivel superior, el mismo o inferior. En **Equipo** se indica

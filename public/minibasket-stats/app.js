@@ -196,6 +196,7 @@ function normalize(d) {
   delete d.team;
   delete d.settings;
   delete d.exportedAt;   // fecha de la copia de seguridad: no forma parte de los datos
+  if (d.demoOff !== true) delete d.demoOff;   // true: el equipo de ejemplo no se ofrece (se ocultó o se eliminó)
 
   const newIds = new Map();
   const fixId = (v) => {
@@ -303,6 +304,57 @@ function normalizeLineups(g, fixId) {
 function team() { return db.teams.find(t => t.id === db.currentTeamId) || null; }
 function teamGames() { return db.games.filter(g => g.teamId === db.currentTeamId); }
 function selectTeam(id) { if (db.currentTeamId !== id) { db.currentTeamId = id; ui.editId = null; save(); } }
+
+/* ── Equipo de ejemplo ──
+   demo.js (generado, ver scripts/) deja en MBDemo un equipo con su plantilla y sus partidos en un formato compacto.
+   Mientras no se abra no ocupa sitio en los datos: se ofrece en la pantalla de equipos como uno más y, al tocarlo, se
+   copia a los datos como cualquier otro equipo (se puede editar, exportar o eliminar). Si se oculta o se elimina,
+   db.demoOff evita que vuelva a salir; se recupera desde Ajustes.
+
+   MBDemo = { team: { id, name, players: [{ id, number, name }] }, source, games: [{ id, date, opponent, venue,
+   periods, plays }] }. plays, en el orden del partido: [periodo, [índices]] quinteto en pista (índices de
+   team.players), [periodo, 'tipo', índice] jugada de un jugador y [periodo, puntos] puntos del rival. */
+const DEMO = typeof MBDemo === 'object' && MBDemo && MBDemo.team && Array.isArray(MBDemo.games) ? MBDemo : null;
+let demoCache = null;
+
+/* Equipo y partidos de ejemplo con el formato de la app (los mismos objetos en cada llamada: no se modifican) */
+function demoData() {
+  if (!DEMO) return null;
+  if (demoCache) return demoCache;
+  const players = DEMO.team.players.map(p => ({ id: p.id, number: String(p.number), name: p.name }));
+  const t = { id: DEMO.team.id, name: DEMO.team.name, email: '', players, hidden: [], phase: 1, levels: ['', ''], move: '', minUnit: 4 };
+  applyProfile(t, 'completo');
+  const games = DEMO.games.map((d, i) => {
+    const g = {
+      id: d.id, createdAt: i + 1, date: d.date, opponent: d.opponent, teamId: t.id, teamName: t.name, periods: d.periods || 4, period: 1,
+      roster: players.map(p => ({ ...p })), onCourt: [], played: {}, events: [], finished: true, phase: 1, venue: asVenue(d.venue), lineups: [], seq: 0,
+    };
+    const start = Date.parse(`${d.date}T12:00:00`) || 0;
+    for (const [period, what, who] of d.plays) {
+      const seq = ++g.seq;
+      g.period = Math.max(g.period, period);
+      if (Array.isArray(what)) {
+        g.onCourt = what.map(n => players[n].id);
+        g.lineups.push({ seq, period, on: [...g.onCourt] });
+        continue;
+      }
+      const e = { id: `${g.id}-${seq}`, seq, ts: start + seq * 20000, period };
+      g.events.push(typeof what === 'number' ? { ...e, type: 'opp', pts: what } : { ...e, type: what, pid: players[who].id });
+      for (const pid of g.onCourt) {
+        const arr = g.played[pid] || (g.played[pid] = []);
+        if (!arr.includes(period)) arr.push(period);
+      }
+    }
+    if (g.lineups.length) g.lineupFrom = g.lineups[0].seq;
+    g.period = Math.min(g.period, g.periods);
+    return g;
+  });
+  return (demoCache = { team: t, games });
+}
+
+/* El equipo de ejemplo se ofrece mientras no esté entre los equipos ni se haya ocultado */
+function demoLoaded() { return !!DEMO && db.teams.some(t => t.id === DEMO.team.id); }
+function demoOffered() { return !!DEMO && !db.demoOff && !demoLoaded(); }
 
 function load() {
   try {
@@ -711,6 +763,27 @@ function shell(active, content) {
 }
 
 /* ── Equipos (selección) ── */
+
+/* Tarjeta del equipo de ejemplo mientras no se ha abierto: se ve como un equipo más, con su etiqueta */
+function demoCard() {
+  if (!demoOffered()) return '';
+  const { team: t, games } = demoData();
+  const { w, l } = winLoss(games);
+  return `
+    <li class="team-card demo-card">
+      <button class="team-pick" data-action="demo-open">
+        ${crest(t.name)}
+        <span class="team-info">
+          <span class="team-name">${esc(t.name)}</span>
+          <small>${t.players.length} jugadores · ${nGames(games.length)} · ${w}V ${l}D</small>
+          <span class="demo-tag">${esc(tr('demo.tag'))}</span>
+          <small>${esc(tr('demo.hint'))}</small>
+        </span>
+      </button>
+      <button class="icon-btn" data-action="demo-hide" title="${esc(tr('demo.hide'))}" aria-label="${esc(tr('demo.hide'))}">${icon('x')}</button>
+    </li>`;
+}
+
 function viewTeams() {
   const cards = db.teams.map(t => {
     const games = db.games.filter(g => g.teamId === t.id);
@@ -737,7 +810,8 @@ function viewTeams() {
   <div class="cols">
     <section class="card grow">
       <h2>${db.teams.length ? '¿Con qué equipo vas a recoger estadísticas?' : 'Bienvenido/a 👋'}</h2>
-      ${db.teams.length ? `<ul class="teams">${cards}</ul>` : `<p class="empty">${BALL}Crea tu primer equipo para empezar.<br>Después podrás añadir más (por ejemplo, uno por categoría).</p>`}
+      ${db.teams.length ? '' : `<p class="empty">${BALL}Crea tu primer equipo para empezar.<br>Después podrás añadir más (por ejemplo, uno por categoría).</p>`}
+      ${cards || demoOffered() ? `<ul class="teams">${cards}${demoCard()}</ul>` : ''}
     </section>
     <section class="card side">
       <h2>Nuevo equipo</h2>
@@ -1103,6 +1177,11 @@ function viewSettings() {
         <button class="btn" data-action="export-json">${icon('download')} Exportar</button>
         <label class="btn">${icon('upload')} Importar<input type="file" accept="application/json,.json" data-change="import-json" hidden></label>
       </div>
+
+      ${DEMO && !demoLoaded() ? `
+      <h2>${esc(tr('demo.title'))}</h2>
+      <p class="muted small">${esc(tr('demo.settings', { name: DEMO.team.name, n: DEMO.games.length }))}</p>
+      <button class="btn" data-action="demo-open">${icon('plus')} ${esc(tr('demo.load'))}</button>` : ''}
 
       <h2>Privacidad</h2>
       <p class="muted small">My Own Basketball Stats no recoge ni envía tus datos: no hay registro, ni publicidad, ni seguimiento. Todo se guarda solo en este dispositivo.</p>
@@ -1942,6 +2021,25 @@ const actions = {
     selectTeam(el.dataset.id);
     go(team().players.length ? '#/partidos' : '#/equipo');
   },
+  /* Equipo de ejemplo: se copia a los datos y se abre como cualquier otro */
+  'demo-open'() {
+    if (!DEMO) return;
+    if (!demoLoaded()) {
+      const { team: t, games } = JSON.parse(JSON.stringify(demoData()));
+      db.teams.push(t);
+      db.games.push(...games);
+      delete db.demoOff;
+      toast(esc(tr('demo.opened', { name: t.name })));
+    }
+    selectTeam(DEMO.team.id);
+    save();
+    go('#/partidos');
+  },
+  'demo-hide'() {
+    db.demoOff = true;
+    save(); render();
+    toast(esc(tr('demo.hidden')));
+  },
   async 'del-team'(el) {
     const t = db.teams.find(x => x.id === el.dataset.id);
     if (!t) return;
@@ -1950,8 +2048,10 @@ const actions = {
     db.teams = db.teams.filter(x => x.id !== t.id);
     db.games = db.games.filter(g => g.teamId !== t.id);
     if (db.currentTeamId === t.id) db.currentTeamId = db.teams.length ? db.teams[0].id : null;
+    const demo = !!DEMO && t.id === DEMO.team.id;
+    if (demo) db.demoOff = true;   // el de ejemplo no vuelve a ofrecerse solo: se recupera desde Ajustes
     save(); render();
-    toast(`Equipo ${esc(t.name)} eliminado`);
+    toast(demo ? esc(tr('demo.deleted', { name: t.name })) : `Equipo ${esc(t.name)} eliminado`);
   },
 
   /* Partidos */

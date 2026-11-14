@@ -29,8 +29,9 @@ const SCRIPTS = [...HTML.matchAll(/<script src="([^"]+)"><\/script>/g)]
  * @param {string} [opts.origin] dirección donde se abre la app, p. ej. 'https://marcador-kohl.vercel.app'
  * @param {string} [opts.siteUrl] valor de %SITE_URL% (la canonical); sin él queda el marcador tal cual
  * @param {boolean} [opts.compression] da a la ventana CompressionStream y DecompressionStream (jsdom no los tiene)
+ * @param {object} [opts.demo] equipo de ejemplo (MBDemo, lo que deja demo.js) con el que arranca la app
  */
-export async function openApp({ data, hash = '', storage = {}, origin = 'https://app.test', siteUrl, compression = false } = {}) {
+export async function openApp({ data, hash = '', storage = {}, origin = 'https://app.test', siteUrl, compression = false, demo } = {}) {
   const errors = [];
   const logs = [];
   const virtualConsole = new VirtualConsole();
@@ -50,6 +51,7 @@ export async function openApp({ data, hash = '', storage = {}, origin = 'https:/
   if (data !== undefined) window.localStorage.setItem(STORE_KEY, typeof data === 'string' ? data : JSON.stringify(data));
   for (const [k, v] of Object.entries(storage)) window.localStorage.setItem(k, v);
 
+  if (demo) window.MBDemo = JSON.parse(JSON.stringify(demo));
   for (const script of SCRIPTS) script.runInContext(dom.getInternalVMContext());
   const app = new App(dom, errors, logs, downloads);
   try {
