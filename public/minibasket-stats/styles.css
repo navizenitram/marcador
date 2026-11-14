@@ -357,6 +357,7 @@ label.btn { flex-direction: row; font-family: var(--font); }
 .live-perf b.up, .pline.perf b.up { color: var(--green); }
 .live-perf b.down, .pline.perf b.down { color: var(--red); }
 .pline.perf b { color: var(--text); }
+.live-perf small.short { display: none; }
 .opp-btns { display: flex; gap: 3px; height: 100%; max-height: 46px; flex: none; }
 .opp-btns button {
   min-width: 40px; border-radius: 10px; font-family: var(--font-digits); font-weight: 700; font-size: 16px;
@@ -929,6 +930,19 @@ table.stats tfoot td.zero { color: var(--muted); }
 }
 /* Móviles pequeños: el gráfico de la temporada pasa debajo de las cifras, a todo el ancho */
 @media (max-width: 700px) {
+  /* Cabecera del partido más compacta para que el marcador no se quede sin sitio: VAL y quinteto en una sola caja,
+     una cifra encima de otra, y flechas del periodo, botones del rival y marcador algo más estrechos */
+  .live-top { gap: 3px; }
+  .live-perf { flex-direction: column; justify-content: center; gap: 2px; padding: 0 6px; background: var(--field); border: 1px solid var(--border); border-radius: 10px; }
+  .live-perf span { flex-direction: row; justify-content: space-between; align-items: baseline; gap: 5px; min-width: 0; padding: 0; background: none; border: 0; }
+  .live-perf small { font-size: 9px; }
+  .live-perf small:not(.short) + small.short { display: inline; }
+  .live-perf small:has(+ small.short) { display: none; }
+  .live-perf b { font-size: 14px; }
+  .period button { width: 24px; }
+  .opp-btns button { min-width: 32px; }
+  .board { gap: 5px; }
+  .board .score { min-width: 1.45em; }
   .summary:has(.trend) { flex-wrap: wrap; }
   .kpis { max-width: none; }
   .trend { flex-basis: 100%; min-width: 0; padding-left: 0; border-left: 0; }

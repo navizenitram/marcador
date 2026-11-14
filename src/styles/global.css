@@ -122,7 +122,6 @@ p, li { text-wrap: pretty; }
 .steps h3 { margin: .2rem 0 .3rem; }
 .steps p { margin: 0; color: var(--ink-soft); }
 
-/* Leyenda de botones (mismos colores que la app) */
 /* Perfiles de botones (sección «Qué puedes apuntar») */
 .profiles { margin-bottom: 3rem; }
 .profiles h3 { font-size: 1.2rem; margin-bottom: .35rem; }
@@ -133,6 +132,7 @@ p, li { text-wrap: pretty; }
 .profile-tag { display: block; margin-top: .2rem; font-size: .9rem; font-weight: 700; color: var(--ball-ink); }
 .profiles li p { margin: .5rem 0 0; color: var(--ink-soft); font-size: 1rem; line-height: 1.4; }
 
+/* Leyenda de botones (mismos colores que la app) */
 .legend { display: grid; gap: 2rem; }
 .legend h3 { font-size: 1.2rem; margin-bottom: .75rem; }
 .legend ul { list-style: none; padding: 0; margin: 0; display: grid; gap: .6rem; }

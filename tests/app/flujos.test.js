@@ -746,6 +746,10 @@ describe('ajustes: botones del partido', () => {
     expect(head.at(-1)).toBe('REB');
     expect(rows.find((r) => r[1] === 'Ana').at(-1)).toBe('1');
 
+    // Rebotes con el botón único y el equipo ya en «Ataque y defensa»: RO y RD se ven a 0, así que REB explica el total
+    const switched = await openApp({ data: makeData({ games: [makeGame({ events: [ev('reb', 'p4')] })] }), hash: '#/stats/g1' });
+    expect(headers(switched)).toEqual(expect.arrayContaining(['RO', 'RD', 'REB', 'RT']));
+
     // Solo REB (sin RO ni RD): RT ya los da todos y la columna REB sobra
     const single = await openApp({ data: makeData({ teams: [makeTeam({ rebOne: true })], games: [makeGame({ events: [ev('reb', 'p4')] })] }), hash: '#/stats/g1' });
     expect(headers(single)).not.toContain('REB');
@@ -761,6 +765,11 @@ describe('ajustes: botones del partido', () => {
     expect(types(await done([ev('ro', 'p4')], makeTeam({ rebOne: true })))).toEqual(['ro', 'rd']);
     expect(types(await done([ev('reb', 'p4')], makeTeam()))).toEqual(['reb']);
     expect(types(await done([], makeTeam({ rebOne: true })))).toEqual(['reb']);   // sin rebotes: el modo del equipo
+    // Aunque después el equipo haya elegido un perfil que oculta esos botones
+    const premini = makeTeam({ hidden: ['ro', 'rd', 'ast', 'blk', 'blkr', 'fr'], rebOne: true });
+    expect(types(await done([ev('ro', 'p4')], premini))).toEqual(['ro', 'rd']);
+    expect(types(await done([ev('reb', 'p4')], makeTeam({ hidden: ['reb'] })))).toEqual(['reb']);
+    expect(types(await done([ev('rd', 'p4'), ev('reb', 'p7')], premini))).toEqual(['ro', 'rd', 'reb']);
   });
 
   it('al pasar a un solo botón de rebote nunca se queda la pista sin botones', async () => {

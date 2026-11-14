@@ -83,6 +83,16 @@ describe('lineupRun (+/- del quinteto en pista desde que entró)', () => {
     expect(core.lineupRun(g).pm).toBe(1);
   });
 
+  it('no cuenta lo apuntado tras volver a un periodo anterior (como el +/- de cada jugador)', () => {
+    const g = makeGame({
+      onCourt: [...A], lineupFrom: 1, period: 3,
+      lineups: [{ seq: 1, period: 3, on: A }, { seq: 3, period: 2, on: A }, { seq: 5, period: 3, on: A }],
+      events: [at(2, 't2_ok', { period: 3 }), at(4, 'opp', { pts: 2, period: 2 }), at(6, 't1_ok', { period: 3 })],
+    });
+    expect(plain(core.lineupRun(g))).toEqual({ pf: 3, pc: 0, pm: 3 });
+    expect(core.plusMinus(g).p4.pm).toBe(3);
+  });
+
   it('sin registro de quintetos o sin nadie en pista no hay cuenta', () => {
     expect(core.lineupRun(makeGame({ onCourt: [...A], events: [at(1, 't2_ok')] }))).toBeNull();
     expect(core.lineupRun(makeGame({ onCourt: [], lineupFrom: 1, lineups: [{ seq: 1, period: 1, on: A }] }))).toBeNull();

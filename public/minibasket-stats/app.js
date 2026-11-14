@@ -94,23 +94,25 @@ function rebOne(t = team()) { return !!(t && t.rebOne); }
 function optOffered(id, one = rebOne()) {
   return id === 'reb' ? one : id === 'ro' || id === 'rd' ? !one : true;
 }
-function optEnabled(id, one) {
+function optEnabled(id) {
   const t = team();
-  return optOffered(id, one ?? rebOne(t)) && (!t || !t.hidden.includes(id));
+  return optOffered(id, rebOne(t)) && (!t || !t.hidden.includes(id));
 }
-function actEnabled(type, one) { const o = OPTIONS.find(o => o.acts.includes(type)); return !o || optEnabled(o.id, one); }
-function enabledShots() { return SHOT_ACTIONS.filter(a => actEnabled(a)); }
-function enabledRebs(one) { return REB_ACTIONS.filter(a => actEnabled(a, one)); }
-function enabledOthers() { return OTHER_ACTIONS.filter(a => actEnabled(a)); }
+function actEnabled(type) { const o = OPTIONS.find(o => o.acts.includes(type)); return !o || optEnabled(o.id); }
 
-/* Modo de rebote con el que se muestra la pista de un partido. Un partido finalizado se consulta con los botones
-   con los que se jugó (si solo tiene rebotes de un modo); uno en juego, con los del equipo. */
-function gameRebOne(g) {
-  const one = rebOne();
-  if (!g.finished) return one;
-  const has = (type) => g.events.some(e => e.type === type);
-  const split = has('ro') || has('rd'), single = has('reb');
-  return split === single ? one : single;
+/* Grupos de botones de una fila (tiros | rebotes | resto) según los ajustes del equipo. rebs: los botones de rebote,
+   si no son los del equipo (ver gameRebs). Se calculan una vez por pantalla, no por fila. */
+function actGroups(rebs = REB_ACTIONS.filter(actEnabled)) {
+  return [SHOT_ACTIONS.filter(actEnabled), rebs, OTHER_ACTIONS.filter(actEnabled)].filter(g => g.length);
+}
+
+/* Botones de rebote de la pista de un partido. Uno en juego, los del equipo. Uno finalizado se consulta con los que
+   se usaron en sus jugadas (RO y RD, REB o los tres si se mezclaron), aunque el equipo haya cambiado de perfil o de
+   modo después; sin rebotes apuntados, los del equipo. */
+function gameRebs(g) {
+  const used = g.finished ? REB_ACTIONS.filter(t => g.events.some(e => e.type === t)) : [];
+  if (!used.length) return REB_ACTIONS.filter(actEnabled);
+  return [...(used.some(t => t !== 'reb') ? ['ro', 'rd'] : []), ...(used.includes('reb') ? ['reb'] : [])];
 }
 
 /* ─────────────────────────── Datos ─────────────────────────── */
@@ -145,6 +147,8 @@ const asPhase = (v) => (PHASES.includes(+v) ? +v : 1);
 /* Orden de los equipos en los marcadores: primero el local, como se leen siempre. De visitante, el rival va primero;
    sin campo elegido (partidos antiguos), el equipo propio. Devuelve [primero, segundo] con 'us' y 'them'. */
 const sidesOf = (g) => (g.venue === 'away' ? ['them', 'us'] : ['us', 'them']);
+/* Nombre de cada equipo de un partido */
+const sideNames = (g) => ({ us: g.teamName, them: g.opponent });
 /* Un marcador «a-b» en el orden local-visitante, a partir de los puntos propios y del rival */
 const scoreTxt = (g, us, them, sep = '-') => (g.venue === 'away' ? `${them}${sep}${us}` : `${us}${sep}${them}`);
 const asVenue = (v) => (typeof v === 'string' && v in VENUES ? v : '');
@@ -945,9 +949,9 @@ function viewLive(g) {
   // Un partido finalizado se abre solo para consultarlo: para apuntar o cambiar algo hay que reabrirlo
   const ro = g.finished ? ' disabled' : '';
   const lines = playerLines(g);
-  const rebMode = gameRebOne(g);
+  const groups = actGroups(gameRebs(g));
   const [home, away] = sidesOf(g);   // el local a la izquierda
-  const names = { us: g.teamName, them: g.opponent };
+  const names = sideNames(g);
   // Rendimiento en directo: valoración del equipo, +/- del quinteto en pista y +/- de cada jugador (con registro)
   const teamVal = Object.values(lines).reduce((n, l) => n + l.val, 0);
   const run = MBCore.lineupRun(g);
@@ -973,7 +977,7 @@ function viewLive(g) {
           <span class="pline"><b>${l.pts}</b> pts · <span class="fouls">${fouls} F</span>${fouls >= MAX_FOULS ? ' · ELIM.' : ''}</span>
           <span class="pline perf">VAL <b class="${tone(l.val)}">${l.val}</b>${pm ? ` · <span class="pm-label">+/- </span><b title="+/- del jugador en el partido" class="${tone(pm[pid] ? pm[pid].pm : 0)}">${signedNum(pm[pid] ? pm[pid].pm : 0)}</b>` : ''}</span></span>
         </button>
-        ${actsHTML(btn, rebMode)}
+        ${actsHTML(btn, groups)}
       </div>`);
   }
   return `
@@ -994,7 +998,7 @@ function viewLive(g) {
       </div>
       <div class="live-perf">
         <span title="Valoración del equipo en el partido"><small>VAL</small><b class="${tone(teamVal)}">${teamVal}</b></span>
-        ${run ? `<span title="+/- del quinteto en pista desde que entró"><small>Quinteto</small><b class="${tone(run.pm)}">${signedNum(run.pm)}</b></span>` : ''}
+        ${run ? `<span title="+/- del quinteto en pista desde que entró"><small>Quinteto</small><small class="short">Quint.</small><b class="${tone(run.pm)}">${signedNum(run.pm)}</b></span>` : ''}
       </div>
       <div class="opp-btns" title="Puntos del rival">
         <button data-action="opp" data-pts="1"${ro}>+1</button>
@@ -1030,10 +1034,8 @@ function foulDots(n) {
   return `<span class="fouls-dots" aria-hidden="true">${Array.from({ length: MAX_FOULS }, (_, i) => `<i${i < n ? ' class="on"' : ''}></i>`).join('')}</span>`;
 }
 
-/* Botones de acción de una fila, según los ajustes: tiros | rebotes | resto, con un separador entre grupos.
-   one: modo de rebote (por defecto, el del equipo) */
-function actsHTML(btn, one) {
-  const groups = [enabledShots(), enabledRebs(one), enabledOthers()].filter(g => g.length);
+/* Botones de acción de una fila: tiros | rebotes | resto, con un separador entre grupos (ver actGroups) */
+function actsHTML(btn, groups = actGroups()) {
   const cols = groups.map(g => `repeat(${g.length}, minmax(0, 1fr))`).join(' 3px ');
   return `<div class="acts" style="grid-template-columns: ${cols}">
     ${groups.map(g => g.map(btn).join('')).join('<span class="sep"></span>')}
@@ -1244,7 +1246,7 @@ function gameSummary(g) {
   const ps = periodScores(g);
   const res = s.us > s.them ? 'win' : s.us < s.them ? 'loss' : 'tie';
   // El local primero: a la izquierda en el resultado y arriba en los parciales
-  const names = { us: g.teamName, them: g.opponent };
+  const names = sideNames(g);
   const other = { us: 'them', them: 'us' };
   const ft = (k) => `<div class="ft ${k}"><small>${esc(names[k])}</small><b>${s[k]}</b></div>`;
   const prow = (k) => `<tr><td class="l ${k}">${esc(names[k])}</td>${ps[k].map((v, i) => `<td class="${v > ps[other[k]][i] ? 'w' : ''}">${v}</td>`).join('')}<td class="t">${s[k]}</td></tr>`;
@@ -1578,8 +1580,8 @@ const COL_OPTS = { t1: ['t1'], t2: ['t2'], t3: ['t3'], ro: ['ro'], rd: ['rd'], r
 function colVisible(k, data) {
   if (ADV_KEYS.has(k)) return !data.total.adv[k].hidden;
   if (k === 'pm') return data.total.pm != null;   // solo si algún partido del ámbito tiene registro de quintetos
-  // Rebotes sin distinguir: solo si se mezclan con RO o RD (si no, RT ya los da todos)
-  if (k === 'rb') return data.total.rb > 0 && data.total.ro + data.total.rd > 0;
+  // Rebotes sin distinguir: solo si hay y se ven las columnas RO o RD (si no, RT ya los da todos)
+  if (k === 'rb') return data.total.rb > 0 && (colVisible('ro', data) || colVisible('rd', data));
   const opts = COL_OPTS[k];
   if (!opts || opts.some(id => optEnabled(id))) return true;
   const t = data.total;
@@ -2522,7 +2524,8 @@ function buildText(arg) {
     }
   } else {
     const g = data.game, s = score(g), ps = periodScores(g);
-    out.push(g.venue === 'away' ? `${g.opponent} ${s.them} - ${s.us} ${g.teamName}` : `${g.teamName} ${s.us} - ${s.them} ${g.opponent}`);
+    const names = sideNames(g), [home, away] = sidesOf(g);
+    out.push(`${names[home]} ${s[home]} - ${s[away]} ${names[away]}`);
     const meta = gameMeta(g);
     out.push(`Fecha: ${fmtDate(g.date)}${meta ? ` · ${meta}` : ''}`);
     out.push(`Parciales: ${ps.us.map((v, i) => `${perAbbr(g, i + 1)} ${scoreTxt(g, v, ps.them[i])}`).join(' | ')}`);

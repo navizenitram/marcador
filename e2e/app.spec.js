@@ -79,6 +79,32 @@ test('en el partido caben los 5 jugadores con sus 15 botones, sin scroll y fáci
   expect(layout.minHeight).toBeGreaterThanOrEqual(44);  // tamaño mínimo recomendado para tocar con el dedo
 });
 
+test('en el móvil más estrecho, el marcador cabe junto a la valoración y el +/- del quinteto', async ({ page }) => {
+  await page.setViewportSize({ width: 568, height: 320 });
+  // Con registro de quintetos, para que salga también el +/- del quinteto; 88-88 es el marcador más ancho habitual
+  const events = [...Array(44)].map((_, i) => ({ id: `e${i}`, seq: i + 2, period: 1, type: 't2_ok', pid: 'p4' }));
+  const opps = [...Array(44)].map((_, i) => ({ id: `o${i}`, seq: i + 46, period: 1, type: 'opp', pts: 2 }));
+  await seed(page, makeData({ games: [makeGame({ onCourt: [...FIVE], lineupFrom: 1, lineups: [{ seq: 1, period: 1, on: [...FIVE] }], events: [...events, ...opps] })] }));
+  await page.goto(`${APP}#/partido/g1`);
+  await expect(page.locator('.live-perf b')).toHaveCount(2);
+  const layout = await page.evaluate(() => {
+    const box = (el) => el.getBoundingClientRect();
+    const board = box(document.querySelector('.board'));
+    const scores = [...document.querySelectorAll('.board .score')];
+    return {
+      scroll: document.documentElement.scrollWidth - innerWidth,
+      // Cada marcador entero dentro de su caja y sin recortar sus cifras
+      inside: scores.every((s) => box(s).left >= board.left - 0.5 && box(s).right <= board.right + 0.5),
+      clipped: scores.filter((s) => s.scrollWidth > s.clientWidth + 1).length,
+      texts: scores.map((s) => s.textContent),
+    };
+  });
+  expect(layout.texts).toEqual(['88', '88']);
+  expect(layout.scroll).toBeLessThanOrEqual(0);
+  expect(layout.inside).toBe(true);
+  expect(layout.clipped).toBe(0);
+});
+
 test('el service worker toma el control y guarda lo necesario para usarla sin conexión', async ({ page }) => {
   await page.goto(APP);
   await page.waitForFunction(() => !!navigator.serviceWorker.controller);
