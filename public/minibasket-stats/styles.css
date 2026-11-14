@@ -493,6 +493,7 @@ label.btn { flex-direction: row; font-family: var(--font); }
 .team-card .icon-btn.danger, .demo-card .icon-btn { align-self: center; }
 /* Equipo de ejemplo sin abrir: borde discontinuo y etiqueta, para que no se confunda con uno propio */
 .demo-card { border-style: dashed; }
+.demo-back { margin-top: 10px; }
 .demo-tag { color: var(--amber); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 
 /* ── Privacidad ── */

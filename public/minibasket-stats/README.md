@@ -12,7 +12,7 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
   jugada y con sus quintetos (datos de acb.com), para ver cómo quedan los partidos y las estadísticas antes de apuntar
   nada. Sale en la pantalla de equipos como uno más, con su etiqueta, y no ocupa sitio en los datos hasta que se toca:
   entonces se copia con sus partidos finalizados y desde ahí es un equipo normal. Se puede ocultar o eliminar, y
-  recuperar desde **Ajustes**. Los datos están en `demo.js` (`MBDemo`; el formato está comentado en `app.js`), que se
+  recuperar con un botón en la pantalla de equipos o en **Ajustes**. Los datos están en `demo.js` (`MBDemo`; el formato está comentado en `app.js`), que se
   genera con `node scripts/demo.mjs <carpeta>` (ver el README de la raíz).
 - **Equipo**: alta de jugadores con dorsal y nombre (editar / eliminar), nombre del equipo y email por defecto.
 - **Fases de la temporada**: en minibasket la temporada se divide en dos fases independientes; según la clasificación

@@ -309,7 +309,7 @@ function selectTeam(id) { if (db.currentTeamId !== id) { db.currentTeamId = id; 
    demo.js (generado, ver scripts/) deja en MBDemo un equipo con su plantilla y sus partidos en un formato compacto.
    Mientras no se abra no ocupa sitio en los datos: se ofrece en la pantalla de equipos como uno más y, al tocarlo, se
    copia a los datos como cualquier otro equipo (se puede editar, exportar o eliminar). Si se oculta o se elimina,
-   db.demoOff evita que vuelva a salir; se recupera desde Ajustes.
+   db.demoOff evita que vuelva a salir; se recupera con un botón en la pantalla de equipos o en Ajustes.
 
    MBDemo = { team: { id, name, level, players: [{ id, number, name }] }, note, games: [{ id, date, opponent, venue,
    periods, result, plays }] }. level es el nivel de la 1ª fase y note, de dónde salen los datos (se ve en la tarjeta).
@@ -319,13 +319,19 @@ function selectTeam(id) { if (db.currentTeamId !== id) { db.currentTeamId = id; 
 const DEMO = typeof MBDemo === 'object' && MBDemo && MBDemo.team && Array.isArray(MBDemo.games) ? MBDemo : null;
 let demoCache = null;
 
+/* Equipo recién creado, sin jugadores, con los botones de un perfil (se cambian después en Ajustes) */
+function newTeam(id, name, profile = DEFAULT_PROFILE, extra = {}) {
+  const t = { id, name, email: '', players: [], hidden: [], phase: 1, levels: ['', ''], move: '', minUnit: 4, ...extra };
+  applyProfile(t, profile);
+  return t;
+}
+
 /* Equipo y partidos de ejemplo con el formato de la app (los mismos objetos en cada llamada: no se modifican) */
 function demoData() {
   if (!DEMO) return null;
   if (demoCache) return demoCache;
   const players = DEMO.team.players.map(p => ({ id: p.id, number: String(p.number), name: p.name }));
-  const t = { id: DEMO.team.id, name: DEMO.team.name, email: '', players, hidden: [], phase: 1, levels: [String(DEMO.team.level || '').slice(0, 24), ''], move: '', minUnit: 4 };
-  applyProfile(t, 'completo');
+  const t = newTeam(DEMO.team.id, DEMO.team.name, 'completo', { players, levels: [String(DEMO.team.level || '').slice(0, 24), ''] });
   const games = DEMO.games.map((d, i) => {
     const g = {
       id: d.id, createdAt: i + 1, date: d.date, opponent: d.opponent, teamId: t.id, teamName: t.name, periods: d.periods || 4, period: 1,
@@ -816,7 +822,7 @@ function viewTeams() {
     <section class="card grow">
       <h2>${db.teams.length ? '¿Con qué equipo vas a recoger estadísticas?' : 'Bienvenido/a 👋'}</h2>
       ${db.teams.length ? '' : `<p class="empty">${BALL}Crea tu primer equipo para empezar.<br>Después podrás añadir más (por ejemplo, uno por categoría).</p>`}
-      ${cards || demoOffered() ? `<ul class="teams">${cards}${demoCard()}</ul>` : ''}
+      ${cards || demoCard() ? `<ul class="teams">${cards}${demoCard()}</ul>` : ''}
     </section>
     <section class="card side">
       <h2>Nuevo equipo</h2>
@@ -826,6 +832,7 @@ function viewTeams() {
       </form>
       <p class="muted small">Cada equipo tiene su propia plantilla, partidos, estadísticas y botones del partido.</p>
       <p class="privacy-note">${icon('lock')}<span>Sin registro ni seguimiento: todo se guarda solo en este dispositivo. <a href="#/privacidad">Privacidad</a></span></p>
+      ${DEMO && db.demoOff && !demoLoaded() ? `<button class="btn demo-back" data-action="demo-open">${icon('plus')} ${esc(tr('demo.load'))}</button>` : ''}
     </section>
   </div>`);
 }
@@ -2036,7 +2043,8 @@ const actions = {
       delete db.demoOff;
       toast(esc(tr('demo.opened', { name: t.name })));
     }
-    selectTeam(DEMO.team.id);
+    db.currentTeamId = DEMO.team.id;
+    ui.editId = null;
     save();
     go('#/partidos');
   },
@@ -2333,8 +2341,7 @@ document.addEventListener('submit', async (e) => {
     const name = String(fd.get('name') || '').trim();
     if (!name) return;
     const cur = team();
-    const t = { id: uid(), name, email: cur ? cur.email : '', players: [], hidden: [], phase: 1, levels: ['', ''], move: '', minUnit: 4 };
-    applyProfile(t, DEFAULT_PROFILE);   // los botones se cambian después en Ajustes
+    const t = newTeam(uid(), name, DEFAULT_PROFILE, { email: cur ? cur.email : '' });
     db.teams.push(t);
     db.currentTeamId = t.id;
     ui.editId = null;

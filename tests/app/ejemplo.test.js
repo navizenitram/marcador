@@ -98,6 +98,36 @@ describe('equipo de ejemplo', () => {
     expect(app.$('[data-action="demo-open"]')).toBeNull();
   });
 
+  it('sin ningún equipo (a Ajustes no se llega) se recupera desde la pantalla de equipos', async () => {
+    const app = await openApp({ demo: DEMO });
+    expect(app.$('.demo-back')).toBeNull();
+    await app.act('demo-hide');
+    expect(card(app)).toBeNull();
+    await app.go('#/ajustes');
+    expect(app.hash).toBe('#/equipos');
+    await app.click('.demo-back');
+    expect(app.db.teams.map((t) => t.id)).toEqual(['demo-team']);
+    expect(app.hash).toBe('#/partidos');
+
+    // También después de eliminarlo siendo el único equipo
+    await app.go('#/equipos');
+    await app.act('del-team', { id: 'demo-team' });
+    await app.act('confirm-yes');
+    expect(app.toast).toContain('en esta pantalla');
+    await app.click('.demo-back');
+    expect(app.db.games).toHaveLength(2);
+  });
+
+  it('abrirlo guarda una sola vez', async () => {
+    const app = await openApp({ demo: DEMO, data: makeData(), hash: '#/equipos' });
+    let saves = 0;
+    const setItem = app.window.Storage.prototype.setItem;
+    app.window.Storage.prototype.setItem = function (...args) { saves++; return setItem.apply(this, args); };
+    await app.act('demo-open');
+    expect(saves).toBe(1);
+    expect(app.stored().currentTeamId).toBe('demo-team');
+  });
+
   it('una vez abierto es un equipo más: no se ofrece otra vez ni se duplica', async () => {
     const app = await openApp({ demo: DEMO });
     await app.act('demo-open');
@@ -175,6 +205,9 @@ describe('equipo de ejemplo de la app (demo.js)', () => {
         expect(l.on.every((id) => ids.has(id))).toBe(true);
       }
       expect(g.events.every((e) => e.type === 'opp' || ids.has(e.pid))).toBe(true);
+      // Quien hace una jugada está en pista en ese momento (si no, su +/- y sus quintetos saldrían mal)
+      const off = g.events.filter((e) => e.type !== 'opp' && !app.window.MBCore.lineupAt(g, e.seq).includes(e.pid));
+      expect(off.map((e) => `${g.opponent}: ${e.type} de ${e.pid} en el cuarto ${e.period}`)).toEqual([]);
     }
     expect(app.fn.normalize(app.stored())).toEqual(app.stored());
   });
