@@ -19,6 +19,13 @@ const csvOf = async (download) => {
 };
 
 describe('texto para compartir (buildText)', () => {
+  it('en el texto, los rebotes sin distinguir se suman al desglose', async () => {
+    const app = await openApp({ data: makeData({ games: [makeGame({ played: { p4: [1] }, events: [ev('ro', 'p4'), ev('reb', 'p4')] })] }), hash: '#/stats/g1' });
+    const lines = app.fn.buildText('g1').split('\n');
+    expect(lines.some((l) => l.startsWith('   Reb 2 (1 of + 0 def + 1 sin distinguir)'))).toBe(true);
+    expect(lines.some((l) => l.includes('· Reb 2 (1 of + 0 def + 1 sin distinguir) ·') && l.startsWith('EQUIPO'))).toBe(true);
+  });
+
   it('resume un partido: marcador, parciales, jugadores por valoración y totales', async () => {
     const app = await openApp({ data: makeData({ games: [sampleGame()] }), hash: '#/stats/g1' });
     const lines = app.fn.buildText('g1').split('\n');
@@ -31,7 +38,7 @@ describe('texto para compartir (buildText)', () => {
     expect(lines.filter((l) => l.startsWith('#'))).toEqual(['#7 Bruno', '#12 Dani', '#4 Ana', '#10 Carla']);
     expect(lines).toContain('   3 pts · T1 0/0 · T2 0/0 · T3 1/1');
     expect(lines).toContain('   Reb 1 (0 of + 1 def) · As 1 · Tap 0 · TapRec 0 · Rec 0 · Pér 0 · FC 0 · FR 0 · VAL 5');
-    expect(lines).toContain('EQUIPO: 8 pts · T1 1/2 · T2 2/3 · T3 1/2 · Reb 2 · As 1 · Tap 0 · TapRec 1 · Rec 1 · Pér 1 · FC 1 · FR 0 · VAL 6');
+    expect(lines).toContain('EQUIPO: 8 pts · T1 1/2 · T2 2/3 · T3 1/2 · Reb 2 (1 of + 1 def) · As 1 · Tap 0 · TapRec 1 · Rec 1 · Pér 1 · FC 1 · FR 0 · VAL 6');
   });
 
   it('resume la temporada y marca los partidos sin finalizar', async () => {
@@ -71,17 +78,17 @@ describe('CSV', () => {
     const { bom, lines } = await csvOf(app.downloads[0]);
     expect(bom).toBe(true);  // para que Excel lea bien las tildes
     expect(lines).toEqual([
-      'Dorsal;Jugador;Periodos;PTS;T1A;T1I;T2A;T2I;T3A;T3I;RO;RD;RT;AS;TAP;TR;REC;PER;FC;FR;VAL;eFG%;TS%;%PÉR;TL/TC;+/-',
+      'Dorsal;Jugador;Periodos;PTS;T1A;T1I;T2A;T2I;T3A;T3I;RO;RD;RT;AS;TAP;TR;REC;PER;FC;FR;VAL;eFG%;TS%;%PÉR;TL/TC;+/-;REB',
       // Ana: 3 tiros de campo → eFG 1/3 = 33 %, TS 3 / (2·3,88) = 39 %, 0 pérdidas, 2 TL / 3 TC = 0,67
-      '4;Ana;2;3;1;2;1;2;0;1;0;0;0;0;0;0;1;0;1;0;0;33;39;0;0,67;',
+      '4;Ana;2;3;1;2;1;2;0;1;0;0;0;0;0;0;1;0;1;0;0;33;39;0;0,67;;0',
       // Con menos de 3 intentos no se calcula
-      '7;Bruno;1;3;0;0;0;0;1;1;0;1;1;1;0;0;0;0;0;0;5;;;;;',
-      '10;Carla;1;2;0;0;1;1;0;0;0;0;0;0;0;1;0;1;0;0;0;;;;;',
-      '12;Dani;0;0;0;0;0;0;0;0;1;0;1;0;0;0;0;0;0;0;1;;;;;',
-      '15;Eva;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;;;;;',
-      '21;Fran;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;;;;;',
+      '7;Bruno;1;3;0;0;0;0;1;1;0;1;1;1;0;0;0;0;0;0;5;;;;;;0',
+      '10;Carla;1;2;0;0;1;1;0;0;0;0;0;0;0;1;0;1;0;0;0;;;;;;0',
+      '12;Dani;0;0;0;0;0;0;0;0;1;0;1;0;0;0;0;0;0;0;1;;;;;;0',
+      '15;Eva;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;;;;;;0',
+      '21;Fran;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;;;;;;0',
       // Equipo: 3/5 TC con 1 triple → 70 %; TS 8 / (2·5,88) = 68 %; 1 / 6,88 = 15 %; 2 / 5 = 0,4
-      ';Equipo;4;8;1;2;2;3;1;2;1;1;2;1;0;1;1;1;1;0;6;70;68;15;0,4;',
+      ';Equipo;4;8;1;2;2;3;1;2;1;1;2;1;0;1;1;1;1;0;6;70;68;15;0,4;;0',
     ]);
   });
 

@@ -118,7 +118,7 @@ test('descarga las estadísticas en CSV', async ({ page }) => {
   const lines = Buffer.concat(csv).toString('utf8').replace(/^﻿/, '').split('\r\n');
   expect(lines[0]).toMatch(/^Dorsal;Jugador;/);
   // Columnas de siempre, las avanzadas (eFG%, TS%, %PÉR, TL/TC) y el +/- (vacío: partido sin registro de quintetos)
-  expect(lines.at(-1)).toBe(';Equipo;4;8;1;2;2;3;1;2;1;1;2;1;0;1;1;1;1;0;6;70;68;15;0,4;');
+  expect(lines.at(-1)).toBe(';Equipo;4;8;1;2;2;3;1;2;1;1;2;1;0;1;1;1;1;0;6;70;68;15;0,4;;0');
 });
 
 test('la evolución del marcador comparte columnas con los parciales y se puede recorrer', async ({ page }) => {

@@ -95,7 +95,7 @@
   --orange: #ea580c;
   --red: #dc2626;
   --purple: #7c3aed;
-  --yellow: #ca9a04;
+  --yellow: #a87c00;
   --pink: #db2777;
   --teal: #0d9488;
   --miss: #e05252;
@@ -396,7 +396,8 @@ label.btn { flex-direction: row; font-family: var(--font); }
 .prow.f-warn .fouls { color: var(--amber); font-weight: 700; }
 .prow.f-out .fouls, .prow.f-out .pline { color: var(--red); font-weight: 700; }
 
-.acts { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)) 3px repeat(8, minmax(0, 1fr)); gap: 3px; min-width: 0; }
+/* Las columnas (tiros | rebotes | resto, con separadores de 3px) las pone actsHTML según los botones activos */
+.acts { display: grid; gap: 3px; min-width: 0; }
 .acts .sep { background: var(--border); border-radius: 2px; margin: 6px 0; }
 /* Cada familia de botones tiene su color (--c): fondo, borde y texto salen de él */
 .act {

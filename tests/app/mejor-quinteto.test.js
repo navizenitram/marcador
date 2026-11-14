@@ -137,11 +137,11 @@ describe('+/- en la tabla', () => {
     expect(app.text(cellOf(app, 'p30', 'pm'))).toBe('–');
   });
 
-  it('el CSV lleva el +/- en la última columna', async () => {
+  it('el CSV lleva el +/- justo antes de los rebotes sin distinguir (REB, la última)', async () => {
     const app = await open();
     await app.act('csv', { arg: 'temporada' });
     const lines = (await app.downloads[0].blob.text()).replace(/^﻿/, '').split('\r\n').map((l) => l.split(';'));
-    expect(lines[0].at(-1)).toBe('+/-');
-    expect(lines.find((l) => l[1] === 'Eva').at(-1)).toBe('10');
+    expect(lines[0].slice(-2)).toEqual(['+/-', 'REB']);
+    expect(lines.find((l) => l[1] === 'Eva').at(-2)).toBe('10');
   });
 });

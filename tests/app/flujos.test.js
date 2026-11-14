@@ -624,6 +624,35 @@ describe('ajustes: botones del partido', () => {
     expect('rebOne' in app.db.teams[0]).toBe(false);
   });
 
+  it('si se mezclan RO/RD y REB, las estadísticas muestran la columna REB y el CSV la lleva al final', async () => {
+    const headers = (app) => app.$$('table.stats thead th').map((th) => th.textContent.replace(/[▲▼]/g, '').trim());
+    const mixed = await openApp({ data: makeData({ games: [makeGame({ events: [ev('ro', 'p4'), ev('reb', 'p4'), ev('reb', 'p7')] })] }), hash: '#/stats/g1' });
+    expect(headers(mixed)).toEqual(expect.arrayContaining(['RO', 'RD', 'REB', 'RT']));
+    const cell = (name, k) => [...mixed.$$('table.stats tbody tr')].find((tr) => tr.textContent.includes(name)).querySelector(`[data-k="${k}"]`).textContent;
+    expect([cell('Ana', 'ro'), cell('Ana', 'rb'), cell('Ana', 'reb')]).toEqual(['1', '1', '2']);
+
+    await mixed.act('csv', { arg: 'g1' });
+    const [head, ...rows] = (await mixed.downloads[0].blob.text()).replace(/^\uFEFF/, '').split('\r\n').map((l) => l.split(';'));
+    expect(head.at(-1)).toBe('REB');
+    expect(rows.find((r) => r[1] === 'Ana').at(-1)).toBe('1');
+
+    // Solo REB (sin RO ni RD): RT ya los da todos y la columna REB sobra
+    const single = await openApp({ data: makeData({ teams: [makeTeam({ rebOne: true })], games: [makeGame({ events: [ev('reb', 'p4')] })] }), hash: '#/stats/g1' });
+    expect(headers(single)).not.toContain('REB');
+    expect(headers(single)).toContain('RT');
+  });
+
+  it('un partido finalizado se consulta con los botones de rebote con los que se jugó', async () => {
+    const court = (app) => app.$$('.prow:not(.empty-row)')[0].querySelectorAll('.acts [data-type]');
+    const types = (app) => [...court(app)].map((b) => b.dataset.type).filter((t) => ['ro', 'rd', 'reb'].includes(t));
+    const done = (events, team) => openApp({
+      data: makeData({ teams: [team], games: [makeGame({ onCourt: [...FIVE], finished: true, events })] }), hash: '#/partido/g1',
+    });
+    expect(types(await done([ev('ro', 'p4')], makeTeam({ rebOne: true })))).toEqual(['ro', 'rd']);
+    expect(types(await done([ev('reb', 'p4')], makeTeam()))).toEqual(['reb']);
+    expect(types(await done([], makeTeam({ rebOne: true })))).toEqual(['reb']);   // sin rebotes: el modo del equipo
+  });
+
   it('al pasar a un solo botón de rebote nunca se queda la pista sin botones', async () => {
     const all = OPTION_IDS.filter((id) => id !== 'rd');
     const app = await openApp({ data: makeData({ teams: [makeTeam({ hidden: [...all] })] }), hash: '#/ajustes' });

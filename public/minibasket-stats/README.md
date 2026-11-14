@@ -51,7 +51,9 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
     resumen, tiro, evolución, +/- (con el dato del equipo y qué significa) y avanzadas explicadas, para enviar por
     email, copiar, compartir (WhatsApp) o descargar en .txt.
   - **Enviar**: email (`mailto:`), copiar o compartir (menú nativo del móvil). También descarga en **CSV** (con las
-    avanzadas en las últimas columnas).
+    avanzadas, el +/- y los rebotes sin distinguir (REB, ya incluidos en RT) en las últimas columnas).
+  - Si en un ámbito se mezclan rebotes de ataque y defensivos con los del botón único, la tabla añade la columna
+    **REB** para que RO + RD + REB cuadre con RT.
 - **Ajustes**: botones del partido que se quieren usar (con vista previa), rebotes en dos botones o en uno, copia de seguridad y enlace de apoyo (Ko-fi).
 - **Copia de seguridad**: exportar / importar todos los datos en JSON (útil para cambiar de dispositivo).
 - **Modo claro / oscuro** (botón 🌙/☀️ en la barra superior o en el menú ☰ del partido). Se comparte con el marcador.
