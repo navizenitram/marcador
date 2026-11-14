@@ -51,7 +51,7 @@ export const home = {
       'Si te equivocas, deshaces la última acción o borras cualquier jugada de la lista.',
       'Todo cabe en la pantalla del móvil en horizontal, sin hacer scroll.',
     ],
-    miniAlt: 'Ajustes de My Own Basketball Stats: perfiles de botones por categoría (escuela, pre-mini, mini y completo), con el perfil mini elegido, e interruptores para activar o desactivar cada acción',
+    miniAlt: 'Ajustes de My Own Basketball Stats: perfiles de botones por categoría (Escuela, Pre-mini, Mini y Completo), con el perfil Mini elegido, e interruptores para activar o desactivar cada acción',
     statsTitle: 'Las estadísticas, nada más acabar',
     stats: [
       'Resultado y parciales de cada periodo.',
@@ -148,7 +148,7 @@ export const home = {
       "Si t'equivoques, desfàs l'última acció o esborres qualsevol jugada de la llista.",
       'Tot cap a la pantalla del mòbil en horitzontal, sense haver de desplaçar-la.',
     ],
-    miniAlt: "Ajustos de My Own Basketball Stats: perfils de botons per categoria (escuela, pre-mini, mini i completo), amb el perfil mini triat, i interruptors per activar o desactivar cada acció",
+    miniAlt: "Ajustos de My Own Basketball Stats: perfils de botons per categoria (a l'app, «Escuela», «Pre-mini», «Mini» i «Completo»), amb el perfil «Mini» triat, i interruptors per activar o desactivar cada acció",
     statsTitle: 'Les estadístiques, en acabar el partit',
     stats: [
       'Resultat i parcials de cada període.',
