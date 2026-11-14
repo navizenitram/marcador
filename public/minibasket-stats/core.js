@@ -178,6 +178,26 @@
     return out;
   }
 
+  /* +/- de los que están ahora en pista desde que entraron juntos: los puntos a favor menos los puntos en contra
+     desde la primera foto seguida del registro con esos mismos jugadores (un cambio de periodo sin cambios no lo
+     corta). null si el partido no tiene registro de quintetos o no hay nadie en pista. */
+  function lineupRun(g) {
+    if (!Number.isInteger(g.lineupFrom) || !g.onCourt.length) return null;
+    const key = (on) => [...on].sort().join(',');
+    const now = key(g.onCourt);
+    const lineups = [...(g.lineups || [])].sort(bySeq);
+    let from = null;
+    for (let i = lineups.length - 1; i >= 0 && key(lineups[i].on) === now; i--) from = lineups[i].seq;
+    if (from === null) return null;
+    let pf = 0, pc = 0;
+    for (const e of g.events) {
+      if (e.seq <= from) continue;
+      if (e.type === 'opp') pc += e.pts;
+      else pf += EV_PTS[e.type] || 0;
+    }
+    return { pf, pc, pm: pf - pc };
+  }
+
   /* Combinaciones de k elementos de una lista (k pequeño: parejas, tríos o el quinteto entero) */
   function choose(list, k, start = 0, acc = [], out = []) {
     if (acc.length === k) { out.push([...acc]); return out; }
@@ -380,7 +400,7 @@
   }
 
   root.MBCore = Object.freeze({
-    EV_PTS, blankLine, addEvent, sumLines, finish, score, periodScores, playerLines, scoreFlow, lineupAt,
+    EV_PTS, blankLine, addEvent, sumLines, finish, score, periodScores, playerLines, scoreFlow, lineupAt, lineupRun,
     ADV_MIN, advanced, recordedOpts, stints, plusMinus, combos, rankCombos, PM_MIN_PERIODS, reportModel, reportText,
   });
 })(globalThis);

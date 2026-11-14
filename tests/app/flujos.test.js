@@ -560,6 +560,39 @@ describe('partido en directo', () => {
   });
 });
 
+describe('rendimiento en directo', () => {
+  it('la cabecera da la valoración del equipo y el +/- del quinteto; cada fila, la valoración y el +/- del jugador', async () => {
+    const app = await openApp({ data: makeData({ teams: [makeTeam()], games: [makeGame({ onCourt: [] })] }), hash: '#/partido/g1' });
+    // Quinteto inicial con el registro de quintetos, como en un partido nuevo
+    await app.act('lineup');
+    for (const id of FIVE) await app.act('toggle-court', { id });
+    await app.act('lineup-done');
+    await tap(app, 'p4', 't3_ok');
+    await tap(app, 'p7', 'lost');
+    await app.act('opp', { pts: 2 });
+
+    const perf = () => app.$$('.live-perf b').map((b) => b.textContent);
+    expect(perf()).toEqual(['2', '+1']);   // VAL 3 − 1; quinteto 3 − 2
+    expect(app.$('.live-perf b').className).toBe('up');
+    const line = (pid) => rowOf(app, pid).querySelector('.pline.perf').textContent.replace(/\s+/g, ' ').trim();
+    expect(line('p4')).toBe('VAL 3 · +/- +1');
+    expect(line('p7')).toBe('VAL -1 · +/- +1');
+    expect(rowOf(app, 'p7').querySelector('.pline.perf b').className).toBe('down');
+
+    // Tras un cambio, el +/- del quinteto empieza de cero; el del jugador sigue con el partido
+    await app.act('swap', { pid: 'p15' });
+    await app.act('swap-in', { id: 'p21' });
+    expect(perf()).toEqual(['2', '0']);
+    expect(line('p4')).toBe('VAL 3 · +/- +1');
+  });
+
+  it('en un partido sin registro de quintetos solo sale la valoración', async () => {
+    const app = await live({ events: [ev('t2_ok', 'p4')] });
+    expect(app.$$('.live-perf b').map((b) => b.textContent)).toEqual(['2']);
+    expect(rowOf(app, 'p4').querySelector('.pline.perf').textContent.trim()).toBe('VAL 2');
+  });
+});
+
 describe('marcador: el local a la izquierda', () => {
   // Bruno anota un triple: 3-0 para el equipo propio
   const game = (venue, extra = {}) => makeGame({ onCourt: [...FIVE], venue, events: [ev('t3_ok', 'p7')], ...extra });

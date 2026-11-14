@@ -946,6 +946,10 @@ function viewLive(g) {
   const rebMode = gameRebOne(g);
   const [home, away] = sidesOf(g);   // el local a la izquierda
   const names = { us: g.teamName, them: g.opponent };
+  // Rendimiento en directo: valoración del equipo, +/- del quinteto en pista y +/- de cada jugador (con registro)
+  const teamVal = Object.values(lines).reduce((n, l) => n + l.val, 0);
+  const run = MBCore.lineupRun(g);
+  const pm = MBCore.plusMinus(g);
   const rosterById = Object.fromEntries(g.roster.map(p => [p.id, p]));
   const rows = [];
   for (let i = 0; i < MAX_ON_COURT; i++) {
@@ -964,7 +968,8 @@ function viewLive(g) {
         <button class="pid" data-action="swap" data-pid="${pid}" title="Cambiar jugador"${ro}>
           <span class="num">${esc(p.number)}${foulDots(fouls)}</span>
           <span class="pinfo"><span class="pname">${esc(p.name)}</span>
-          <span class="pline"><b>${l.pts}</b> pts · <span class="fouls">${fouls} F</span>${fouls >= MAX_FOULS ? ' · ELIM.' : ''}</span></span>
+          <span class="pline"><b>${l.pts}</b> pts · <span class="fouls">${fouls} F</span>${fouls >= MAX_FOULS ? ' · ELIM.' : ''}</span>
+          <span class="pline perf">VAL <b class="${tone(l.val)}">${l.val}</b>${pm ? ` · <span class="pm-label">+/- </span><b title="+/- del jugador en el partido" class="${tone(pm[pid] ? pm[pid].pm : 0)}">${signedNum(pm[pid] ? pm[pid].pm : 0)}</b>` : ''}</span></span>
         </button>
         ${actsHTML(btn, rebMode)}
       </div>`);
@@ -985,6 +990,10 @@ function viewLive(g) {
         <span class="score ${away}">${s[away]}</span>
         <span class="tname ${away}">${esc(names[away])}</span>
       </div>
+      <div class="live-perf">
+        <span title="Valoración del equipo en el partido"><small>VAL</small><b class="${tone(teamVal)}">${teamVal}</b></span>
+        ${run ? `<span title="+/- del quinteto en pista desde que entró"><small>Quinteto</small><b class="${tone(run.pm)}">${signedNum(run.pm)}</b></span>` : ''}
+      </div>
       <div class="opp-btns" title="Puntos del rival">
         <button data-action="opp" data-pts="1"${ro}>+1</button>
         <button data-action="opp" data-pts="2"${ro}>+2</button>
@@ -1004,6 +1013,9 @@ function viewLive(g) {
       : `<main class="court">${rows.join('')}</main>`}
   </div>`;
 }
+
+/* Color de una cifra de rendimiento (valoración, +/-): verde si suma, rojo si resta */
+const tone = (n) => (n > 0 ? 'up' : n < 0 ? 'down' : '');
 
 /* Contenido de un botón de acción: en los tiros, la marca de anotado o fallado es un icono */
 function actLabel(t) {

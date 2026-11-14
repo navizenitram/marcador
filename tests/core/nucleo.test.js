@@ -60,6 +60,35 @@ describe('estadísticas de un partido sin DOM', () => {
   });
 });
 
+describe('lineupRun (+/- del quinteto en pista desde que entró)', () => {
+  const A = ['p4', 'p7', 'p10', 'p12', 'p15'];
+  const B = ['p4', 'p7', 'p10', 'p12', 'p21'];
+  const at = (seq, type, extra = {}) => ({ id: `e${seq}`, seq, period: 1, type, pid: 'p4', ...extra });
+
+  it('cuenta solo desde la entrada del quinteto actual', () => {
+    const g = makeGame({
+      onCourt: [...B], lineupFrom: 1,
+      lineups: [{ seq: 1, period: 1, on: A }, { seq: 4, period: 1, on: B }],
+      events: [at(2, 't3_ok'), at(3, 'opp', { pts: 2 }), at(5, 't2_ok'), at(6, 'opp', { pts: 3 }), at(7, 't1_ok')],
+    });
+    expect(plain(core.lineupRun(g))).toEqual({ pf: 3, pc: 3, pm: 0 });
+  });
+
+  it('un cambio de periodo sin cambiar a nadie no corta la cuenta', () => {
+    const g = makeGame({
+      onCourt: [...A], lineupFrom: 1,
+      lineups: [{ seq: 1, period: 1, on: A }, { seq: 3, period: 2, on: [...A].reverse() }],
+      events: [at(2, 't2_ok'), at(4, 'opp', { pts: 1 })],
+    });
+    expect(core.lineupRun(g).pm).toBe(1);
+  });
+
+  it('sin registro de quintetos o sin nadie en pista no hay cuenta', () => {
+    expect(core.lineupRun(makeGame({ onCourt: [...A], events: [at(1, 't2_ok')] }))).toBeNull();
+    expect(core.lineupRun(makeGame({ onCourt: [], lineupFrom: 1, lineups: [{ seq: 1, period: 1, on: A }] }))).toBeNull();
+  });
+});
+
 describe('lineupAt (quinteto en pista en cada jugada)', () => {
   const A = ['p4', 'p7', 'p10', 'p12', 'p15'];
   const B = ['p4', 'p7', 'p10', 'p12', 'p21'];

@@ -346,6 +346,17 @@ label.btn { flex-direction: row; font-family: var(--font); }
 .board .score.them { color: var(--blue); text-shadow: 0 0 calc(18px * var(--glow)) color-mix(in srgb, var(--blue) 60%, transparent); }
 .board .dash { color: var(--gray); font-size: 20px; font-weight: 700; flex: none; margin: 0 -3px; }
 
+/* Rendimiento en directo: valoración del equipo y +/- del quinteto en pista */
+.live-perf { display: flex; gap: 3px; flex: none; height: 100%; max-height: 46px; }
+.live-perf span {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 44px; padding: 0 7px;
+  background: var(--field); border: 1px solid var(--border); border-radius: 10px;
+}
+.live-perf small { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); line-height: 1; }
+.live-perf b { font-family: var(--font-digits); font-size: clamp(15px, 5vh, 20px); line-height: 1; color: var(--text); }
+.live-perf b.up, .pline.perf b.up { color: var(--green); }
+.live-perf b.down, .pline.perf b.down { color: var(--red); }
+.pline.perf b { color: var(--text); }
 .opp-btns { display: flex; gap: 3px; height: 100%; max-height: 46px; flex: none; }
 .opp-btns button {
   min-width: 40px; border-radius: 10px; font-family: var(--font-digits); font-weight: 700; font-size: 16px;
@@ -911,6 +922,10 @@ table.stats tfoot td.zero { color: var(--muted); }
   .ft small { max-width: 92px; }
   .kpis { max-width: 400px; }
   .trend { padding-left: 12px; }
+}
+/* «VAL 3 · +4»: hasta las tablets, el +/- de cada jugador va sin etiqueta para que quepa junto al nombre */
+@media (max-width: 1024px) {
+  .pline .pm-label { display: none; }
 }
 /* Móviles pequeños: el gráfico de la temporada pasa debajo de las cifras, a todo el ancho */
 @media (max-width: 700px) {
