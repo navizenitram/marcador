@@ -16,7 +16,7 @@ export const home = {
     how: 'Ver cómo funciona',
     facts: ['Sin registro', 'Funciona sin conexión', 'Tus datos se quedan en tu móvil'],
     heroAlt:
-      'Pantalla de partido en My Own Basketball Stats: marcador 38 a 33 en el periodo 6 y una fila de botones por cada jugador en pista',
+      'Pantalla de partido en My Own Basketball Stats: marcador 38 a 33 en el periodo 6, la valoración del equipo y el +/- del quinteto en pista, y una fila de botones por cada jugador con sus puntos, faltas, valoración y +/-',
     audienceTitle: 'Para quien está en la banda',
     audienceIntro: 'El marcador dice quién ha ganado. Las estadísticas te dicen por qué, y qué trabajar el martes.',
     audience: [
@@ -51,7 +51,7 @@ export const home = {
       'Si te equivocas, deshaces la última acción o borras cualquier jugada de la lista.',
       'Todo cabe en la pantalla del móvil en horizontal, sin hacer scroll.',
     ],
-    miniAlt: 'Ajustes de My Own Basketball Stats: vista previa de los botones de un jugador e interruptores para activar o desactivar cada acción',
+    miniAlt: 'Ajustes de My Own Basketball Stats: perfiles de botones por categoría (Escuela, Pre-mini, Mini y Completo), con el perfil Mini elegido, e interruptores para activar o desactivar cada acción',
     statsTitle: 'Las estadísticas, nada más acabar',
     stats: [
       'Resultado y parciales de cada periodo.',
@@ -113,7 +113,7 @@ export const home = {
     how: 'Mira com funciona',
     facts: ['Sense registre', 'Funciona sense connexió', 'Les dades es queden al teu mòbil'],
     heroAlt:
-      'Pantalla de partit a My Own Basketball Stats: marcador 38 a 33 al període 6 i una fila de botons per a cada jugador a la pista',
+      "Pantalla de partit a My Own Basketball Stats: marcador 38 a 33 al període 6, la valoració de l'equip i el +/- del quintet a la pista, i una fila de botons per a cada jugador amb els seus punts, faltes, valoració i +/-",
     audienceTitle: 'Per a qui és a la banda',
     audienceIntro: 'El marcador diu qui ha guanyat. Les estadístiques et diuen per què, i què cal treballar dimarts.',
     audience: [
@@ -148,7 +148,7 @@ export const home = {
       "Si t'equivoques, desfàs l'última acció o esborres qualsevol jugada de la llista.",
       'Tot cap a la pantalla del mòbil en horitzontal, sense haver de desplaçar-la.',
     ],
-    miniAlt: "Ajustos de My Own Basketball Stats: vista prèvia dels botons d'un jugador i interruptors per activar o desactivar cada acció",
+    miniAlt: "Ajustos de My Own Basketball Stats: perfils de botons per categoria (a l'app, «Escuela», «Pre-mini», «Mini» i «Completo»), amb el perfil «Mini» triat, i interruptors per activar o desactivar cada acció",
     statsTitle: 'Les estadístiques, en acabar el partit',
     stats: [
       'Resultat i parcials de cada període.',
