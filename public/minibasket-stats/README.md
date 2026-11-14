@@ -8,6 +8,12 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
 ## Funcionalidades
 
 - **Varios equipos** (por ejemplo, uno por categoría): al abrir la app se elige con cuál recoger estadísticas; se cambia tocando el nombre del equipo arriba a la izquierda. Cada equipo tiene su plantilla, partidos, estadísticas y botones del partido.
+- **Equipo de ejemplo**: el Joventut Badalona con su plantilla y sus partidos de la Liga Endesa 2026-27, jugada a
+  jugada y con sus quintetos (datos de acb.com), para ver cómo quedan los partidos y las estadísticas antes de apuntar
+  nada. Sale en la pantalla de equipos como uno más, con su etiqueta, y no ocupa sitio en los datos hasta que se toca:
+  entonces se copia con sus partidos finalizados y desde ahí es un equipo normal. Se puede ocultar o eliminar, y
+  recuperar con un botón en la pantalla de equipos o en **Ajustes**. Los datos están en `demo.js` (`MBDemo`; el formato está comentado en `app.js`), que se
+  genera con `node scripts/demo.mjs <carpeta>` (ver el README de la raíz).
 - **Equipo**: alta de jugadores con dorsal y nombre (editar / eliminar), nombre del equipo y email por defecto.
 - **Fases de la temporada**: en minibasket la temporada se divide en dos fases independientes; según la clasificación
   de la 1ª, en la 2ª se juega contra equipos nuevos en un nivel superior, el mismo o inferior. En **Equipo** se indica
@@ -114,6 +120,7 @@ así que sigue disponible en `/minibasket-stats/` sin proceso de build propio. L
 index.html            Shell de la SPA
 core.js               Núcleo de cálculo: funciones puras sin DOM (MBCore). Se carga antes que app.js
 i18n.js, i18n/        Textos por idioma (MBI18n.t). Por ahora solo los nuevos, en castellano
+demo.js               Equipo de ejemplo (generado por scripts/demo.mjs)
 app.js                Vistas, acciones y almacenamiento
 styles.css            Estilos (layout horizontal)
 sw.js                 Service worker (modo sin conexión)

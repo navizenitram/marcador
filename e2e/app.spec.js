@@ -62,6 +62,23 @@ test('un partido completo: equipo, plantilla, quinteto, jugadas y estadísticas'
   await expect(page.locator('table.stats tbody tr', { hasText: 'Bruno' }).locator('td.hl').first()).toHaveText('3');
 });
 
+test('el equipo de ejemplo se abre desde la bienvenida con sus partidos y sus estadísticas', async ({ page }) => {
+  await page.goto(APP);
+  const card = page.locator('.demo-card');
+  await expect(card).toContainText('Equipo de ejemplo');
+  await card.locator('[data-action="demo-open"]').tap();
+  await expect(page.locator('.brand-name')).toHaveText('Joventut Badalona');
+  await expect(page.getByText('vs Barça')).toBeVisible();
+
+  // Sigue ahí al recargar y sus estadísticas de temporada se pintan
+  await page.reload();
+  await page.getByRole('link', { name: 'Estadísticas', exact: true }).click();
+  await expect(page.locator('.summary')).toBeVisible();
+  await page.goto(`${APP}#/equipos`);
+  await expect(page.locator('.demo-card')).toHaveCount(0);
+  await expect(page.locator('.team-card')).toHaveCount(1);
+});
+
 test('en el partido caben los 5 jugadores con sus 15 botones, sin scroll y fáciles de tocar', async ({ page }) => {
   await seed(page, liveGame());
   await page.goto(`${APP}#/partido/g1`);

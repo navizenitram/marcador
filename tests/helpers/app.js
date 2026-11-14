@@ -16,7 +16,7 @@ export const THEME_KEY = 'mb_theme';
 const HTML = readFileSync(APP_DIR + 'index.html', 'utf8');
 // Los scripts locales de index.html (core.js, app.js…), en el orden en que los carga el navegador
 const SCRIPTS = [...HTML.matchAll(/<script src="([^"]+)"><\/script>/g)]
-  .map(([, src]) => new vm.Script(readFileSync(APP_DIR + src, 'utf8'), { filename: APP_DIR + src }));
+  .map(([, src]) => ({ src, script: new vm.Script(readFileSync(APP_DIR + src, 'utf8'), { filename: APP_DIR + src }) }));
 
 /**
  * Abre la app con los datos indicados en localStorage y espera a que termine de navegar.
@@ -29,8 +29,10 @@ const SCRIPTS = [...HTML.matchAll(/<script src="([^"]+)"><\/script>/g)]
  * @param {string} [opts.origin] dirección donde se abre la app, p. ej. 'https://marcador-kohl.vercel.app'
  * @param {string} [opts.siteUrl] valor de %SITE_URL% (la canonical); sin él queda el marcador tal cual
  * @param {boolean} [opts.compression] da a la ventana CompressionStream y DecompressionStream (jsdom no los tiene)
+ * @param {object|true} [opts.demo] equipo de ejemplo con el que arranca la app: true, el de verdad (demo.js); un
+ *   objeto, ese en su lugar (MBDemo). Por defecto, ninguno: los tests no dependen de los datos del ejemplo
  */
-export async function openApp({ data, hash = '', storage = {}, origin = 'https://app.test', siteUrl, compression = false } = {}) {
+export async function openApp({ data, hash = '', storage = {}, origin = 'https://app.test', siteUrl, compression = false, demo } = {}) {
   const errors = [];
   const logs = [];
   const virtualConsole = new VirtualConsole();
@@ -50,7 +52,11 @@ export async function openApp({ data, hash = '', storage = {}, origin = 'https:/
   if (data !== undefined) window.localStorage.setItem(STORE_KEY, typeof data === 'string' ? data : JSON.stringify(data));
   for (const [k, v] of Object.entries(storage)) window.localStorage.setItem(k, v);
 
-  for (const script of SCRIPTS) script.runInContext(dom.getInternalVMContext());
+  if (demo && demo !== true) window.MBDemo = JSON.parse(JSON.stringify(demo));
+  for (const { src, script } of SCRIPTS) {
+    if (src === 'demo.js' && demo !== true) continue;
+    script.runInContext(dom.getInternalVMContext());
+  }
   const app = new App(dom, errors, logs, downloads);
   try {
     onTestFinished(() => app.close());

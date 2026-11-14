@@ -3,6 +3,16 @@
 /* Textos en castellano. Por ahora, solo los de las funciones nuevas: el resto de la app se extraerá en la fase 5
    (docs/plan-mejoras-bsa.md). Claves agrupadas por pantalla; { one, other } para los plurales. */
 (globalThis.MBStrings = globalThis.MBStrings || {}).es = {
+  'demo.tag': 'Equipo de ejemplo',
+  'demo.hint': 'Ábrelo para ver cómo quedan los partidos y las estadísticas',
+  'demo.hide': 'Ocultar el equipo de ejemplo',
+  'demo.hidden': 'Equipo de ejemplo oculto. Puedes volver a añadirlo en esta pantalla o en Ajustes',
+  'demo.opened': 'Equipo de ejemplo {name} añadido. Mira sus partidos y sus estadísticas',
+  'demo.deleted': 'Equipo de ejemplo {name} eliminado. Puedes volver a añadirlo en esta pantalla o en Ajustes',
+  'demo.title': 'Equipo de ejemplo',
+  'demo.settings': { one: '{name}, con su plantilla y {n} partido ya apuntado, para ver cómo funciona la app. Se añade como un equipo más y se puede eliminar cuando quieras.', other: '{name}, con su plantilla y {n} partidos ya apuntados, para ver cómo funciona la app. Se añade como un equipo más y se puede eliminar cuando quieras.' },
+  'demo.load': 'Añadir el equipo de ejemplo',
+
   'stats.basic': 'Básicas',
   'stats.advanced': 'Avanzadas',
 
