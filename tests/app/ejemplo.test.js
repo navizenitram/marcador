@@ -1,4 +1,5 @@
 // Equipo de ejemplo: se ofrece en la pantalla de equipos, se abre como un equipo más y se puede ocultar o eliminar.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { openApp } from '../helpers/app.js';
 import { makeData, makeTeam } from '../helpers/fixtures.js';
@@ -165,7 +166,8 @@ describe('equipo de ejemplo', () => {
   });
 });
 
-/* El equipo de ejemplo de verdad (demo.js, generado por scripts/demo.mjs con los datos de acb.com) */
+/* El equipo de ejemplo de verdad (demo.js, generado por scripts/demo.mjs): jugadas de partidos reales con nombres
+   inventados */
 describe('equipo de ejemplo de la app (demo.js)', () => {
   const open = async () => {
     const app = await openApp({ demo: true });
@@ -176,8 +178,8 @@ describe('equipo de ejemplo de la app (demo.js)', () => {
   it('se ofrece al abrir la app por primera vez, con de dónde salen los datos', async () => {
     const app = await openApp({ demo: true });
     expect(app.text()).toContain('Bienvenido/a');
-    expect(app.text(card(app))).toContain('Joventut Badalona');
-    expect(app.text(card(app))).toContain('acb.com');
+    expect(app.text(card(app))).toContain('Penya Verdinegra');
+    expect(app.text(card(app))).toContain('nombres inventados');
   });
 
   it('las jugadas de cada partido dan su resultado real', async () => {
@@ -212,13 +214,21 @@ describe('equipo de ejemplo de la app (demo.js)', () => {
     expect(app.fn.normalize(app.stored())).toEqual(app.stored());
   });
 
-  it('las estadísticas de un partido son las del acta: Joventut 113-89 Barça (18/10/2026)', async () => {
+  it('no lleva nombres reales de equipos, jugadores ni de dónde salen los datos', async () => {
+    const text = readFileSync(new URL('../../public/minibasket-stats/demo.js', import.meta.url), 'utf8');
+    const real = ['acb', 'endesa', 'joventut', 'badalona', 'barça', 'breogán', 'baskonia', 'morabanc', 'fiatc', 'surne', 'tenerife',
+      'ricky', 'rubio', 'laprovittola', 'hakanson', 'birgander', 'tomic', 'cheatham', 'sulejmanovic', 'ndiaye', 'kraag', 'nogués'];
+    expect(real.filter((name) => text.toLowerCase().includes(name))).toEqual([]);
+  });
+
+  it('las estadísticas de un partido son las del acta: Penya 113-89 Barcino (18/10/2026)', async () => {
     const app = await open();
-    const g = app.db.games.find((x) => x.id === 'demo-105410');
+    const g = app.db.games.find((x) => x.id === 'demo-g4');
+    expect(g.opponent).toBe('Barcino');
     expect(app.fn.periodScores(g)).toEqual({ us: [23, 26, 33, 31], them: [26, 19, 23, 21] });
     const lines = app.fn.playerLines(g);
     const pm = app.window.MBCore.plusMinus(g);
-    // dorsal: [puntos, rebotes, asistencias, valoración, +/-] del acta de acb.com
+    // dorsal: [puntos, rebotes, asistencias, valoración, +/-] del acta del partido real
     const acta = { 9: [19, 3, 6, 25, 19], 10: [17, 3, 8, 24, 2], 4: [17, 2, 2, 20, 22], 12: [10, 0, 5, 15, 36], 55: [3, 4, 0, 2, 0] };
     for (const [number, line] of Object.entries(acta)) {
       const l = lines[`demo-p${number}`];
@@ -229,11 +239,11 @@ describe('equipo de ejemplo de la app (demo.js)', () => {
   it('la temporada y sus estadísticas se abren sin errores', async () => {
     const app = await open();
     expect(app.hash).toBe('#/partidos');
-    expect(app.text()).toContain('vs Barça');
+    expect(app.text()).toContain('vs Barcino');
     await app.go('#/stats/temporada');
-    expect(app.text()).toContain('Ricky Rubio');
+    expect(app.text()).toContain('Riky Rubino');
     await app.go('#/equipo');
     expect(app.text()).toContain('Plantilla (17)');
-    expect(app.db.teams[0].levels[0]).toBe('Liga Endesa 2026-27');
+    expect(app.db.teams[0].levels[0]).toBe('Liga 2026-27');
   });
 });

@@ -1,5 +1,6 @@
-// Equipo de ejemplo de la app (public/minibasket-stats/demo.js): el Joventut Badalona con su plantilla y los partidos
-// de Liga Endesa que ha jugado, sacados del jugada a jugada de acb.com. Se rehace para añadir jornadas:
+// Equipo de ejemplo de la app (public/minibasket-stats/demo.js). Las jugadas salen de partidos reales (el jugada a jugada
+// del Joventut Badalona en acb.com), pero el equipo, los jugadores y los rivales llevan nombres inventados (FICCION,
+// más abajo): en la app no aparece ningún nombre real. Se rehace para añadir jornadas:
 //
 //   node scripts/demo.mjs <carpeta>
 //
@@ -13,7 +14,34 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const CLUB = { id: 8, slug: 'asisa-joventut-8', name: 'Joventut Badalona', season: '2026-27' };
+const CLUB = { id: 8, slug: 'asisa-joventut-8', season: '2026-27' };
+
+/* Nombres inventados, reconocibles pero no reales: el del equipo, los de cada jugador y los de cada rival. Un jugador o
+   un rival que no esté aquí para la generación: hay que inventarle un nombre antes. */
+const FICCION = {
+  equipo: 'Penya Verdinegra',
+  jugadores: {
+    'Yannick Kraag': 'Yanick Kraan', 'Boogie Ellis': 'Boogy Ellison', 'Eli Ndiaye': 'Elí Ndiago', 'Ricky Rubio': 'Riky Rubino',
+    'Nico Laprovittola': 'Nico Laprovita', 'Ludde Hakanson': 'Lude Haakonsen', 'Álex Reyes': 'Álex Reina',
+    'Emir Sulejmanovic': 'Emir Suljanović', 'Adrián Torres': 'Adrián Torrent', 'Nikola Radicevic': 'Nikola Radicek',
+    'Isaac Nogués': 'Isaac Noguera', 'Dani Osayi': 'Dani Osaye', 'Diego Niebla': 'Diego Neblina',
+    'Simon Birgander': 'Simon Bergander', 'Ante Tomic': 'Ante Tomasić', 'Kwan Cheatham': 'Kwan Cheetham',
+    'Ferran Mauri': 'Ferran Mauricio',
+  },
+  rivales: {
+    'Río Breogán': 'Río Lucense', 'Kosner Baskonia': 'Baskoia Gasteiz', 'MoraBanc Andorra': 'MontBanc Andorra',
+    'Barça': 'Barcino', 'FIATC Girona': 'Gerunda Bàsquet', 'Surne Bilbao': 'Botxo Bilbao',
+    'La Laguna Tenerife': 'Laguna Canarias', 'Casademont Zaragoza': 'Cesaraugusta Zaragoza', 'Real Madrid': 'Castellana Madrid',
+    'Recoletas Salud San Pablo Burgos': 'Burgos Cidiano', 'Valencia Basket': 'Turia Valencia', 'Monbus Obradoiro': 'Compostela Bàsquet',
+    'Unicaja': 'Malacitana', 'Kids&Us Manresa': 'Bages Manresa', 'UCAM Murcia': 'Segura Murcia', 'Leyma Coruña': 'Herculina Coruña',
+    'iLERNA Lleida': 'Ilerda Lleida',
+  },
+};
+const ficticio = (kind, real) => {
+  const name = FICCION[kind][real];
+  if (!name) throw new Error(`Falta un nombre inventado para ${real} (FICCION.${kind} en scripts/demo.mjs)`);
+  return name;
+};
 const OUT = fileURLToPath(new URL('../public/minibasket-stats/demo.js', import.meta.url));
 const dir = process.argv[2];
 if (!dir) {
@@ -129,7 +157,7 @@ function convert(slug, html) {
   if (!monthNumber) throw new Error(`${slug}: no se entiende la fecha del título «${title}»`);
   const date = `${year}-${String(monthNumber).padStart(2, '0')}-${day.padStart(2, '0')}`;
   const home = pbp.homeTeam.clubId === CLUB.id;
-  const opponent = (home ? pbp.awayTeam : pbp.homeTeam).fullName;
+  const opponent = ficticio('rivales', (home ? pbp.awayTeam : pbp.homeTeam).fullName);
   // En el orden en que se apuntaron (el reloj no sirve para ordenar: a veces está mal tecleado)
   const list = [...pbp.plays].sort((a, b) => a.order - b.order);
   const numbers = new Map(list.filter((p) => p.playerNumber != null).map((p) => [p.playerLicenseId, String(p.playerNumber)]));
@@ -200,7 +228,7 @@ function convert(slug, html) {
       if (count(lines[i]) !== stats[key]) throw new Error(`${slug}: ${players[i].name}, ${key} sale ${count(lines[i])} y es ${stats[key]}`);
     }
   }
-  return { id: `demo-${slug.match(/\d+$/)[0]}`, date, opponent, venue: home ? 'home' : 'away', periods: PERIODS, result: score, plays };
+  return { date, opponent, venue: home ? 'home' : 'away', periods: PERIODS, result: score, plays };
 }
 
 const matches = await page('partidos.html', `${base}/partidos`, true);
@@ -218,26 +246,28 @@ games.sort((a, b) => a.date.localeCompare(b.date));
 
 /* ── demo.js ── */
 
+// Solo con nombres inventados. Los identificadores no dicen nada del partido real: g1, g2… por fecha
+const fiction = players.map((p) => ({ id: p.id, number: p.number, name: ficticio('jugadores', p.name) }));
 const demo = {
-  team: { id: 'demo-joventut', name: CLUB.name, level: `Liga Endesa ${CLUB.season}`, players },
-  note: `Liga Endesa ${CLUB.season} · datos de acb.com`,
-  games,
+  team: { id: 'demo-team', name: FICCION.equipo, level: `Liga ${CLUB.season}`, players: fiction },
+  note: 'Datos de ejemplo con nombres inventados',
+  games: games.map((g, n) => ({ id: `demo-g${n + 1}`, ...g })),
 };
 const line = (v) => JSON.stringify(v);
 const js = `'use strict';
 
-/* Equipo de ejemplo de la app: ${CLUB.name}, Liga Endesa ${CLUB.season}. Plantilla y jugada a jugada de acb.com.
+/* Equipo de ejemplo de la app (${demo.team.name}, temporada ${CLUB.season}): nombres inventados.
    Archivo generado por scripts/demo.mjs: no se edita a mano. El formato está explicado en app.js («Equipo de ejemplo»). */
 globalThis.MBDemo = {
   team: { id: ${line(demo.team.id)}, name: ${line(demo.team.name)}, level: ${line(demo.team.level)}, players: [
-${players.map((p) => `    ${line(p)},`).join('\n')}
+${demo.team.players.map((p) => `    ${line(p)},`).join('\n')}
   ] },
   note: ${line(demo.note)},
   games: [
-${games.map((g) => `    ${line(g)},`).join('\n')}
+${demo.games.map((g) => `    ${line(g)},`).join('\n')}
   ],
 };
 `;
 await writeFile(OUT, js);
-for (const g of games) console.log(`${g.date}  ${g.venue === 'home' ? 'local    ' : 'visitante'}  ${g.result.join('-').padEnd(7)}  ${g.opponent}  (${g.plays.length} jugadas)`);
+for (const g of demo.games) console.log(`${g.date}  ${g.venue === 'home' ? 'local    ' : 'visitante'}  ${g.result.join('-').padEnd(7)}  ${g.opponent}  (${g.plays.length} jugadas)`);
 console.log(`${OUT}: ${players.length} jugadores, ${games.length} partidos, ${Math.round(js.length / 1024)} KB`);
