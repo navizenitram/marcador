@@ -1,6 +1,6 @@
 // Equipo de ejemplo de la app (public/minibasket-stats/demo.js). Las jugadas salen de partidos reales (el jugada a jugada
 // del Joventut Badalona en acb.com), pero el equipo, los jugadores y los rivales llevan nombres inventados (FICCION,
-// más abajo): en la app no aparece ningún nombre real. Se rehace para añadir jornadas:
+// en scripts/demo-ficcion.mjs): en la app no aparece ningún nombre real. Se rehace para añadir jornadas:
 //
 //   node scripts/demo.mjs <carpeta>
 //
@@ -13,30 +13,10 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { FICCION } from './demo-ficcion.mjs';
 
 const CLUB = { id: 8, slug: 'asisa-joventut-8', season: '2026-27' };
 
-/* Nombres inventados, reconocibles pero no reales: el del equipo, los de cada jugador y los de cada rival. Un jugador o
-   un rival que no esté aquí para la generación: hay que inventarle un nombre antes. */
-const FICCION = {
-  equipo: 'Penya Verdinegra',
-  jugadores: {
-    'Yannick Kraag': 'Yanick Kraan', 'Boogie Ellis': 'Boogy Ellison', 'Eli Ndiaye': 'Elí Ndiago', 'Ricky Rubio': 'Riky Rubino',
-    'Nico Laprovittola': 'Nico Laprovita', 'Ludde Hakanson': 'Lude Haakonsen', 'Álex Reyes': 'Álex Reina',
-    'Emir Sulejmanovic': 'Emir Suljanović', 'Adrián Torres': 'Adrián Torrent', 'Nikola Radicevic': 'Nikola Radicek',
-    'Isaac Nogués': 'Isaac Noguera', 'Dani Osayi': 'Dani Osaye', 'Diego Niebla': 'Diego Neblina',
-    'Simon Birgander': 'Simon Bergander', 'Ante Tomic': 'Ante Tomasić', 'Kwan Cheatham': 'Kwan Cheetham',
-    'Ferran Mauri': 'Ferran Mauricio',
-  },
-  rivales: {
-    'Río Breogán': 'Río Lucense', 'Kosner Baskonia': 'Baskoia Gasteiz', 'MoraBanc Andorra': 'MontBanc Andorra',
-    'Barça': 'Barcino', 'FIATC Girona': 'Gerunda Bàsquet', 'Surne Bilbao': 'Botxo Bilbao',
-    'La Laguna Tenerife': 'Laguna Canarias', 'Casademont Zaragoza': 'Cesaraugusta Zaragoza', 'Real Madrid': 'Castellana Madrid',
-    'Recoletas Salud San Pablo Burgos': 'Burgos Cidiano', 'Valencia Basket': 'Turia Valencia', 'Monbus Obradoiro': 'Compostela Bàsquet',
-    'Unicaja': 'Malacitana', 'Kids&Us Manresa': 'Bages Manresa', 'UCAM Murcia': 'Segura Murcia', 'Leyma Coruña': 'Herculina Coruña',
-    'iLERNA Lleida': 'Ilerda Lleida',
-  },
-};
 const ficticio = (kind, real) => {
   const name = FICCION[kind][real];
   if (!name) throw new Error(`Falta un nombre inventado para ${real} (FICCION.${kind} en scripts/demo.mjs)`);
@@ -107,6 +87,7 @@ rosterCells.forEach((c, i) => {
   if (c === '#' && /^\d+$/.test(number) && / m$/.test(height) && !players.some((p) => p.number === number)) players.push({ id: `demo-p${number}`, number, name: `${first} ${last}` });
 });
 if (players.length < 10) throw new Error(`Plantilla: solo ${players.length} jugadores`);
+players.forEach((p) => ficticio('jugadores', p.name));   // antes de descargar nada, que estén todos en FICCION
 
 /* ── Partidos ── */
 
@@ -144,7 +125,7 @@ const index = (p, numbers) => {
   if (number == null) throw new Error(`${p.playerName} no está en la plantilla y no tiene dorsal en las jugadas`);
   const same = players.find((x) => x.number === number);
   if (same) throw new Error(`${p.playerName} lleva el dorsal ${number}, que en la plantilla es de ${same.name}: si es la misma persona, hay que igualar el nombre; si no, cambiar aquí cómo se distinguen`);
-  return players.push({ id: `demo-l${p.playerLicenseId}`, number, name: p.playerName }) - 1;
+  return players.push({ id: `demo-x${number}`, number, name: p.playerName }) - 1;
 };
 
 function convert(slug, html) {
@@ -246,13 +227,15 @@ games.sort((a, b) => a.date.localeCompare(b.date));
 
 /* ── demo.js ── */
 
-// Solo con nombres inventados. Los identificadores no dicen nada del partido real: g1, g2… por fecha
+// Solo con nombres inventados. Los identificadores no dicen nada del partido real, solo su fecha (un partido al día):
+// no cambian aunque se añadan o se quiten otros partidos
 const fiction = players.map((p) => ({ id: p.id, number: p.number, name: ficticio('jugadores', p.name) }));
 const demo = {
   team: { id: 'demo-team', name: FICCION.equipo, level: `Liga ${CLUB.season}`, players: fiction },
   note: 'Datos de ejemplo con nombres inventados',
-  games: games.map((g, n) => ({ id: `demo-g${n + 1}`, ...g })),
+  games: games.map((g) => ({ id: `demo-${g.date}`, ...g })),
 };
+if (new Set(demo.games.map((g) => g.id)).size !== demo.games.length) throw new Error('Dos partidos el mismo día: cambia cómo se forman los identificadores');
 const line = (v) => JSON.stringify(v);
 const js = `'use strict';
 
