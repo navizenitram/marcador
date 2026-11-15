@@ -1,5 +1,6 @@
-// Equipo de ejemplo de la app (public/minibasket-stats/demo.js): el Joventut Badalona con su plantilla y los partidos
-// de Liga Endesa que ha jugado, sacados del jugada a jugada de acb.com. Se rehace para añadir jornadas:
+// Equipo de ejemplo de la app (public/minibasket-stats/demo.js). Las jugadas salen de partidos reales (el jugada a jugada
+// del Joventut Badalona en acb.com), pero el equipo, los jugadores y los rivales llevan nombres inventados (FICCION,
+// en scripts/demo-ficcion.mjs): en la app no aparece ningún nombre real. Se rehace para añadir jornadas:
 //
 //   node scripts/demo.mjs <carpeta>
 //
@@ -12,8 +13,15 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { FICCION } from './demo-ficcion.mjs';
 
-const CLUB = { id: 8, slug: 'asisa-joventut-8', name: 'Joventut Badalona', season: '2026-27' };
+const CLUB = { id: 8, slug: 'asisa-joventut-8', season: '2026-27' };
+
+const ficticio = (kind, real) => {
+  const name = FICCION[kind][real];
+  if (!name) throw new Error(`Falta un nombre inventado para ${real} (FICCION.${kind} en scripts/demo.mjs)`);
+  return name;
+};
 const OUT = fileURLToPath(new URL('../public/minibasket-stats/demo.js', import.meta.url));
 const dir = process.argv[2];
 if (!dir) {
@@ -79,6 +87,7 @@ rosterCells.forEach((c, i) => {
   if (c === '#' && /^\d+$/.test(number) && / m$/.test(height) && !players.some((p) => p.number === number)) players.push({ id: `demo-p${number}`, number, name: `${first} ${last}` });
 });
 if (players.length < 10) throw new Error(`Plantilla: solo ${players.length} jugadores`);
+players.forEach((p) => ficticio('jugadores', p.name));   // antes de descargar nada, que estén todos en FICCION
 
 /* ── Partidos ── */
 
@@ -116,7 +125,7 @@ const index = (p, numbers) => {
   if (number == null) throw new Error(`${p.playerName} no está en la plantilla y no tiene dorsal en las jugadas`);
   const same = players.find((x) => x.number === number);
   if (same) throw new Error(`${p.playerName} lleva el dorsal ${number}, que en la plantilla es de ${same.name}: si es la misma persona, hay que igualar el nombre; si no, cambiar aquí cómo se distinguen`);
-  return players.push({ id: `demo-l${p.playerLicenseId}`, number, name: p.playerName }) - 1;
+  return players.push({ id: `demo-x${number}`, number, name: p.playerName }) - 1;
 };
 
 function convert(slug, html) {
@@ -129,7 +138,7 @@ function convert(slug, html) {
   if (!monthNumber) throw new Error(`${slug}: no se entiende la fecha del título «${title}»`);
   const date = `${year}-${String(monthNumber).padStart(2, '0')}-${day.padStart(2, '0')}`;
   const home = pbp.homeTeam.clubId === CLUB.id;
-  const opponent = (home ? pbp.awayTeam : pbp.homeTeam).fullName;
+  const opponent = ficticio('rivales', (home ? pbp.awayTeam : pbp.homeTeam).fullName);
   // En el orden en que se apuntaron (el reloj no sirve para ordenar: a veces está mal tecleado)
   const list = [...pbp.plays].sort((a, b) => a.order - b.order);
   const numbers = new Map(list.filter((p) => p.playerNumber != null).map((p) => [p.playerLicenseId, String(p.playerNumber)]));
@@ -200,7 +209,7 @@ function convert(slug, html) {
       if (count(lines[i]) !== stats[key]) throw new Error(`${slug}: ${players[i].name}, ${key} sale ${count(lines[i])} y es ${stats[key]}`);
     }
   }
-  return { id: `demo-${slug.match(/\d+$/)[0]}`, date, opponent, venue: home ? 'home' : 'away', periods: PERIODS, result: score, plays };
+  return { date, opponent, venue: home ? 'home' : 'away', periods: PERIODS, result: score, plays };
 }
 
 const matches = await page('partidos.html', `${base}/partidos`, true);
@@ -218,26 +227,30 @@ games.sort((a, b) => a.date.localeCompare(b.date));
 
 /* ── demo.js ── */
 
+// Solo con nombres inventados. Los identificadores no dicen nada del partido real, solo su fecha (un partido al día):
+// no cambian aunque se añadan o se quiten otros partidos
+const fiction = players.map((p) => ({ id: p.id, number: p.number, name: ficticio('jugadores', p.name) }));
 const demo = {
-  team: { id: 'demo-joventut', name: CLUB.name, level: `Liga Endesa ${CLUB.season}`, players },
-  note: `Liga Endesa ${CLUB.season} · datos de acb.com`,
-  games,
+  team: { id: 'demo-team', name: FICCION.equipo, level: `Liga ${CLUB.season}`, players: fiction },
+  note: 'Datos de ejemplo con nombres inventados',
+  games: games.map((g) => ({ id: `demo-${g.date}`, ...g })),
 };
+if (new Set(demo.games.map((g) => g.id)).size !== demo.games.length) throw new Error('Dos partidos el mismo día: cambia cómo se forman los identificadores');
 const line = (v) => JSON.stringify(v);
 const js = `'use strict';
 
-/* Equipo de ejemplo de la app: ${CLUB.name}, Liga Endesa ${CLUB.season}. Plantilla y jugada a jugada de acb.com.
+/* Equipo de ejemplo de la app (${demo.team.name}, temporada ${CLUB.season}): nombres inventados.
    Archivo generado por scripts/demo.mjs: no se edita a mano. El formato está explicado en app.js («Equipo de ejemplo»). */
 globalThis.MBDemo = {
   team: { id: ${line(demo.team.id)}, name: ${line(demo.team.name)}, level: ${line(demo.team.level)}, players: [
-${players.map((p) => `    ${line(p)},`).join('\n')}
+${demo.team.players.map((p) => `    ${line(p)},`).join('\n')}
   ] },
   note: ${line(demo.note)},
   games: [
-${games.map((g) => `    ${line(g)},`).join('\n')}
+${demo.games.map((g) => `    ${line(g)},`).join('\n')}
   ],
 };
 `;
 await writeFile(OUT, js);
-for (const g of games) console.log(`${g.date}  ${g.venue === 'home' ? 'local    ' : 'visitante'}  ${g.result.join('-').padEnd(7)}  ${g.opponent}  (${g.plays.length} jugadas)`);
+for (const g of demo.games) console.log(`${g.date}  ${g.venue === 'home' ? 'local    ' : 'visitante'}  ${g.result.join('-').padEnd(7)}  ${g.opponent}  (${g.plays.length} jugadas)`);
 console.log(`${OUT}: ${players.length} jugadores, ${games.length} partidos, ${Math.round(js.length / 1024)} KB`);

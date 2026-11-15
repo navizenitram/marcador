@@ -1,7 +1,9 @@
 // Equipo de ejemplo: se ofrece en la pantalla de equipos, se abre como un equipo más y se puede ocultar o eliminar.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { FICCION } from '../../scripts/demo-ficcion.mjs';
 import { openApp } from '../helpers/app.js';
-import { makeData, makeTeam } from '../helpers/fixtures.js';
+import { makeData, makeGame, makeTeam } from '../helpers/fixtures.js';
 
 /* Equipo de ejemplo en el formato compacto de demo.js. Dos partidos de 4 cuartos:
    - g1 (local): 5-3. Q1: #4 mete de 2 y el rival 3; Q2: entra #21 por #4 y #7 mete un triple.
@@ -165,7 +167,8 @@ describe('equipo de ejemplo', () => {
   });
 });
 
-/* El equipo de ejemplo de verdad (demo.js, generado por scripts/demo.mjs con los datos de acb.com) */
+/* El equipo de ejemplo de verdad (demo.js, generado por scripts/demo.mjs): jugadas de partidos reales con nombres
+   inventados */
 describe('equipo de ejemplo de la app (demo.js)', () => {
   const open = async () => {
     const app = await openApp({ demo: true });
@@ -176,8 +179,8 @@ describe('equipo de ejemplo de la app (demo.js)', () => {
   it('se ofrece al abrir la app por primera vez, con de dónde salen los datos', async () => {
     const app = await openApp({ demo: true });
     expect(app.text()).toContain('Bienvenido/a');
-    expect(app.text(card(app))).toContain('Joventut Badalona');
-    expect(app.text(card(app))).toContain('acb.com');
+    expect(app.text(card(app))).toContain('Penya Verdinegra');
+    expect(app.text(card(app))).toContain('nombres inventados');
   });
 
   it('las jugadas de cada partido dan su resultado real', async () => {
@@ -212,13 +215,29 @@ describe('equipo de ejemplo de la app (demo.js)', () => {
     expect(app.fn.normalize(app.stored())).toEqual(app.stored());
   });
 
-  it('las estadísticas de un partido son las del acta: Joventut 113-89 Barça (18/10/2026)', async () => {
+  it('no lleva nombres reales de equipos, jugadores ni de dónde salen los datos', async () => {
+    const plain = (s) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+    const text = plain(readFileSync(new URL('../../public/minibasket-stats/demo.js', import.meta.url), 'utf8'));
+    // Los nombres reales de FICCION (y el apellido de cada jugador) y la fuente de los datos
+    const real = [
+      ...Object.keys(FICCION.jugadores).flatMap((name) => [name, name.split(' ').at(-1)]),
+      ...Object.keys(FICCION.rivales), 'joventut', 'badalona', 'acb', 'endesa',
+    ].map(plain);
+    expect(real.filter((name) => text.includes(name))).toEqual([]);
+    // Ningún nombre inventado contiene el real (el apellido, en los jugadores; los rivales sí pueden llevar la ciudad):
+    // si no, esta comprobación no podría detectarlo
+    for (const [name, fake] of Object.entries(FICCION.jugadores)) expect(plain(fake)).not.toContain(plain(name.split(' ').at(-1)));
+    for (const [name, fake] of Object.entries(FICCION.rivales)) expect(plain(fake)).not.toContain(plain(name));
+  });
+
+  it('las estadísticas de un partido son las del acta: Penya 113-89 Barcino (18/10/2026)', async () => {
     const app = await open();
-    const g = app.db.games.find((x) => x.id === 'demo-105410');
+    const g = app.db.games.find((x) => x.id === 'demo-2026-10-18');
+    expect(g.opponent).toBe('Barcino');
     expect(app.fn.periodScores(g)).toEqual({ us: [23, 26, 33, 31], them: [26, 19, 23, 21] });
     const lines = app.fn.playerLines(g);
     const pm = app.window.MBCore.plusMinus(g);
-    // dorsal: [puntos, rebotes, asistencias, valoración, +/-] del acta de acb.com
+    // dorsal: [puntos, rebotes, asistencias, valoración, +/-] del acta del partido real
     const acta = { 9: [19, 3, 6, 25, 19], 10: [17, 3, 8, 24, 2], 4: [17, 2, 2, 20, 22], 12: [10, 0, 5, 15, 36], 55: [3, 4, 0, 2, 0] };
     for (const [number, line] of Object.entries(acta)) {
       const l = lines[`demo-p${number}`];
@@ -229,11 +248,34 @@ describe('equipo de ejemplo de la app (demo.js)', () => {
   it('la temporada y sus estadísticas se abren sin errores', async () => {
     const app = await open();
     expect(app.hash).toBe('#/partidos');
-    expect(app.text()).toContain('vs Barça');
+    expect(app.text()).toContain('vs Barcino');
     await app.go('#/stats/temporada');
-    expect(app.text()).toContain('Ricky Rubio');
+    expect(app.text()).toContain('Riky Rubino');
     await app.go('#/equipo');
     expect(app.text()).toContain('Plantilla (17)');
-    expect(app.db.teams[0].levels[0]).toBe('Liga Endesa 2026-27');
+    expect(app.db.teams[0].levels[0]).toBe('Liga 2026-27');
+  });
+
+  it('una copia de la primera versión del ejemplo pasa a los nombres inventados', async () => {
+    const roster = [{ id: 'demo-p9', number: '9', name: 'Nombre Antiguo' }, { id: 'demo-p10', number: '10', name: 'Otro Antiguo' }];
+    const old = makeTeam({ id: 'demo-joventut', name: 'Equipo Antiguo', players: roster.map((p) => ({ ...p })), levels: ['Nivel antiguo', ''] });
+    const games = [
+      makeGame({ id: 'demo-105410', teamId: 'demo-joventut', teamName: 'Equipo Antiguo', date: '2026-10-18', opponent: 'Rival Antiguo', roster: roster.map((p) => ({ ...p })), finished: true }),
+      // Uno que apuntó el usuario: conserva su rival
+      makeGame({ id: 'g-propio', teamId: 'demo-joventut', teamName: 'Equipo Antiguo', date: '2026-11-15', opponent: 'Mi rival', roster: roster.map((p) => ({ ...p })) }),
+    ];
+    const app = await openApp({ demo: true, data: makeData({ teams: [makeTeam(), old], games, currentTeamId: 'demo-joventut' }), hash: '#/equipos' });
+    const t = app.db.teams.find((x) => x.id === 'demo-team');
+    expect(t).toMatchObject({ name: 'Penya Verdinegra', levels: ['Liga 2026-27', ''] });
+    expect(t.players.map((p) => p.name)).toEqual(['Riky Rubino', 'Nico Laprovita']);
+    expect(app.db.teams.some((x) => x.id === 'demo-joventut')).toBe(false);
+    expect(app.db.currentTeamId).toBe('demo-team');
+    expect(app.db.games.map((g) => [g.teamId, g.teamName, g.opponent, g.roster[0].name])).toEqual([
+      ['demo-team', 'Penya Verdinegra', 'Barcino', 'Riky Rubino'],
+      ['demo-team', 'Penya Verdinegra', 'Mi rival', 'Riky Rubino'],
+    ]);
+    // Ya cuenta como abierto: no se ofrece otra vez, y queda guardado
+    expect(card(app)).toBeNull();
+    expect(app.stored().teams.map((x) => x.id)).toEqual(['t1', 'demo-team']);
   });
 });

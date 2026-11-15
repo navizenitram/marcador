@@ -146,11 +146,13 @@ que menciona a Vercel como servicio de alojamiento) y subir la versión de la ca
   oscuro. Se rehacen con `node scripts/capturas.mjs` (Chromium de Playwright; los datos de ejemplo, con un equipo en
   el perfil mini, se generan en el propio script y salen siempre iguales). Si cambian, revisa los textos alternativos
   (`heroAlt`, `miniAlt` y `statsAlt` en `src/i18n/home.ts`).
-- `public/minibasket-stats/demo.js`: el equipo de ejemplo de la app (Joventut Badalona, Liga Endesa 2026-27). Se
-  rehace con `node scripts/demo.mjs <carpeta>` para añadir las jornadas nuevas: descarga de acb.com la plantilla, la
-  lista de partidos y el jugada a jugada de cada partido terminado (las páginas quedan en la carpeta y no se vuelven
-  a pedir), y comprueba cada partido contra las estadísticas de la propia ACB antes de escribir nada. Después hay que
-  subir la versión de la caché en `sw.js`.
+- `public/minibasket-stats/demo.js`: el equipo de ejemplo de la app (Penya Verdinegra). Son las jugadas reales del
+  Joventut Badalona en la Liga Endesa 2026-27 con nombres inventados para el equipo, los jugadores y los rivales
+  (`FICCION` en `scripts/demo.mjs`). Se rehace con `node scripts/demo.mjs <carpeta>` para añadir las jornadas nuevas:
+  descarga de acb.com la plantilla, la lista de partidos y el jugada a jugada de cada partido terminado (las páginas
+  quedan en la carpeta y el jugada a jugada no se vuelve a pedir), y comprueba cada partido contra las estadísticas de
+  la propia ACB antes de escribir nada. Si aparece un jugador o un rival nuevo, se para hasta que tenga un nombre
+  inventado en `FICCION`. Después hay que subir la versión de la caché en `sw.js`.
 - `public/og/og.png`: imagen para compartir (1200×630). Fuente: `assets-src/og.html`.
 - `public/descargas/plantilla-estadisticas-baloncesto.pdf`: plantilla A4 apaisada. Fuente: `assets-src/plantilla-estadisticas.html`.
 

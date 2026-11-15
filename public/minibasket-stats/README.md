@@ -8,9 +8,9 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
 ## Funcionalidades
 
 - **Varios equipos** (por ejemplo, uno por categoría): al abrir la app se elige con cuál recoger estadísticas; se cambia tocando el nombre del equipo arriba a la izquierda. Cada equipo tiene su plantilla, partidos, estadísticas y botones del partido.
-- **Equipo de ejemplo**: el Joventut Badalona con su plantilla y sus partidos de la Liga Endesa 2026-27, jugada a
-  jugada y con sus quintetos (datos de acb.com), para ver cómo quedan los partidos y las estadísticas antes de apuntar
-  nada. Sale en la pantalla de equipos como uno más, con su etiqueta, y no ocupa sitio en los datos hasta que se toca:
+- **Equipo de ejemplo**: la Penya Verdinegra, con su plantilla y 7 partidos jugada a jugada y con sus quintetos, para
+  ver cómo quedan los partidos y las estadísticas antes de apuntar nada. Equipo, jugadores y rivales tienen nombres
+  inventados. Sale en la pantalla de equipos como uno más, con su etiqueta, y no ocupa sitio en los datos hasta que se toca:
   entonces se copia con sus partidos finalizados y desde ahí es un equipo normal. Se puede ocultar o eliminar, y
   recuperar con un botón en la pantalla de equipos o en **Ajustes**. Los datos están en `demo.js` (`MBDemo`; el formato está comentado en `app.js`), que se
   genera con `node scripts/demo.mjs <carpeta>` (ver el README de la raíz).

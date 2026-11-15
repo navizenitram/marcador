@@ -268,10 +268,39 @@ function normalize(d) {
     const t = d.teams.find(t => t.id === g.teamId);
     g.teamName = String(g.teamName || (t ? t.name : 'Mi equipo'));
   }
+  renameOldDemo(d);
   d.currentTeamId = fixId(d.currentTeamId);
-  if (!teamIds.has(d.currentTeamId)) d.currentTeamId = d.teams.length ? d.teams[0].id : null;
+  if (!d.teams.some(t => t.id === d.currentTeamId)) d.currentTeamId = d.teams.length ? d.teams[0].id : null;
   d.version = FORMAT_VERSION;
   return d;
+}
+
+/* La primera versión del equipo de ejemplo (id demo-joventut) llevaba nombres reales. Quien la abrió tiene una copia en
+   sus datos: se pasa a la de ahora, con los nombres inventados de demo.js (MBDemo, que se lee aquí directamente porque
+   normalize() corre antes de que exista DEMO). Los jugadores se reconocen por su id (demo-p y el dorsal, igual en las
+   dos versiones) y los partidos, por la fecha; lo que haya añadido el usuario se queda como está. Si ya tiene también
+   el ejemplo de ahora, la copia antigua solo cambia de nombres. */
+function renameOldDemo(d) {
+  const demo = globalThis.MBDemo;
+  const old = d.teams.find(t => t.id === 'demo-joventut');
+  if (!old || !demo || !demo.team || !Array.isArray(demo.games)) return;
+  const names = new Map(demo.team.players.map(p => [p.id, p.name]));
+  const rename = (list) => list.forEach(p => { if (names.has(p.id)) p.name = names.get(p.id); });
+  const free = !d.teams.some(t => t.id === demo.team.id);
+  const id = free ? demo.team.id : old.id;
+  old.name = demo.team.name;
+  old.levels[0] = String(demo.team.level || '').slice(0, 24);
+  rename(old.players);
+  for (const g of d.games) {
+    if (g.teamId !== old.id) continue;
+    const same = demo.games.find(x => x.date === g.date);
+    if (same && /^demo-\d+$/.test(g.id)) g.opponent = same.opponent;
+    g.teamName = old.name;
+    g.teamId = id;
+    rename(g.roster);
+  }
+  if (d.currentTeamId === old.id) d.currentTeamId = id;
+  old.id = id;
 }
 
 /* v3: orden de jugadas y quintetos. Cada jugada lleva un seq (las de datos anteriores lo reciben en el orden de la

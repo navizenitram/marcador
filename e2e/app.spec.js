@@ -67,8 +67,8 @@ test('el equipo de ejemplo se abre desde la bienvenida con sus partidos y sus es
   const card = page.locator('.demo-card');
   await expect(card).toContainText('Equipo de ejemplo');
   await card.locator('[data-action="demo-open"]').tap();
-  await expect(page.locator('.brand-name')).toHaveText('Joventut Badalona');
-  await expect(page.getByText('vs Barça')).toBeVisible();
+  await expect(page.locator('.brand-name')).toHaveText('Penya Verdinegra');
+  await expect(page.getByText('vs Barcino')).toBeVisible();
 
   // Sigue ahí al recargar y sus estadísticas de temporada se pintan
   await page.reload();
