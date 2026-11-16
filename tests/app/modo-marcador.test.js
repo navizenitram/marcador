@@ -152,6 +152,23 @@ describe('el marcador', () => {
     expect(app.text('.badge')).toBe('Derrota');
   });
 
+  it('no deja borrar una jugada si el periodo quedaría en negativo por una corrección posterior', async () => {
+    const shot = ev('t1_ok', BOARD, 1);
+    const app = await openBoard({ events: [shot, { ...ev('t1_ok', BOARD, 1), type: 'adj', pts: -1 }] });
+    await app.act('menu');
+    await app.act('log');
+    await app.act('del-event', { id: shot.id });
+    expect(app.toast).toContain('No se puede borrar');
+    expect(app.db.games[0].events).toHaveLength(2);
+    expect(score(app)).toBe('0-0');
+  });
+
+  it('en partidos de otro número de periodos (no 4 cuartos) también va periodo a periodo', async () => {
+    const app = await openBoard({ periods: 6, period: 2, events: [ev('t2_ok', BOARD, 1)] });
+    expect(score(app)).toBe('0-0');
+    expect(totals(app)).toBe('2-0');
+  });
+
   it('los botones se configuran en Ajustes, con las faltas del equipo por periodo', async () => {
     const app = await openBoard({ period: 2, events: [ev('fc', BOARD, 1), ev('fc', BOARD, 2)] }, boardTeam({ hidden: [] }));
     expect(app.$$('.sb-row.rest [data-action="ev"]')).toHaveLength(9);
@@ -221,6 +238,12 @@ describe('el marcador', () => {
 });
 
 describe('estadísticas de un marcador', () => {
+  it('sin jugadas todavía, la temporada ya se ve como de marcador', async () => {
+    const app = await openApp({ data: makeData({ teams: [boardTeam()], games: [boardGame()] }), hash: '#/stats/temporada' });
+    expect(app.$('.units')).toBeNull();
+    expect(app.text('.board-hint')).toContain('Partidos de marcador');
+  });
+
   const events = () => [ev('t2_ok', BOARD, 1), ev('t2_ko', BOARD, 1), ev('t3_ok', BOARD, 2), opp(2, 1)];
 
   it('en el partido, solo los totales del equipo, sin líderes ni quintetos', async () => {

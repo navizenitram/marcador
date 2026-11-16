@@ -1197,15 +1197,16 @@ function teamFouls(g, period = g.period) {
    de uno pasado (se vuelve a él con ‹).
    En minibasket (8 periodos) cada periodo se juega desde 0: el número grande es el del periodo y el total del
    partido se ve siempre al lado. Con 4 cuartos el número grande es el total y al lado va el parcial del cuarto. */
-const perPeriodBoard = (g) => g.periods === 8;
+const perPeriodBoard = (g) => g.periods !== 4;   // como perAbbr: solo 4 son cuartos
 
 function viewBoard(g) {
-  const s = score(g);
+  const ps = periodScores(g);
+  const sum = (list) => list.reduce((a, b) => a + b, 0);
+  const s = { us: sum(ps.us), them: sum(ps.them) };   // el total, de los parciales (sin recorrer otra vez las jugadas)
   const ro = g.finished ? ' disabled' : '';
   const l = playerLines(g)[BOARD_PID] || finish(blankLine());
   const [home, away] = sidesOf(g);
   const names = sideNames(g);
-  const ps = periodScores(g);
   const pi = Math.min(g.period, g.periods) - 1;
   const byPeriod = perPeriodBoard(g);
   const big = (k) => (byPeriod ? ps[k][pi] : s[k]);
@@ -1407,7 +1408,7 @@ function statsData(arg) {
     const total = { ...totalsRow(rows, scope.games.length), ...teamPlusMinus(scope.games) };
     withAdvanced(rows, total, 'season');   // antes de promediar: los porcentajes salen de los totales
     if (ui.avg) rows = rows.map(averageRow);
-    const board = boardOnly(rows);
+    const board = boardScope(scope.games, rows);
     return { season: true, phase: scope.phase, scopeGames: scope.games, rows: board ? [] : rows, total: ui.avg ? averageRow(total) : total, games, board };  // scopeGames: del más reciente al más antiguo
   }
   const g = getGame(arg);
@@ -1415,13 +1416,16 @@ function statsData(arg) {
   const rows = gameRows(g);
   const total = { ...totalsRow(rows, 1), ...teamPlusMinus([g]) };
   withAdvanced(rows, total, 'game');
-  const board = boardOnly(rows);
+  const board = boardScope([g], rows);
   return { season: false, game: g, rows: board ? [] : rows, total, games, board };
 }
 
 /* Solo partidos de marcador (sin jugadores): la única fila es la del equipo, que ya da la fila de totales.
    Entonces la tabla lleva solo los totales y no hay líderes, quintetos ni informes. */
-function boardOnly(rows) { return rows.length > 0 && rows.every(isBoardRow); }
+function boardScope(games, rows) {
+  const played = rows.filter(r => r.gp > 0);
+  return games.length > 0 && games.every(isBoard) && played.every(isBoardRow);
+}
 function boardHint() {
   return 'Partidos de marcador: la estadística es de todo el equipo. Para tener la de cada jugador, añádelos en Equipo; los partidos nuevos ya se apuntarán por jugador.';
 }
@@ -2147,20 +2151,22 @@ function record(g, type, pid) {
   toast(msg, e.id);
 }
 
-function recordOpp(g, pts) {
-  // Una corrección no puede dejar en negativo el parcial del periodo actual (como en el marcador).
-  // Para quitar puntos de otro periodo se borra la jugada en el listado.
-  if (pts < 0 && periodScores(g).them[g.period - 1] + pts < 0) {
-    toast(`El rival no tiene puntos en ${perAbbr(g, g.period)} · ${otherPeriodHint(g)}`);
+/* Puntos sueltos de un periodo: los del rival (+1 / +2 / +3 / −1) y, en el marcador, el −1 del equipo propio
+   (MBCore.ADJ). Una corrección no puede dejar en negativo el parcial del periodo en el que se apunta. */
+function recordPoints(g, side, pts) {
+  const us = side === 'us';
+  const name = us ? g.teamName : g.opponent;
+  if (pts < 0 && periodScores(g)[side][g.period - 1] + pts < 0) {
+    toast(`${esc(us ? name : 'El rival')} no tiene puntos en ${perAbbr(g, g.period)} · ${otherPeriodHint(g)}`);
     return;
   }
-  const e = { id: uid(), seq: ++g.seq, ts: Date.now(), period: g.period, type: 'opp', pts };
+  const e = { id: uid(), seq: ++g.seq, ts: Date.now(), period: g.period, ...(us ? { type: MBCore.ADJ, pid: BOARD_PID } : { type: 'opp' }), pts };
   g.events.push(e);
   markPlayed(g);
   save();
   vibrate();
   render();
-  toast(`${esc(g.opponent)} ${pts > 0 ? '+' + pts : pts}`, e.id);
+  toast(`${esc(name)} ${pts > 0 ? '+' + pts : pts}${us ? ` · ${perAbbr(g, g.period)}` : ''}`, e.id);
 }
 
 /* Cómo corregir los puntos de otro periodo: en el marcador, volviendo a ese periodo (‹) y usando el −1;
@@ -2169,30 +2175,23 @@ function otherPeriodHint(g) {
   return isBoard(g) ? 'para corregir otro periodo, vuelve a él con ‹' : 'para corregir otro periodo: ☰ › Jugadas';
 }
 
-/* −1 de los puntos propios en el marcador (MBCore.ADJ): para ajustar el resultado de un periodo, también de uno pasado
-   (se vuelve a él con ‹). Como con el rival, no puede dejar en negativo el parcial de ese periodo. */
-function recordAdj(g, pts) {
-  if (!isBoard(g)) return;
-  if (periodScores(g).us[g.period - 1] + pts < 0) {
-    toast(`${esc(g.teamName)} no tiene puntos en ${perAbbr(g, g.period)} · ${otherPeriodHint(g)}`);
-    return;
-  }
-  const e = { id: uid(), seq: ++g.seq, ts: Date.now(), period: g.period, type: MBCore.ADJ, pid: BOARD_PID, pts };
-  g.events.push(e);
-  save();
-  vibrate();
-  render();
-  toast(`${esc(g.teamName)} ${pts > 0 ? '+' + pts : pts} · ${perAbbr(g, g.period)}`, e.id);
-}
-
+/* Borrar una jugada no puede dejar en negativo el parcial de un periodo: pasaría al quitar unos puntos que una
+   corrección −1 posterior ya había restado. Entonces se avisa y no se borra (hay que quitar antes la corrección). */
 function removeEvent(g, id) {
   const i = g.events.findIndex(e => e.id === id);
   if (i < 0) return null;
-  const [e] = g.events.splice(i, 1);
+  const e = g.events[i];
+  const side = e.type === 'opp' ? 'them' : 'us';
+  const p = Math.min(Math.max((e.period || 1) - 1, 0), g.periods - 1);
+  const after = periodScores({ ...g, events: g.events.filter(x => x !== e) })[side][p];
+  if (after < 0 && after < periodScores(g)[side][p]) {
+    toast(`No se puede borrar: dejaría en negativo los puntos de ${perAbbr(g, e.period)}. Borra antes su corrección −1`);
+    return null;
+  }
+  g.events.splice(i, 1);
   save();
   return e;
 }
-
 /* ─────────────────────────── Acciones ─────────────────────────── */
 
 const actions = {
@@ -2267,18 +2266,18 @@ const actions = {
   },
   opp(el) {
     const g = currentGame();
-    if (g) recordOpp(g, parseInt(el.dataset.pts, 10));
+    if (g) recordPoints(g, 'them', parseInt(el.dataset.pts, 10));
   },
   adj(el) {
     const g = currentGame();
-    if (g) recordAdj(g, parseInt(el.dataset.pts, 10));
+    if (g && isBoard(g)) recordPoints(g, 'us', parseInt(el.dataset.pts, 10));
   },
   undo() {
     const g = currentGame();
     if (!g || !g.events.length) { toast('Nada que deshacer'); return; }
     // La última por orden (seq), no por hora: el reloj del móvil puede retroceder
     const last = g.events.reduce((a, b) => (b.seq >= a.seq ? b : a));
-    removeEvent(g, last.id);
+    if (!removeEvent(g, last.id)) return;
     render();
     toast(`↶ Deshecho: ${eventText(g, last)}`);
   },
@@ -2286,8 +2285,7 @@ const actions = {
     const g = currentGame() || db.games.find(x => x.events.some(e => e.id === el.dataset.id));
     if (!g) return;
     const e = removeEvent(g, el.dataset.id);
-    toastEl.hidden = true;
-    if (e) { render(); toast(`↶ Deshecho: ${eventText(g, e)}`); }
+    if (e) { toastEl.hidden = true; render(); toast(`↶ Deshecho: ${eventText(g, e)}`); }
   },
   async period(el) {
     const g = currentGame();
@@ -2373,7 +2371,7 @@ const actions = {
   },
   'del-event'(el) {
     const g = getGame(ui.modal.gid);
-    removeEvent(g, el.dataset.id);
+    if (!removeEvent(g, el.dataset.id)) return;
     refreshModal(); render();
   },
   async finish(el) {
