@@ -10,15 +10,20 @@
   /* Puntos de cada tiro anotado (el resto de acciones no suma) */
   const EV_PTS = Object.freeze({ t1_ok: 1, t2_ok: 2, t3_ok: 3 });
 
-  /* Puntos de una jugada: los del rival van en e.pts; los propios, según el tipo */
-  const eventPts = (e) => (e.type === 'opp' ? e.pts : EV_PTS[e.type] || 0);
+  /* Corrección de los puntos propios (el −1 del marcador): una jugada de tipo 'adj' con sus puntos en e.pts, como las
+     del rival. Cuenta en el resultado, los parciales y los puntos (y la valoración) de quien la lleva. */
+  const ADJ = 'adj';
+
+  /* Puntos de una jugada: los del rival y las correcciones van en e.pts; los propios, según el tipo */
+  const eventPts = (e) => (e.type === 'opp' || e.type === ADJ ? e.pts : EV_PTS[e.type] || 0);
 
   /* Periodo de una jugada, como índice dentro de los periodos del partido */
   const periodIndex = (g, e) => Math.min(Math.max((e.period || 1) - 1, 0), g.periods - 1);
 
   function blankLine() {
     // rb: rebotes sin distinguir ataque y defensa (el botón único REB, jugada de tipo 'reb')
-    return { t1m: 0, t1a: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ro: 0, rd: 0, rb: 0, ast: 0, blk: 0, blkr: 0, rec: 0, lost: 0, fc: 0, fr: 0 };
+    // adj: corrección de puntos (jugadas 'adj', el −1 del marcador); se suma a los puntos de los tiros
+    return { t1m: 0, t1a: 0, t2m: 0, t2a: 0, t3m: 0, t3a: 0, ro: 0, rd: 0, rb: 0, ast: 0, blk: 0, blkr: 0, rec: 0, lost: 0, fc: 0, fr: 0, adj: 0 };
   }
 
   function addEvent(l, type) {
@@ -44,7 +49,7 @@
      − (tiros de campo fallados + tiros libres fallados + tapones recibidos + pérdidas + faltas cometidas)
      Cada tiro fallado resta 1, sea de 1, 2 o 3. */
   function finish(l) {
-    l.pts = l.t1m + 2 * l.t2m + 3 * l.t3m;
+    l.pts = l.t1m + 2 * l.t2m + 3 * l.t3m + (l.adj || 0);
     l.reb = l.ro + l.rd + l.rb;
     l.miss = (l.t1a - l.t1m) + (l.t2a - l.t2m) + (l.t3a - l.t3m);
     l.val = l.pts + l.reb + l.ast + l.blk + l.rec + l.fr - l.miss - l.blkr - l.lost - l.fc;
@@ -77,7 +82,8 @@
     for (const e of g.events) {
       if (!e.pid) continue;
       if (!map[e.pid]) map[e.pid] = blankLine();
-      addEvent(map[e.pid], e.type);
+      if (e.type === ADJ) map[e.pid].adj += e.pts;
+      else addEvent(map[e.pid], e.type);
     }
     for (const k in map) finish(map[k]);
     return map;
@@ -152,7 +158,7 @@
       const s = groups.get(key);
       s.events++;
       if (e.type === 'opp') s.pc += e.pts;
-      else s.pf += EV_PTS[e.type] || 0;
+      else s.pf += eventPts(e);
     }
     const list = [...groups.values()];
     const perPeriod = new Map();
@@ -201,7 +207,7 @@
       while (i + 1 < lineups.length && lineups[i + 1].seq < e.seq) i++;   // foto en la que se apuntó la jugada
       if (lineups[i].retro) continue;
       if (e.type === 'opp') pc += e.pts;
-      else pf += EV_PTS[e.type] || 0;
+      else pf += eventPts(e);
     }
     return { pf, pc, pm: pf - pc };
   }
@@ -408,7 +414,7 @@
   }
 
   root.MBCore = Object.freeze({
-    EV_PTS, blankLine, addEvent, sumLines, finish, score, periodScores, playerLines, scoreFlow, lineupAt, lineupRun,
+    EV_PTS, ADJ, blankLine, addEvent, sumLines, finish, score, periodScores, playerLines, scoreFlow, lineupAt, lineupRun,
     ADV_MIN, advanced, recordedOpts, stints, plusMinus, combos, rankCombos, PM_MIN_PERIODS, reportModel, reportText,
   });
 })(globalThis);

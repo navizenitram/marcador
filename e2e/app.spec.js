@@ -14,6 +14,7 @@ test('un partido completo: equipo, plantilla, quinteto, jugadas y estadísticas'
   await expect(page.getByRole('heading', { name: /Bienvenido/ })).toBeVisible();
 
   await page.getByLabel('Nombre del equipo').fill('Alevín A');
+  await page.locator('label', { hasText: 'Con jugadores' }).click();
   await page.getByRole('button', { name: /Crear equipo/ }).click();
   for (const [number, name] of [['4', 'Ana'], ['7', 'Bruno'], ['10', 'Carla'], ['12', 'Dani'], ['15', 'Eva'], ['21', 'Fran']]) {
     await page.getByLabel('Dorsal').fill(number);
@@ -94,6 +95,89 @@ test('en el partido caben los 5 jugadores con sus 15 botones, sin scroll y fáci
   expect(layout.scroll).toBeLessThanOrEqual(0);
   expect(layout.offscreen).toBe(0);
   expect(layout.minHeight).toBeGreaterThanOrEqual(44);  // tamaño mínimo recomendado para tocar con el dedo
+});
+
+test('solo marcador: un equipo sin jugadores lleva el partido como un marcador', async ({ page }) => {
+  await page.goto(APP);
+  await page.getByLabel('Nombre del equipo').fill('Mis peques');
+  // Es la opción por defecto
+  await expect(page.locator('input[name=mode][value=board]')).toBeChecked();
+  await page.getByRole('button', { name: /Crear equipo/ }).click();
+  await expect(page).toHaveURL(/#\/partidos$/);
+
+  await page.getByPlaceholder('Nombre del rival').fill('Lakers');
+  await page.locator('.venue-field label', { hasText: 'Local' }).click();
+  await page.getByRole('button', { name: /Empezar marcador/ }).click();
+  await expect(page.locator('.modal')).toHaveCount(0);
+
+  // Perfil Escuela: tiros anotados y fallados, grandes y sin scroll
+  const us = page.locator('.sb-side.us');
+  await expect(us.locator('button.act')).toHaveCount(6);
+  await us.locator('[data-type="t2_ok"]').tap();
+  await us.locator('[data-type="t3_ok"]').tap();
+  await us.locator('[data-type="t2_ko"]').tap();
+  await page.locator('.sb-side.them [data-pts="2"]').tap();
+  await expect(page.locator('.sb-score.us span')).toHaveText('5');
+  await expect(page.locator('.sb-score.them span')).toHaveText('2');
+  const layout = await page.evaluate(() => {
+    const buttons = [...document.querySelectorAll('.sb button')].map((b) => b.getBoundingClientRect());
+    // Los de apuntar, del tamaño recomendado para tocar con el dedo; el −1 (corregir) puede ser algo más bajo
+    const main = [...document.querySelectorAll('.sb button:not(.sb-minus)')].map((b) => b.getBoundingClientRect());
+    return {
+      scroll: document.documentElement.scrollHeight - innerHeight,
+      offscreen: buttons.filter((r) => r.bottom > innerHeight + 0.5 || r.right > innerWidth + 0.5).length,
+      minMain: Math.min(...main.map((r) => r.height)),
+      minAll: Math.min(...buttons.map((r) => r.height)),
+    };
+  });
+  expect(layout.scroll).toBeLessThanOrEqual(0);
+  expect(layout.offscreen).toBe(0);
+  expect(layout.minMain).toBeGreaterThanOrEqual(44);
+  expect(layout.minAll).toBeGreaterThanOrEqual(36);
+
+  // Pasar de periodo no pide quinteto; en minibasket el periodo empieza en 0 y el total sigue a la vista
+  await page.locator('[data-action="period"][data-d="1"]').tap();
+  await expect(page.locator('.period b')).toHaveText('P2');
+  await expect(page.locator('.modal')).toHaveCount(0);
+  await expect(page.locator('.sb-score.us span')).toHaveText('0');
+  await expect(page.locator('.sb-totalbar b.us')).toHaveText('5');
+  // Volviendo al periodo anterior se corrigen sus puntos con el −1 del propio equipo
+  await page.locator('[data-action="period"][data-d="-1"]').tap();
+  await page.locator('.sb-side.us [data-action="adj"]').tap();
+  await expect(page.locator('.sb-score.us span')).toHaveText('4');
+  await page.reload();
+  await expect(page.locator('.sb-totalbar b.us')).toHaveText('4');
+
+  await page.locator('[data-action="menu"]').tap();
+  await page.getByRole('button', { name: /Finalizar partido/ }).tap();
+  await page.locator('[data-action="confirm-yes"]').tap();
+  await expect(page.locator('.badge')).toHaveText('Victoria');
+  await expect(page.locator('table.stats tfoot td[data-k="pts"]')).toHaveText('4');
+});
+
+test('en el móvil más estrecho, el marcador con todos los botones cabe sin recortar el resultado', async ({ page }) => {
+  await page.setViewportSize({ width: 568, height: 320 });
+  const roster = [{ id: '_equipo', number: '', name: 'Equipo (marcador)' }];
+  const events = [...Array(50)].map((_, i) => ({ id: `e${i}`, seq: i + 1, period: 1, type: 't2_ok', pid: '_equipo' }));
+  const opps = [...Array(44)].map((_, i) => ({ id: `o${i}`, seq: i + 51, period: 1, type: 'opp', pts: 2 }));
+  await seed(page, makeData({ teams: [makeTeam({ players: [], hidden: ['reb'] })], games: [makeGame({ roster, events: [...events, ...opps] })] }));
+  await page.goto(`${APP}#/partido/g1`);
+  await expect(page.locator('.sb-side.us button.act')).toHaveCount(15);
+  const layout = await page.evaluate(() => {
+    const box = (el) => el.getBoundingClientRect();
+    const buttons = [...document.querySelectorAll('.sb button')].map(box);
+    const scores = [...document.querySelectorAll('.sb-score')];
+    return {
+      scroll: Math.max(document.documentElement.scrollHeight - innerHeight, document.documentElement.scrollWidth - innerWidth),
+      offscreen: buttons.filter((r) => r.bottom > innerHeight + 0.5 || r.right > innerWidth + 0.5).length,
+      clipped: scores.filter((s) => { const n = box(s.querySelector('span')), b = box(s); return n.width > b.width + 0.5 || n.height > b.height + 0.5; }).length,
+      texts: scores.map((s) => s.querySelector('span').textContent),
+    };
+  });
+  expect(layout.texts).toEqual(['100', '88']);
+  expect(layout.scroll).toBeLessThanOrEqual(0);
+  expect(layout.offscreen).toBe(0);
+  expect(layout.clipped).toBe(0);
 });
 
 test('en el móvil más estrecho, el marcador cabe junto a la valoración y el +/- del quinteto', async ({ page }) => {

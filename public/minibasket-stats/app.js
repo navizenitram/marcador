@@ -69,6 +69,19 @@ const PROFILES = [
   { id: 'completo', name: 'Completo', desc: 'Todos los botones', opts: OPTIONS.map(o => o.id).filter(id => id !== 'reb') },
 ];
 const DEFAULT_PROFILE = 'premini';
+
+/* ── Modo marcador ──
+   Un equipo sin jugadores lleva sus partidos como un marcador: lo grande es el resultado y los botones del perfil
+   (Escuela por defecto, configurable en Ajustes) apuntan para todo el equipo. Esas jugadas van a un jugador interno
+   del partido (BOARD_PID, en g.roster), así que puntos, parciales, valoración, estadísticas, CSV y copias de seguridad
+   funcionan igual que con jugadores. Un partido es de marcador si su plantilla lo lleva (isBoard). Si después se
+   añaden jugadores al equipo, los partidos nuevos ya son por jugador; los de marcador siguen como estaban.
+   t.board: el equipo se creó como «Solo marcador» (al abrirlo se va a los partidos, no a la plantilla). */
+const BOARD_PID = '_equipo';
+const BOARD_NAME = 'Equipo (marcador)';
+const BOARD_PROFILE = 'escuela';
+const isBoard = (g) => !!g && g.roster.some(p => p.id === BOARD_PID);
+const isBoardRow = (r) => r.id === BOARD_PID;
 /* Botones por jugador de un perfil (los tiros van por parejas: anotado y fallado) */
 const profileButtons = (p) => p.opts.reduce((n, id) => n + OPTIONS.find(o => o.id === id).acts.length, 0);
 
@@ -170,6 +183,7 @@ const ui = {
   flash: null,           // { pid, type } botón a resaltar tras pulsar
   focus: null,           // selector a enfocar tras renderizar
   pendingModal: null,    // modal a abrir tras la próxima navegación
+  pendingToast: null,    // aviso a mostrar tras la próxima navegación (al cambiar de pantalla se ocultan)
   lastKey: null,         // pantalla pintada la última vez (para conservar el scroll)
 };
 
@@ -230,6 +244,7 @@ function normalize(d) {
     t.move = t.move in MOVES ? t.move : '';
     // Mínimo de periodos juntos para entrar en el ranking de quintetos
     t.minUnit = intIn(t.minUnit, 1, 20, 4);
+    if (t.board !== true) delete t.board;   // true: se creó como «Solo marcador» (ver BOARD_PID)
   }
   const teamIds = new Set(d.teams.map(t => t.id));
   for (const g of d.games) {
@@ -249,13 +264,14 @@ function normalize(d) {
       .filter(([, list]) => Array.isArray(list))
       .map(([pid, list]) => [fixId(pid), list.filter(n => Number.isInteger(n) && n >= 1)]));
     // Los tipos de jugada desconocidos se conservan (no cuentan en las estadísticas) si son un nombre simple;
-    // los puntos del rival tienen que ser un número
+    // los puntos del rival y las correcciones de los propios (MBCore.ADJ, el −1 del marcador) tienen que ser un número
     const events = [];
     for (const e of objects(g.events)) {
-      if (e.type === 'opp') {
+      if (e.type === 'opp' || e.type === MBCore.ADJ) {
         e.pts = +e.pts;
         if (!Number.isFinite(e.pts)) continue;
-      } else {
+      }
+      if (e.type !== 'opp') {
         if (typeof e.type !== 'string' || !safeKey(e.type)) continue;
         if (e.pid != null) e.pid = fixId(e.pid);
       }
@@ -495,7 +511,9 @@ function winLoss(games) {
 
 function nGames(n) { return `${n} partido${n === 1 ? '' : 's'}`; }
 
-function pLabel(p) { return p ? `#${p.number} ${p.name}` : '¿?'; }
+function pLabel(p) { return p ? (p.id === BOARD_PID ? p.name : `#${p.number} ${p.name}`) : '¿?'; }
+/* Quién hizo una jugada, para los avisos y el listado: en un partido de marcador, el equipo */
+function whoLabel(g, p) { return p && p.id === BOARD_PID ? g.teamName : pLabel(p); }
 
 function vibrate(ms = 12) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) { /* noop */ } }
 
@@ -662,7 +680,12 @@ function parseRoute() {
 /* Pantalla al abrir la app: con varios equipos (o ninguno) se elige primero el equipo */
 function startRoute() {
   if (db.teams.length !== 1) return '#/equipos';
-  return team().players.length ? '#/partidos' : '#/equipo';
+  return teamHome();
+}
+
+/* Pantalla de un equipo al elegirlo: sus partidos o, si aún no tiene jugadores (y no es de marcador), la plantilla */
+function teamHome(t = team()) {
+  return t.players.length || t.board || db.games.some(g => g.teamId === t.id) ? '#/partidos' : '#/equipo';
 }
 
 function go(hash) {
@@ -707,6 +730,7 @@ function render() {
   if (next && scroll) next.scrollTop = scroll;
   postRender();
   if (ui.pendingModal) { const m = ui.pendingModal; ui.pendingModal = null; openModal(m); }
+  if (ui.pendingToast) { const t = ui.pendingToast; ui.pendingToast = null; toast(t); }
 }
 
 function postRender() {
@@ -838,7 +862,7 @@ function viewTeams() {
         ${crest(t.name)}
         <span class="team-info">
           <span class="team-name">${esc(t.name)}</span>
-          <small>${t.players.length} jugador${t.players.length === 1 ? '' : 'es'} · ${nGames(games.length)}${games.length ? ` · ${w}V ${l}D` : ''}</small>
+          <small>${t.players.length ? `${t.players.length} jugador${t.players.length === 1 ? '' : 'es'}` : t.board ? 'Marcador' : '0 jugadores'} · ${nGames(games.length)}${games.length ? ` · ${w}V ${l}D` : ''}</small>
           ${phase ? `<small class="team-phase">${esc(phase)}</small>` : ''}
           ${live ? '<span class="team-live"><span class="dot"></span>Partido en juego</span>' : ''}
         </span>
@@ -857,9 +881,17 @@ function viewTeams() {
       <h2>Nuevo equipo</h2>
       <form data-form="team-new" class="stack" autocomplete="off">
         <label>Nombre del equipo<input name="name" maxlength="24" required placeholder="Ej.: Alevín A" autocapitalize="words"></label>
+        <div class="field">
+          <span class="field-label">¿Cómo lo vas a usar?</span>
+          <div class="seg-radio">
+            <label><input type="radio" name="mode" value="board" checked><span><b>Solo marcador</b><small>Sin plantilla, del equipo</small></span></label>
+            <label><input type="radio" name="mode" value="players"><span><b>Con jugadores</b><small>Estadística de cada uno</small></span></label>
+          </div>
+        </div>
         <button class="btn primary big" type="submit">${icon('plus')} Crear equipo</button>
       </form>
-      <p class="muted small">Cada equipo tiene su propia plantilla, partidos, estadísticas y botones del partido.</p>
+      <p class="muted small">Cada equipo tiene su propia plantilla, partidos, estadísticas y botones del partido.
+      Con <b>Solo marcador</b> empiezas a apuntar sin dar de alta a nadie; cuando quieras la estadística de cada jugador, añádelos en Equipo y los partidos nuevos ya serán por jugador.</p>
       <p class="privacy-note">${icon('lock')}<span>Sin registro ni seguimiento: todo se guarda solo en este dispositivo. <a href="#/privacidad">Privacidad</a></span></p>
       ${DEMO && db.demoOff && !demoLoaded() ? `<button class="btn demo-back" data-action="demo-open">${icon('plus')} ${esc(tr('demo.load'))}</button>` : ''}
     </section>
@@ -943,7 +975,9 @@ function viewTeam() {
             <button class="icon-btn" data-action="edit-player" data-id="${p.id}" title="Editar" aria-label="Editar a ${esc(p.name)}">${icon('edit')}</button>
             <button class="icon-btn danger" data-action="del-player" data-id="${p.id}" title="Eliminar" aria-label="Eliminar a ${esc(p.name)}">${icon('trash')}</button>
           </li>`).join('')}
-      </ul>` : `<p class="empty">Aún no hay jugadores.<br>Añade dorsal y nombre de cada jugador.</p>`}
+      </ul>` : `<p class="empty">Aún no hay jugadores.<br>Añade dorsal y nombre de cada jugador.</p>
+      <p class="board-note">${icon('chart')}<span><b>¿Solo quieres un marcador?</b> No hace falta añadir a nadie: sin jugadores, los partidos se llevan como un marcador con la estadística de todo el equipo.
+      <a href="#/partidos">Ir a partidos</a></span></p>`}
     </section>
   </div>`);
 }
@@ -997,7 +1031,8 @@ function viewGames() {
   <div class="cols">
     <section class="card side">
       <h2>Nuevo partido</h2>
-      ${hasPlayers ? '' : `<p class="warn">Primero da de alta a los jugadores en <a href="#/equipo">Equipo</a>.</p>`}
+      ${hasPlayers ? '' : `<p class="board-note">${icon('chart')}<span><b>Modo marcador:</b> sin jugadores, el partido se lleva como un marcador y la estadística es de todo el equipo.
+      ¿Quieres la de cada jugador? Añádelos en <a href="#/equipo">Equipo</a>.</span></p>`}
       <form data-form="game" class="stack" autocomplete="off">
         <label>Rival<input name="opponent" maxlength="24" required placeholder="Nombre del rival"></label>
         <label>Fecha<input name="date" type="date" required value="${todayISO()}"></label>
@@ -1010,7 +1045,7 @@ function viewGames() {
           </div>
         </div>
         <p class="muted small phase-line">Se apunta en la <b>${esc(phaseLabel(team(), team().phase))}</b> · <a href="#/equipo">Cambiar</a></p>
-        <button class="btn primary big" type="submit" ${hasPlayers ? '' : 'disabled'}>${icon('play', 'solid')} Empezar partido</button>
+        <button class="btn primary big" type="submit">${icon('play', 'solid')} ${hasPlayers ? 'Empezar partido' : 'Empezar marcador'}</button>
       </form>
     </section>
 
@@ -1060,6 +1095,7 @@ function gameItems(games) {
 
 /* ── Partido en directo ── */
 function viewLive(g) {
+  if (isBoard(g)) return viewBoard(g);
   const s = score(g);
   // Un partido finalizado se abre solo para consultarlo: para apuntar o cambiar algo hay que reabrirlo
   const ro = g.finished ? ' disabled' : '';
@@ -1099,11 +1135,7 @@ function viewLive(g) {
   <div class="live${g.finished ? ' finished' : ''}">
     <header class="live-top">
       <button class="icon-btn" data-action="menu" title="Menú" aria-label="Menú">${icon('menu')}</button>
-      <div class="period" style="--p:${round1(g.period / g.periods * 100) / 100}">
-        <button data-action="period" data-d="-1" aria-label="${perName(g)} anterior" ${g.period <= 1 || g.finished ? 'disabled' : ''}>${icon('left')}</button>
-        <div><b>${perAbbr(g, g.period)}</b><small>de ${g.periods}</small></div>
-        <button data-action="period" data-d="1" aria-label="${perName(g)} siguiente"${ro}>${icon('right')}</button>
-      </div>
+      ${periodNav(g)}
       <div class="board">
         <span class="tname ${home} first">${esc(names[home])}</span>
         <span class="score ${home}">${s[home]}</span>
@@ -1125,13 +1157,99 @@ function viewLive(g) {
       <button class="icon-btn" data-action="lineup" title="Quinteto en pista" aria-label="Quinteto en pista"${ro}>${icon('swap')}</button>
       <a class="icon-btn" href="#/stats/${g.id}" title="Estadísticas" aria-label="Estadísticas">${icon('chart')}</a>
     </header>
-    ${g.finished ? `<div class="locked-bar">
-      <span>${icon('flag')} <b>Partido finalizado</b><small> · solo consulta</small></span>
-      <button class="btn" data-action="reopen" data-id="${g.id}">${icon('reopen')} Reabrir</button>
-    </div>` : ''}
+    ${lockedBar(g)}
     ${g.finished && !g.onCourt.length
       ? `<main class="court court-empty"><p class="empty">No quedó nadie en pista al finalizar.<br><a class="btn" href="#/stats/${g.id}">${icon('chart')} Ver estadísticas del partido</a></p></main>`
       : `<main class="court">${rows.join('')}</main>`}
+  </div>`;
+}
+
+/* Periodo actual con sus flechas (‹ P3 ›) y la barra de progreso del partido; lo comparten la pista y el marcador */
+function periodNav(g) {
+  const ro = g.finished ? ' disabled' : '';
+  return `<div class="period" style="--p:${round1(g.period / g.periods * 100) / 100}">
+        <button data-action="period" data-d="-1" aria-label="${perName(g)} anterior" ${g.period <= 1 || g.finished ? 'disabled' : ''}>${icon('left')}</button>
+        <div><b>${perAbbr(g, g.period)}</b><small>de ${g.periods}</small></div>
+        <button data-action="period" data-d="1" aria-label="${perName(g)} siguiente"${ro}>${icon('right')}</button>
+      </div>`;
+}
+
+/* Aviso de partido finalizado (solo consulta) con el botón de reabrir */
+function lockedBar(g) {
+  return g.finished ? `<div class="locked-bar">
+      <span>${icon('flag')} <b>Partido finalizado</b><small> · solo consulta</small></span>
+      <button class="btn" data-action="reopen" data-id="${g.id}">${icon('reopen')} Reabrir</button>
+    </div>` : '';
+}
+
+/* A partir de estas faltas del equipo en un periodo, el marcador las resalta (en minibasket, la 5ª ya es bonus) */
+const TEAM_FOUL_WARN = 4;
+
+/* Faltas del equipo en un periodo (el actual, por defecto) en un partido de marcador */
+function teamFouls(g, period = g.period) {
+  return g.events.filter(e => e.pid === BOARD_PID && e.type === 'fc' && e.period === period).length;
+}
+
+/* ── Partido de marcador ──
+   Como una app de marcador: cada equipo en su mitad (el local a la izquierda) con su resultado en grande y sus
+   botones debajo. Los del equipo propio son los del perfil (tiros anotados arriba, fallados debajo y el resto en
+   una fila); los del rival, +1 / +2 / +3. Los dos tienen −1 para corregir los puntos del periodo que se ve, también
+   de uno pasado (se vuelve a él con ‹).
+   En minibasket (8 periodos) cada periodo se juega desde 0: el número grande es el del periodo y el total del
+   partido se ve siempre al lado. Con 4 cuartos el número grande es el total y al lado va el parcial del cuarto. */
+const perPeriodBoard = (g) => g.periods !== 4;   // como perAbbr: solo 4 son cuartos
+
+function viewBoard(g) {
+  const ps = periodScores(g);
+  const sum = (list) => list.reduce((a, b) => a + b, 0);
+  const s = { us: sum(ps.us), them: sum(ps.them) };   // el total, de los parciales (sin recorrer otra vez las jugadas)
+  const ro = g.finished ? ' disabled' : '';
+  const l = playerLines(g)[BOARD_PID] || finish(blankLine());
+  const [home, away] = sidesOf(g);
+  const names = sideNames(g);
+  const pi = Math.min(g.period, g.periods) - 1;
+  const byPeriod = perPeriodBoard(g);
+  const big = (k) => (byPeriod ? ps[k][pi] : s[k]);
+  const minus = (action, who) => `<div class="sb-row fix"><button class="sb-minus" data-action="${action}" data-pts="-1" aria-label="${esc(who)} −1 en ${perAbbr(g, pi + 1)}"${ro}>−1</button></div>`;
+  const btn = (t) => `<button class="act ${EV[t].cls}" data-action="ev" data-type="${t}" data-pid="${BOARD_PID}" aria-label="${EV[t].text}"${ro}>${actLabel(t)}</button>`;
+  const row = (list, cls = '') => (list.length ? `<div class="sb-row ${cls}" style="--n:${list.length}">${list.map(btn).join('')}</div>` : '');
+  const shots = SHOT_ACTIONS.filter(actEnabled);
+  // Rebotes: en uno finalizado, los que se usaron en sus jugadas (como en la pista, ver gameRebs)
+  const rest = [...gameRebs(g), ...OTHER_ACTIONS.filter(actEnabled)];
+  const fouls = actEnabled('fc') || l.fc > 0 ? teamFouls(g) : null;
+  const usBtns = `
+        ${row(shots.filter(t => EV[t].cls === 'made'), 'made')}
+        ${row(shots.filter(t => EV[t].cls === 'miss'), 'miss')}
+        ${row(rest, 'rest')}
+        ${minus('adj', g.teamName)}`;
+  const oppBtns = `
+        <div class="sb-row opp" style="--n:3">${[1, 2, 3].map(n => `<button class="sb-opp" data-action="opp" data-pts="${n}" aria-label="${esc(g.opponent)} +${n}"${ro}>+${n}</button>`).join('')}</div>
+        ${minus('opp', g.opponent)}`;
+  const side = (k) => `
+      <section class="sb-side ${k}">
+        <div class="sb-head">
+          <span class="sb-name">${esc(names[k])}</span>
+          <span class="sb-sub">${[byPeriod ? '' : `${perAbbr(g, pi + 1)} <b>${ps[k][pi]}</b>`, k === 'us' && fouls != null ? `Faltas <b class="${fouls >= TEAM_FOUL_WARN ? 'foul-warn' : ''}">${fouls}</b>` : ''].filter(Boolean).join(' · ')}</span>
+        </div>
+        <div class="sb-score ${k}">${byPeriod ? `<small class="sb-per">${perAbbr(g, pi + 1)}</small>` : ''}<span>${big(k)}</span></div>
+        <div class="sb-btns">${k === 'us' ? usBtns : oppBtns}</div>
+      </section>`;
+  return `
+  <div class="live board-live${g.finished ? ' finished' : ''}">
+    <header class="live-top">
+      <button class="icon-btn" data-action="menu" title="Menú" aria-label="Menú">${icon('menu')}</button>
+      ${periodNav(g)}
+      <span class="grow"></span>
+      ${byPeriod ? `<div class="sb-totalbar" title="Resultado del partido (suma de todos los periodos)"><small>Total</small><b class="${home}">${s[home]}</b><i>–</i><b class="${away}">${s[away]}</b></div>
+      <span class="grow"></span>` : ''}
+      <div class="live-perf">
+        <span title="Valoración del equipo en el partido"><small>VAL</small><b class="${tone(l.val)}">${l.val}</b></span>
+      </div>
+      <button class="icon-btn" data-action="undo" title="Deshacer última acción" aria-label="Deshacer última acción"${ro}>${icon('undo')}</button>
+      <a class="icon-btn" href="#/stats/${g.id}" title="Estadísticas" aria-label="Estadísticas">${icon('chart')}</a>
+    </header>
+    ${lockedBar(g)}
+    <main class="sb">${side(home)}${side(away)}</main>
   </div>`;
 }
 
@@ -1194,6 +1312,8 @@ function viewSettings() {
       <div class="card-head">
         <h2>Botones del partido · ${esc(team().name)} <span class="muted">(${n}/${offered.length})</span></h2>
       </div>
+      ${team().players.length ? '' : `<p class="board-note">${icon('chart')}<span><b>Modo marcador:</b> este equipo no tiene jugadores, así que estos botones apuntan para todo el equipo, debajo de su resultado.
+      Con <b>Escuela</b> (solo puntos) es un marcador sencillo; añade los botones que quieras.</span></p>`}
       <p class="muted small">Elige un perfil según la categoría y, si quieres, activa o desactiva cada botón a tu gusto. Las acciones desactivadas
       no aparecen en la pista ni en las estadísticas (salvo que haya datos de partidos anteriores) y no cuentan en la valoración.
       Con menos botones, cada uno es más grande.</p>
@@ -1288,14 +1408,26 @@ function statsData(arg) {
     const total = { ...totalsRow(rows, scope.games.length), ...teamPlusMinus(scope.games) };
     withAdvanced(rows, total, 'season');   // antes de promediar: los porcentajes salen de los totales
     if (ui.avg) rows = rows.map(averageRow);
-    return { season: true, phase: scope.phase, scopeGames: scope.games, rows, total: ui.avg ? averageRow(total) : total, games };  // scopeGames: del más reciente al más antiguo
+    const board = boardScope(scope.games, rows);
+    return { season: true, phase: scope.phase, scopeGames: scope.games, rows: board ? [] : rows, total: ui.avg ? averageRow(total) : total, games, board };  // scopeGames: del más reciente al más antiguo
   }
   const g = getGame(arg);
   if (!g) return null;
   const rows = gameRows(g);
   const total = { ...totalsRow(rows, 1), ...teamPlusMinus([g]) };
   withAdvanced(rows, total, 'game');
-  return { season: false, game: g, rows, total, games };
+  const board = boardScope([g], rows);
+  return { season: false, game: g, rows: board ? [] : rows, total, games, board };
+}
+
+/* Solo partidos de marcador (sin jugadores): la única fila es la del equipo, que ya da la fila de totales.
+   Entonces la tabla lleva solo los totales y no hay líderes, quintetos ni informes. */
+function boardScope(games, rows) {
+  const played = rows.filter(r => r.gp > 0);
+  return games.length > 0 && games.every(isBoard) && played.every(isBoardRow);
+}
+function boardHint() {
+  return 'Partidos de marcador: la estadística es de todo el equipo. Para tener la de cada jugador, añádelos en Equipo; los partidos nuevos ya se apuntarán por jugador.';
 }
 
 /* Añade a cada fila sus estadísticas avanzadas (r.adv). Qué datos se apuntaron se decide con el total del ámbito. */
@@ -1351,8 +1483,8 @@ function viewStats(arg) {
     ${data.season ? seasonSummary(data.scopeGames) : gameSummary(g)}
     ${leaders(data)}
     <section class="card table-card">${statsTable(data)}</section>
-    ${data.season && data.rows.some(r => r.gp) ? `<p class="muted small report-hint">${esc(tr('report.hint'))}</p>` : ''}
-    ${unitsCard(data)}
+    ${data.season && data.rows.some(r => r.gp && !isBoardRow(r)) ? `<p class="muted small report-hint">${esc(tr('report.hint'))}</p>` : ''}
+    ${data.board ? `<p class="muted small board-hint">${esc(boardHint())}</p>` : unitsCard(data)}
     ${ui.adv ? `<p class="muted small adv-note">${esc(tr('adv.note'))} Toca la cabecera de una columna para ordenar.</p>${glossary(data)}` : `
     <p class="muted small formula"><b>VAL</b> (valoración ACB) = puntos + rebotes + asistencias + recuperaciones + tapones + faltas recibidas − tiros fallados (cada uno resta 1) − tapones recibidos − pérdidas − faltas cometidas.
     Toca la cabecera de una columna para ordenar.</p>`}
@@ -1569,7 +1701,7 @@ function seasonTrend(games) {
 }
 
 function leaders(data) {
-  const rows = data.rows.filter(r => r.gp > 0);
+  const rows = data.rows.filter(r => r.gp > 0 && !isBoardRow(r));
   if (!rows.length) return '';
   const best = (k) => rows.reduce((a, b) => (b[k] > a[k] ? b : a), rows[0]);
   const card = (k, lbl) => {
@@ -1699,6 +1831,7 @@ function cellValue(r, c) {
 const COL_OPTS = { t1: ['t1'], t2: ['t2'], t3: ['t3'], ro: ['ro'], rd: ['rd'], reb: ['ro', 'rd', 'reb'], ast: ['ast'], blk: ['blk'], blkr: ['blkr'], rec: ['rec'], lost: ['lost'], fc: ['fc'], fr: ['fr'] };
 function colVisible(k, data) {
   if (ADV_KEYS.has(k)) return !data.total.adv[k].hidden;
+  if (k === 'nper' && data.board) return false;   // en el marcador no hay jugadores que sumen periodos
   if (k === 'pm') return data.total.pm != null;   // solo si algún partido del ámbito tiene registro de quintetos
   // Rebotes sin distinguir: solo si hay y se ven las columnas RO o RD (si no, RT ya los da todos)
   if (k === 'rb') return data.total.rb > 0 && (colVisible('ro', data) || colVisible('rd', data));
@@ -1738,7 +1871,7 @@ function statsTable(data) {
     : c.shot ? r[`t${c.shot}a`] === 0 : c.k !== 'val' && r[c.k] === 0);
   // En la temporada o una fase, el nombre de quien ha jugado abre su informe (no en la fila del equipo)
   const scopeArg = data.season ? (data.phase ? `fase-${data.phase}` : 'temporada') : '';
-  const value = (r, c) => (c.k === 'name' && scopeArg && r.gp && r.id !== '_team'
+  const value = (r, c) => (c.k === 'name' && scopeArg && r.gp && r.id !== '_team' && !isBoardRow(r)
     ? `<button class="pname-btn" data-action="report" data-pid="${r.id}" data-arg="${scopeArg}" title="${esc(tr('report.action'))}">${esc(r.name)}</button>`
     : cellValue(r, c));
   const cell = (r, c, i) => `<td class="${colCls[i]}${isZero(r, c) ? ' zero' : ''}${c.k === 'fc' && !data.season && r.fc >= MAX_FOULS ? ' neg' : ''}" data-k="${c.k}">${value(r, c)}</td>`;
@@ -1846,7 +1979,8 @@ function renderMenu(m) {
   return `
   <div class="modal-head"><h3>vs ${esc(g.opponent)} · ${fmtDate(g.date)}${meta ? ` <small class="muted">· ${meta}</small>` : ''}</h3></div>
   <div class="menu-list">
-    ${g.finished ? '' : `<button class="btn" data-action="lineup">${icon('swap')} Jugadores en pista</button>`}
+    ${isBoard(g) ? `<a class="btn" href="#/ajustes">${icon('edit')} Botones del marcador</a>`
+      : g.finished ? '' : `<button class="btn" data-action="lineup">${icon('swap')} Jugadores en pista</button>`}
     <button class="btn" data-action="log">${icon('list')} Jugadas registradas (${g.events.length})</button>
     <a class="btn" href="#/stats/${g.id}">${icon('chart')} Estadísticas del partido</a>
     <button class="btn" data-action="edit-game" data-id="${g.id}">${icon('edit')} Editar partido</button>
@@ -1887,8 +2021,9 @@ function renderEditGame(m) {
 
 function eventText(g, e) {
   if (e.type === 'opp') return `<span class="them">${esc(g.opponent)}</span> ${e.pts > 0 ? '+' + e.pts : e.pts}`;
+  if (e.type === MBCore.ADJ) return `<b>${esc(whoLabel(g, g.roster.find(x => x.id === e.pid)))}</b> · Corrección de puntos ${e.pts > 0 ? '+' + e.pts : e.pts}`;
   const p = g.roster.find(x => x.id === e.pid);
-  return `<b>${esc(pLabel(p))}</b> · ${EV[e.type] ? EV[e.type].text : esc(e.type)}`;
+  return `<b>${esc(whoLabel(g, p))}</b> · ${EV[e.type] ? EV[e.type].text : esc(e.type)}`;
 }
 
 function renderLog(m) {
@@ -1898,7 +2033,7 @@ function renderLog(m) {
   <div class="modal-head"><h3>Jugadas registradas</h3><span class="muted">${evs.length}</span></div>
   <div class="log">
     ${evs.length ? evs.map(e => `
-      <div class="log-row ${e.type === 'opp' ? 'opp' : (EV[e.type] && EV[e.type].cls) || ''}">
+      <div class="log-row ${e.type === 'opp' ? 'opp' : e.type === MBCore.ADJ ? 'miss' : (EV[e.type] && EV[e.type].cls) || ''}">
         <span class="lp">${perAbbr(g, e.period)}</span>
         <span class="lt">${eventText(g, e)}</span>
         ${g.finished ? '' : `<button class="icon-btn danger" data-action="del-event" data-id="${e.id}" title="Eliminar" aria-label="Eliminar jugada">${icon('x')}</button>`}
@@ -1939,7 +2074,7 @@ function currentGame() {
    el despachador de clics las corta antes de llegar al handler, así que una acción nueva que cambie el partido
    solo tiene que añadirse aquí. Para apuntar algo hay que reabrirlo. */
 const GAME_EDITS = new Set([
-  'ev', 'opp', 'undo', 'undo-event', 'period', 'lineup', 'swap',
+  'ev', 'opp', 'adj', 'undo', 'undo-event', 'period', 'lineup', 'swap',
   'toggle-court', 'clear-court', 'swap-in', 'bench-out', 'del-event',
 ]);
 
@@ -1969,7 +2104,7 @@ function markPlayed(g) {
    (solo en partidos no finalizados). */
 function syncRoster(g) {
   const t = db.teams.find(t => t.id === g.teamId);
-  if (g.finished || !t) return;
+  if (g.finished || !t || isBoard(g)) return;
   for (const p of t.players) {
     const r = g.roster.find(x => x.id === p.id);
     if (r) { r.number = p.number; r.name = p.name; }
@@ -2005,8 +2140,10 @@ function record(g, type, pid) {
   ui.flash = { pid, type };
   render();
   const p = g.roster.find(x => x.id === pid);
-  let msg = `<b>${esc(pLabel(p))}</b> · ${EV[type].text}`;
-  if (type === 'fc') {
+  let msg = `<b>${esc(whoLabel(g, p))}</b> · ${EV[type].text}`;
+  if (type === 'fc' && pid === BOARD_PID) {
+    msg += ` · ${teamFouls(g)} en ${perAbbr(g, g.period)}`;
+  } else if (type === 'fc') {
     const f = g.events.filter(x => x.pid === pid && x.type === 'fc').length;
     if (f >= MAX_FOULS) msg = `⛔ <b>${esc(pLabel(p))}</b> · ${f} faltas: eliminado/a`;
     else if (f === MAX_FOULS - 1) msg = `⚠️ <b>${esc(pLabel(p))}</b> · ${f} faltas`;
@@ -2014,30 +2151,47 @@ function record(g, type, pid) {
   toast(msg, e.id);
 }
 
-function recordOpp(g, pts) {
-  // Una corrección no puede dejar en negativo el parcial del periodo actual (como en el marcador).
-  // Para quitar puntos de otro periodo se borra la jugada en el listado.
-  if (pts < 0 && periodScores(g).them[g.period - 1] + pts < 0) {
-    toast(`El rival no tiene puntos en ${perAbbr(g, g.period)} · para corregir otro periodo: ☰ › Jugadas`);
+/* Puntos sueltos de un periodo: los del rival (+1 / +2 / +3 / −1) y, en el marcador, el −1 del equipo propio
+   (MBCore.ADJ). Una corrección no puede dejar en negativo el parcial del periodo en el que se apunta. */
+function recordPoints(g, side, pts) {
+  const us = side === 'us';
+  const name = us ? g.teamName : g.opponent;
+  if (pts < 0 && periodScores(g)[side][g.period - 1] + pts < 0) {
+    toast(`${esc(us ? name : 'El rival')} no tiene puntos en ${perAbbr(g, g.period)} · ${otherPeriodHint(g)}`);
     return;
   }
-  const e = { id: uid(), seq: ++g.seq, ts: Date.now(), period: g.period, type: 'opp', pts };
+  const e = { id: uid(), seq: ++g.seq, ts: Date.now(), period: g.period, ...(us ? { type: MBCore.ADJ, pid: BOARD_PID } : { type: 'opp' }), pts };
   g.events.push(e);
   markPlayed(g);
   save();
   vibrate();
   render();
-  toast(`${esc(g.opponent)} ${pts > 0 ? '+' + pts : pts}`, e.id);
+  toast(`${esc(name)} ${pts > 0 ? '+' + pts : pts}${us ? ` · ${perAbbr(g, g.period)}` : ''}`, e.id);
 }
 
+/* Cómo corregir los puntos de otro periodo: en el marcador, volviendo a ese periodo (‹) y usando el −1;
+   en la pista, borrando la jugada en el listado */
+function otherPeriodHint(g) {
+  return isBoard(g) ? 'para corregir otro periodo, vuelve a él con ‹' : 'para corregir otro periodo: ☰ › Jugadas';
+}
+
+/* Borrar una jugada no puede dejar en negativo el parcial de un periodo: pasaría al quitar unos puntos que una
+   corrección −1 posterior ya había restado. Entonces se avisa y no se borra (hay que quitar antes la corrección). */
 function removeEvent(g, id) {
   const i = g.events.findIndex(e => e.id === id);
   if (i < 0) return null;
-  const [e] = g.events.splice(i, 1);
+  const e = g.events[i];
+  const side = e.type === 'opp' ? 'them' : 'us';
+  const p = Math.min(Math.max((e.period || 1) - 1, 0), g.periods - 1);
+  const after = periodScores({ ...g, events: g.events.filter(x => x !== e) })[side][p];
+  if (after < 0 && after < periodScores(g)[side][p]) {
+    toast(`No se puede borrar: dejaría en negativo los puntos de ${perAbbr(g, e.period)}. Borra antes su corrección −1`);
+    return null;
+  }
+  g.events.splice(i, 1);
   save();
   return e;
 }
-
 /* ─────────────────────────── Acciones ─────────────────────────── */
 
 const actions = {
@@ -2060,7 +2214,7 @@ const actions = {
   /* Equipos */
   'pick-team'(el) {
     selectTeam(el.dataset.id);
-    go(team().players.length ? '#/partidos' : '#/equipo');
+    go(teamHome());
   },
   /* Equipo de ejemplo: se copia a los datos y se abre como cualquier otro */
   'demo-open'() {
@@ -2112,14 +2266,18 @@ const actions = {
   },
   opp(el) {
     const g = currentGame();
-    if (g) recordOpp(g, parseInt(el.dataset.pts, 10));
+    if (g) recordPoints(g, 'them', parseInt(el.dataset.pts, 10));
+  },
+  adj(el) {
+    const g = currentGame();
+    if (g && isBoard(g)) recordPoints(g, 'us', parseInt(el.dataset.pts, 10));
   },
   undo() {
     const g = currentGame();
     if (!g || !g.events.length) { toast('Nada que deshacer'); return; }
     // La última por orden (seq), no por hora: el reloj del móvil puede retroceder
     const last = g.events.reduce((a, b) => (b.seq >= a.seq ? b : a));
-    removeEvent(g, last.id);
+    if (!removeEvent(g, last.id)) return;
     render();
     toast(`↶ Deshecho: ${eventText(g, last)}`);
   },
@@ -2127,8 +2285,7 @@ const actions = {
     const g = currentGame() || db.games.find(x => x.events.some(e => e.id === el.dataset.id));
     if (!g) return;
     const e = removeEvent(g, el.dataset.id);
-    toastEl.hidden = true;
-    if (e) { render(); toast(`↶ Deshecho: ${eventText(g, e)}`); }
+    if (e) { toastEl.hidden = true; render(); toast(`↶ Deshecho: ${eventText(g, e)}`); }
   },
   async period(el) {
     const g = currentGame();
@@ -2140,9 +2297,18 @@ const actions = {
     }
     const was = g.period;
     g.period = Math.min(Math.max(g.period + d, 1), g.periods);
-    if (g.period !== was) logLineup(g);
+    const board = isBoard(g);
+    if (g.period !== was && !board) logLineup(g);
     save();
     render();
+    if (board) {
+      // En minibasket cada periodo empieza desde 0: se recuerda el total, que sigue a la vista junto al marcador
+      if (g.period !== was) {
+        const t = score(g);
+        toast(`${perName(g)} ${g.period}${perPeriodBoard(g) ? ` · total ${scoreTxt(g, t.us, t.them)}` : ''}`);
+      }
+      return;
+    }
     if (d > 0) {
       syncRoster(g);
       openModal({ kind: 'lineup', gid: g.id, title: `Quinteto · ${perName(g)} ${g.period}` });
@@ -2150,7 +2316,7 @@ const actions = {
   },
   lineup() {
     const g = currentGame();
-    if (!g) return;
+    if (!g || isBoard(g)) return;
     syncRoster(g);
     openModal({ kind: 'lineup', gid: g.id, title: `Jugadores en pista · ${perAbbr(g, g.period)}` });
   },
@@ -2172,7 +2338,7 @@ const actions = {
   'lineup-done'() { closeModal(); },
   swap(el) {
     const g = currentGame();
-    if (!g) return;
+    if (!g || isBoard(g)) return;
     syncRoster(g);
     openModal({ kind: 'swap', gid: g.id, outId: el.dataset.pid || null });
   },
@@ -2205,7 +2371,7 @@ const actions = {
   },
   'del-event'(el) {
     const g = getGame(ui.modal.gid);
-    removeEvent(g, el.dataset.id);
+    if (!removeEvent(g, el.dataset.id)) return;
     refreshModal(); render();
   },
   async finish(el) {
@@ -2370,14 +2536,21 @@ document.addEventListener('submit', async (e) => {
     const name = String(fd.get('name') || '').trim();
     if (!name) return;
     const cur = team();
-    const t = newTeam(uid(), name, DEFAULT_PROFILE, { email: cur ? cur.email : '' });
+    const board = fd.get('mode') === 'board';
+    const t = newTeam(uid(), name, board ? BOARD_PROFILE : DEFAULT_PROFILE, { email: cur ? cur.email : '', ...(board ? { board: true } : {}) });
     db.teams.push(t);
     db.currentTeamId = t.id;
     ui.editId = null;
     save();
+    if (board) {
+      ui.focus = 'input[name=opponent]';
+      ui.pendingToast = `Equipo ${esc(name)} creado. Empieza un partido y llévalo como un marcador.`;
+      go('#/partidos');
+      return;
+    }
     ui.focus = 'input[name=number]';
+    ui.pendingToast = `Equipo ${esc(name)} creado. Añade sus jugadores.`;
     go('#/equipo');
-    toast(`Equipo ${esc(name)} creado. Añade sus jugadores.`);
   }
 
   if (kind === 'game-edit') {
@@ -2393,7 +2566,7 @@ document.addEventListener('submit', async (e) => {
   }
 
   if (kind === 'game') {
-    if (!team().players.length) return;
+    const board = !team().players.length;   // sin jugadores: partido de marcador
     if (!asVenue(fd.get('venue'))) {
       form.querySelector('.venue-field').classList.add('need');
       toast('Elige si jugáis de local o de visitante');
@@ -2411,7 +2584,7 @@ document.addEventListener('submit', async (e) => {
       teamName: team().name,
       periods: parseInt(fd.get('periods'), 10) || 8,
       period: 1,
-      roster: sortedPlayers(team().players).map(p => ({ id: p.id, number: p.number, name: p.name })),
+      roster: board ? [{ id: BOARD_PID, number: '', name: BOARD_NAME }] : sortedPlayers(team().players).map(p => ({ id: p.id, number: p.number, name: p.name })),
       onCourt: [],
       played: {},
       events: [],
@@ -2421,10 +2594,10 @@ document.addEventListener('submit', async (e) => {
       seq: 0,
       lineups: [],
     };
-    logLineup(g);   // el registro de quintetos empieza con el partido
+    if (!board) logLineup(g);   // el registro de quintetos empieza con el partido (sin quintetos en el marcador)
     db.games.push(g);
     save();
-    ui.pendingModal = { kind: 'lineup', gid: g.id, title: `Quinteto inicial · ${perName(g)} 1` };
+    if (!board) ui.pendingModal = { kind: 'lineup', gid: g.id, title: `Quinteto inicial · ${perName(g)} 1` };
     go(`#/partido/${g.id}`);
   }
 });
@@ -2674,7 +2847,7 @@ function buildText(arg) {
   out.push('');
   const rows = [...data.rows].filter(r => r.gp > 0).sort((a, b) => b.val - a.val || byNumber(a, b));
   for (const r of rows) {
-    out.push(`#${r.number} ${r.name}${data.season ? ` (${r.gp} PJ)` : ''}`);
+    out.push(`${pLabel(r)}${data.season ? ` (${r.gp} PJ)` : ''}`);
     out.push(`   ${r.pts} pts · T1 ${shotTxt(r, 1)} · T2 ${shotTxt(r, 2)} · T3 ${shotTxt(r, 3)}`);
     out.push(`   Reb ${rebTxt(r)} · As ${r.ast} · Tap ${r.blk} · TapRec ${r.blkr} · Rec ${r.rec} · Pér ${r.lost} · FC ${r.fc} · FR ${r.fr} · VAL ${r.val}`);
   }
