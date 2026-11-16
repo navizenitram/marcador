@@ -18,8 +18,12 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
   plantilla; es la opción marcada por defecto) o **con jugadores** (estadística de cada uno). Un equipo sin jugadores lleva sus partidos como cualquier app de marcador: cada
   equipo en su mitad (el local a la izquierda) con su resultado en grande, los botones del perfil debajo del propio
   (**Escuela** por defecto: tiros anotados arriba y fallados debajo; se cambian en **Ajustes** como en cualquier
-  equipo) y +1 / +2 / +3 / −1 debajo del rival. Si las faltas cometidas están activas, se ven las del equipo en el
-  periodo. La estadística es de todo el equipo: en **Estadísticas** salen los totales, sin líderes, quintetos ni
+  equipo) y +1 / +2 / +3 debajo del rival. Los dos tienen **−1** para corregir los puntos del periodo que se ve, también
+  de uno pasado (se vuelve a él con ‹); el del equipo propio se guarda como una corrección (`adj`, con sus puntos en
+  `pts`) que cuenta en el resultado, los parciales, los puntos y la valoración. En **minibasket (8 periodos)** cada
+  periodo empieza en 0: el número grande es el del periodo y el **total del partido** se ve siempre en la barra de
+  arriba; con 4 cuartos, el grande es el total y al lado va el parcial. Si las faltas cometidas están activas, se ven
+  las del equipo en el periodo. La estadística es de todo el equipo: en **Estadísticas** salen los totales, sin líderes, quintetos ni
   informes. Para ir a más basta con añadir jugadores en **Equipo**: los partidos nuevos ya son por jugador y los de
   marcador siguen como estaban (en la temporada, como la fila «Equipo (marcador)»).
   Por dentro, las jugadas del marcador van a un jugador interno del partido (`_equipo`, en `roster`), así que no cambia

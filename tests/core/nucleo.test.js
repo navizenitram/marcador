@@ -54,6 +54,15 @@ describe('estadísticas de un partido sin DOM', () => {
     expect(plain(a)).toMatchObject({ t2m: 2, t2a: 2, rd: 2 });
   });
 
+  it('una corrección de puntos (adj, el −1 del marcador) cuenta en el resultado, los parciales, los puntos y la valoración', () => {
+    const adj = (pts, period) => ({ ...ev('t2_ok', 'p4', period), type: core.ADJ, pts });
+    const g = makeGame({ events: [ev('t2_ok', 'p4', 1), ev('t3_ok', 'p4', 2), adj(-1, 1), opp(2, 1)] });
+    expect(plain(core.score(g))).toEqual({ us: 4, them: 2 });
+    expect(plain(core.periodScores(g)).us.slice(0, 2)).toEqual([1, 3]);
+    expect(core.playerLines(g).p4).toMatchObject({ pts: 4, adj: -1, t2m: 1, t3m: 1, val: 4 });
+    expect(plain(core.scoreFlow(g).at(-1))).toMatchObject({ us: 4, them: 2 });
+  });
+
   it('la evolución del marcador acaba en el resultado final', () => {
     const flow = core.scoreFlow(sampleGame());
     expect(plain(flow.at(-1))).toMatchObject({ us: 8, them: 4 });

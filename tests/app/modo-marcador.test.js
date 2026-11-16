@@ -9,7 +9,8 @@ const boardTeam = (o = {}) => makeTeam({ players: [], board: true, hidden: [...E
 const boardGame = (o = {}) => makeGame({ roster: [{ id: BOARD, number: '', name: 'Equipo (marcador)' }], ...o });
 const openBoard = (game = {}, team = boardTeam()) =>
   openApp({ data: makeData({ teams: [team], games: [boardGame(game)] }), hash: '#/partido/g1' });
-const score = (app) => app.$$('.sb-score').map((n) => n.textContent.trim()).join('-');
+const score = (app) => app.$$('.sb-score span').map((n) => n.textContent.trim()).join('-');
+const totals = (app) => app.$$('.sb-totalbar b').map((n) => n.textContent.trim()).join('-');
 
 describe('crear un equipo de solo marcador', () => {
   it('es la opción por defecto al crear un equipo', async () => {
@@ -93,6 +94,62 @@ describe('el marcador', () => {
     const app = await openBoard({ venue: 'away', events: [ev('t2_ok', BOARD), opp(3)] });
     expect(app.$$('.sb-side').map((s) => (s.classList.contains('us') ? 'us' : 'them'))).toEqual(['them', 'us']);
     expect(score(app)).toBe('3-2');
+  });
+
+  it('en minibasket (8 periodos) el marcador grande es el del periodo y el total se ve siempre', async () => {
+    const app = await openBoard({ period: 2, events: [ev('t2_ok', BOARD, 1), opp(3, 1), ev('t1_ok', BOARD, 2)] });
+    expect(score(app)).toBe('1-0');
+    expect(totals(app)).toBe('3-3');
+    expect(app.text('.sb-per')).toBe('P2');
+    // Al pasar de periodo, empieza en 0 y el aviso recuerda el total
+    await app.act('period', { d: '1' });
+    expect(score(app)).toBe('0-0');
+    expect(totals(app)).toBe('3-3');
+    expect(app.toast).toContain('Periodo 3 · total 3-3');
+  });
+
+  it('con 4 cuartos el marcador grande es el total y al lado va el parcial del cuarto', async () => {
+    const app = await openBoard({ periods: 4, period: 2, events: [ev('t2_ok', BOARD, 1), ev('t1_ok', BOARD, 2)] });
+    expect(score(app)).toBe('3-0');
+    expect(app.$('.sb-totalbar')).toBeNull();
+    expect(app.$('.sb-per')).toBeNull();
+    expect(app.text('.sb-side.us .sb-sub')).toContain('Q2 1');
+  });
+
+  it('el −1 del equipo corrige los puntos de un periodo pasado y cuenta en todas las estadísticas', async () => {
+    const app = await openBoard({ period: 2, events: [ev('t2_ok', BOARD, 1), ev('t3_ok', BOARD, 2)] });
+    await app.act('period', { d: '-1' });
+    await app.act('adj', { pts: '-1' });
+    expect(app.toast).toContain('Alevín A -1 · P1');
+    expect(score(app)).toBe('1-0');
+    expect(totals(app)).toBe('4-0');
+    const g = app.db.games[0];
+    expect(g.events.at(-1)).toMatchObject({ type: 'adj', pid: BOARD, pts: -1, period: 1 });
+    // VAL: 4 puntos (5 de los tiros − 1 de corrección)
+    expect(app.text('.live-perf b')).toBe('4');
+    // No deja el parcial en negativo
+    await app.act('adj', { pts: '-1' });
+    await app.act('adj', { pts: '-1' });
+    expect(app.toast).toContain('no tiene puntos en P1');
+    expect(score(app)).toBe('0-0');
+    // En el listado de jugadas
+    await app.act('menu');
+    await app.act('log');
+    expect(app.text('.log-row')).toContain('Corrección de puntos -1');
+  });
+
+  it('las correcciones se conservan al cargar si sus puntos son un número', async () => {
+    const adj = (pts) => ({ ...ev('t2_ok', BOARD), type: 'adj', pts });
+    const app = await openBoard({ events: [ev('t2_ok', BOARD), adj(-1), adj('x')] });
+    expect(app.db.games[0].events.map((e) => e.type)).toEqual(['t2_ok', 'adj']);
+    expect(score(app)).toBe('1-0');
+  });
+
+  it('las estadísticas cuentan las correcciones en los puntos y en el resultado', async () => {
+    const events = [ev('t2_ok', BOARD, 1), { ...ev('t2_ok', BOARD, 1), type: 'adj', pts: -1 }, opp(2, 1)];
+    const app = await openApp({ data: makeData({ teams: [boardTeam()], games: [boardGame({ events, finished: true })] }), hash: '#/stats/g1' });
+    expect(app.text('table.stats tfoot [data-k="pts"]')).toBe('1');
+    expect(app.text('.badge')).toBe('Derrota');
   });
 
   it('los botones se configuran en Ajustes, con las faltas del equipo por periodo', async () => {

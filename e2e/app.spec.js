@@ -117,12 +117,12 @@ test('solo marcador: un equipo sin jugadores lleva el partido como un marcador',
   await us.locator('[data-type="t3_ok"]').tap();
   await us.locator('[data-type="t2_ko"]').tap();
   await page.locator('.sb-side.them [data-pts="2"]').tap();
-  await expect(page.locator('.sb-score.us')).toHaveText('5');
-  await expect(page.locator('.sb-score.them')).toHaveText('2');
+  await expect(page.locator('.sb-score.us span')).toHaveText('5');
+  await expect(page.locator('.sb-score.them span')).toHaveText('2');
   const layout = await page.evaluate(() => {
     const buttons = [...document.querySelectorAll('.sb button')].map((b) => b.getBoundingClientRect());
     // Los de apuntar, del tamaño recomendado para tocar con el dedo; el −1 (corregir) puede ser algo más bajo
-    const main = [...document.querySelectorAll('.sb button:not(.minus)')].map((b) => b.getBoundingClientRect());
+    const main = [...document.querySelectorAll('.sb button:not(.sb-minus)')].map((b) => b.getBoundingClientRect());
     return {
       scroll: document.documentElement.scrollHeight - innerHeight,
       offscreen: buttons.filter((r) => r.bottom > innerHeight + 0.5 || r.right > innerWidth + 0.5).length,
@@ -135,18 +135,24 @@ test('solo marcador: un equipo sin jugadores lleva el partido como un marcador',
   expect(layout.minMain).toBeGreaterThanOrEqual(44);
   expect(layout.minAll).toBeGreaterThanOrEqual(36);
 
-  // Pasar de periodo no pide quinteto, y al recargar sigue todo
+  // Pasar de periodo no pide quinteto; en minibasket el periodo empieza en 0 y el total sigue a la vista
   await page.locator('[data-action="period"][data-d="1"]').tap();
   await expect(page.locator('.period b')).toHaveText('P2');
   await expect(page.locator('.modal')).toHaveCount(0);
+  await expect(page.locator('.sb-score.us span')).toHaveText('0');
+  await expect(page.locator('.sb-totalbar b.us')).toHaveText('5');
+  // Volviendo al periodo anterior se corrigen sus puntos con el −1 del propio equipo
+  await page.locator('[data-action="period"][data-d="-1"]').tap();
+  await page.locator('.sb-side.us [data-action="adj"]').tap();
+  await expect(page.locator('.sb-score.us span')).toHaveText('4');
   await page.reload();
-  await expect(page.locator('.sb-score.us')).toHaveText('5');
+  await expect(page.locator('.sb-totalbar b.us')).toHaveText('4');
 
   await page.locator('[data-action="menu"]').tap();
   await page.getByRole('button', { name: /Finalizar partido/ }).tap();
   await page.locator('[data-action="confirm-yes"]').tap();
   await expect(page.locator('.badge')).toHaveText('Victoria');
-  await expect(page.locator('table.stats tfoot td[data-k="pts"]')).toHaveText('5');
+  await expect(page.locator('table.stats tfoot td[data-k="pts"]')).toHaveText('4');
 });
 
 test('en el móvil más estrecho, el marcador con todos los botones cabe sin recortar el resultado', async ({ page }) => {
@@ -164,8 +170,8 @@ test('en el móvil más estrecho, el marcador con todos los botones cabe sin rec
     return {
       scroll: Math.max(document.documentElement.scrollHeight - innerHeight, document.documentElement.scrollWidth - innerWidth),
       offscreen: buttons.filter((r) => r.bottom > innerHeight + 0.5 || r.right > innerWidth + 0.5).length,
-      clipped: scores.filter((s) => { const n = box(s.firstElementChild), b = box(s); return n.width > b.width + 0.5 || n.height > b.height + 0.5; }).length,
-      texts: scores.map((s) => s.textContent),
+      clipped: scores.filter((s) => { const n = box(s.querySelector('span')), b = box(s); return n.width > b.width + 0.5 || n.height > b.height + 0.5; }).length,
+      texts: scores.map((s) => s.querySelector('span').textContent),
     };
   });
   expect(layout.texts).toEqual(['100', '88']);

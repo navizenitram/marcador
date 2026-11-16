@@ -264,13 +264,14 @@ function normalize(d) {
       .filter(([, list]) => Array.isArray(list))
       .map(([pid, list]) => [fixId(pid), list.filter(n => Number.isInteger(n) && n >= 1)]));
     // Los tipos de jugada desconocidos se conservan (no cuentan en las estadísticas) si son un nombre simple;
-    // los puntos del rival tienen que ser un número
+    // los puntos del rival y las correcciones de los propios (MBCore.ADJ, el −1 del marcador) tienen que ser un número
     const events = [];
     for (const e of objects(g.events)) {
-      if (e.type === 'opp') {
+      if (e.type === 'opp' || e.type === MBCore.ADJ) {
         e.pts = +e.pts;
         if (!Number.isFinite(e.pts)) continue;
-      } else {
+      }
+      if (e.type !== 'opp') {
         if (typeof e.type !== 'string' || !safeKey(e.type)) continue;
         if (e.pid != null) e.pid = fixId(e.pid);
       }
@@ -1192,7 +1193,12 @@ function teamFouls(g, period = g.period) {
 /* ── Partido de marcador ──
    Como una app de marcador: cada equipo en su mitad (el local a la izquierda) con su resultado en grande y sus
    botones debajo. Los del equipo propio son los del perfil (tiros anotados arriba, fallados debajo y el resto en
-   una fila); los del rival, +1 / +2 / +3 y −1 para corregir. */
+   una fila); los del rival, +1 / +2 / +3. Los dos tienen −1 para corregir los puntos del periodo que se ve, también
+   de uno pasado (se vuelve a él con ‹).
+   En minibasket (8 periodos) cada periodo se juega desde 0: el número grande es el del periodo y el total del
+   partido se ve siempre al lado. Con 4 cuartos el número grande es el total y al lado va el parcial del cuarto. */
+const perPeriodBoard = (g) => g.periods === 8;
+
 function viewBoard(g) {
   const s = score(g);
   const ro = g.finished ? ' disabled' : '';
@@ -1201,6 +1207,9 @@ function viewBoard(g) {
   const names = sideNames(g);
   const ps = periodScores(g);
   const pi = Math.min(g.period, g.periods) - 1;
+  const byPeriod = perPeriodBoard(g);
+  const big = (k) => (byPeriod ? ps[k][pi] : s[k]);
+  const minus = (action, who) => `<div class="sb-row fix"><button class="sb-minus" data-action="${action}" data-pts="-1" aria-label="${esc(who)} −1 en ${perAbbr(g, pi + 1)}"${ro}>−1</button></div>`;
   const btn = (t) => `<button class="act ${EV[t].cls}" data-action="ev" data-type="${t}" data-pid="${BOARD_PID}" aria-label="${EV[t].text}"${ro}>${actLabel(t)}</button>`;
   const row = (list, cls = '') => (list.length ? `<div class="sb-row ${cls}" style="--n:${list.length}">${list.map(btn).join('')}</div>` : '');
   const shots = SHOT_ACTIONS.filter(actEnabled);
@@ -1210,17 +1219,18 @@ function viewBoard(g) {
   const usBtns = `
         ${row(shots.filter(t => EV[t].cls === 'made'), 'made')}
         ${row(shots.filter(t => EV[t].cls === 'miss'), 'miss')}
-        ${row(rest, 'rest')}`;
+        ${row(rest, 'rest')}
+        ${minus('adj', g.teamName)}`;
   const oppBtns = `
         <div class="sb-row opp" style="--n:3">${[1, 2, 3].map(n => `<button class="sb-opp" data-action="opp" data-pts="${n}" aria-label="${esc(g.opponent)} +${n}"${ro}>+${n}</button>`).join('')}</div>
-        <div class="sb-row opp-fix"><button class="sb-opp minus" data-action="opp" data-pts="-1" aria-label="${esc(g.opponent)} −1"${ro}>−1</button></div>`;
+        ${minus('opp', g.opponent)}`;
   const side = (k) => `
       <section class="sb-side ${k}">
         <div class="sb-head">
           <span class="sb-name">${esc(names[k])}</span>
-          <span class="sb-sub">${perAbbr(g, pi + 1)} <b>${ps[k][pi]}</b>${k === 'us' && fouls != null ? ` · Faltas <b class="${fouls >= TEAM_FOUL_WARN ? 'foul-warn' : ''}">${fouls}</b>` : ''}</span>
+          <span class="sb-sub">${[byPeriod ? '' : `${perAbbr(g, pi + 1)} <b>${ps[k][pi]}</b>`, k === 'us' && fouls != null ? `Faltas <b class="${fouls >= TEAM_FOUL_WARN ? 'foul-warn' : ''}">${fouls}</b>` : ''].filter(Boolean).join(' · ')}</span>
         </div>
-        <div class="sb-score ${k}"><span>${s[k]}</span></div>
+        <div class="sb-score ${k}">${byPeriod ? `<small class="sb-per">${perAbbr(g, pi + 1)}</small>` : ''}<span>${big(k)}</span></div>
         <div class="sb-btns">${k === 'us' ? usBtns : oppBtns}</div>
       </section>`;
   return `
@@ -1229,6 +1239,8 @@ function viewBoard(g) {
       <button class="icon-btn" data-action="menu" title="Menú" aria-label="Menú">${icon('menu')}</button>
       ${periodNav(g)}
       <span class="grow"></span>
+      ${byPeriod ? `<div class="sb-totalbar" title="Resultado del partido (suma de todos los periodos)"><small>Total</small><b class="${home}">${s[home]}</b><i>–</i><b class="${away}">${s[away]}</b></div>
+      <span class="grow"></span>` : ''}
       <div class="live-perf">
         <span title="Valoración del equipo en el partido"><small>VAL</small><b class="${tone(l.val)}">${l.val}</b></span>
       </div>
@@ -2005,6 +2017,7 @@ function renderEditGame(m) {
 
 function eventText(g, e) {
   if (e.type === 'opp') return `<span class="them">${esc(g.opponent)}</span> ${e.pts > 0 ? '+' + e.pts : e.pts}`;
+  if (e.type === MBCore.ADJ) return `<b>${esc(whoLabel(g, g.roster.find(x => x.id === e.pid)))}</b> · Corrección de puntos ${e.pts > 0 ? '+' + e.pts : e.pts}`;
   const p = g.roster.find(x => x.id === e.pid);
   return `<b>${esc(whoLabel(g, p))}</b> · ${EV[e.type] ? EV[e.type].text : esc(e.type)}`;
 }
@@ -2016,7 +2029,7 @@ function renderLog(m) {
   <div class="modal-head"><h3>Jugadas registradas</h3><span class="muted">${evs.length}</span></div>
   <div class="log">
     ${evs.length ? evs.map(e => `
-      <div class="log-row ${e.type === 'opp' ? 'opp' : (EV[e.type] && EV[e.type].cls) || ''}">
+      <div class="log-row ${e.type === 'opp' ? 'opp' : e.type === MBCore.ADJ ? 'miss' : (EV[e.type] && EV[e.type].cls) || ''}">
         <span class="lp">${perAbbr(g, e.period)}</span>
         <span class="lt">${eventText(g, e)}</span>
         ${g.finished ? '' : `<button class="icon-btn danger" data-action="del-event" data-id="${e.id}" title="Eliminar" aria-label="Eliminar jugada">${icon('x')}</button>`}
@@ -2057,7 +2070,7 @@ function currentGame() {
    el despachador de clics las corta antes de llegar al handler, así que una acción nueva que cambie el partido
    solo tiene que añadirse aquí. Para apuntar algo hay que reabrirlo. */
 const GAME_EDITS = new Set([
-  'ev', 'opp', 'undo', 'undo-event', 'period', 'lineup', 'swap',
+  'ev', 'opp', 'adj', 'undo', 'undo-event', 'period', 'lineup', 'swap',
   'toggle-court', 'clear-court', 'swap-in', 'bench-out', 'del-event',
 ]);
 
@@ -2138,7 +2151,7 @@ function recordOpp(g, pts) {
   // Una corrección no puede dejar en negativo el parcial del periodo actual (como en el marcador).
   // Para quitar puntos de otro periodo se borra la jugada en el listado.
   if (pts < 0 && periodScores(g).them[g.period - 1] + pts < 0) {
-    toast(`El rival no tiene puntos en ${perAbbr(g, g.period)} · para corregir otro periodo: ☰ › Jugadas`);
+    toast(`El rival no tiene puntos en ${perAbbr(g, g.period)} · ${otherPeriodHint(g)}`);
     return;
   }
   const e = { id: uid(), seq: ++g.seq, ts: Date.now(), period: g.period, type: 'opp', pts };
@@ -2148,6 +2161,28 @@ function recordOpp(g, pts) {
   vibrate();
   render();
   toast(`${esc(g.opponent)} ${pts > 0 ? '+' + pts : pts}`, e.id);
+}
+
+/* Cómo corregir los puntos de otro periodo: en el marcador, volviendo a ese periodo (‹) y usando el −1;
+   en la pista, borrando la jugada en el listado */
+function otherPeriodHint(g) {
+  return isBoard(g) ? 'para corregir otro periodo, vuelve a él con ‹' : 'para corregir otro periodo: ☰ › Jugadas';
+}
+
+/* −1 de los puntos propios en el marcador (MBCore.ADJ): para ajustar el resultado de un periodo, también de uno pasado
+   (se vuelve a él con ‹). Como con el rival, no puede dejar en negativo el parcial de ese periodo. */
+function recordAdj(g, pts) {
+  if (!isBoard(g)) return;
+  if (periodScores(g).us[g.period - 1] + pts < 0) {
+    toast(`${esc(g.teamName)} no tiene puntos en ${perAbbr(g, g.period)} · ${otherPeriodHint(g)}`);
+    return;
+  }
+  const e = { id: uid(), seq: ++g.seq, ts: Date.now(), period: g.period, type: MBCore.ADJ, pid: BOARD_PID, pts };
+  g.events.push(e);
+  save();
+  vibrate();
+  render();
+  toast(`${esc(g.teamName)} ${pts > 0 ? '+' + pts : pts} · ${perAbbr(g, g.period)}`, e.id);
 }
 
 function removeEvent(g, id) {
@@ -2234,6 +2269,10 @@ const actions = {
     const g = currentGame();
     if (g) recordOpp(g, parseInt(el.dataset.pts, 10));
   },
+  adj(el) {
+    const g = currentGame();
+    if (g) recordAdj(g, parseInt(el.dataset.pts, 10));
+  },
   undo() {
     const g = currentGame();
     if (!g || !g.events.length) { toast('Nada que deshacer'); return; }
@@ -2264,7 +2303,14 @@ const actions = {
     if (g.period !== was && !board) logLineup(g);
     save();
     render();
-    if (board) { if (g.period !== was) toast(`${perName(g)} ${g.period}`); return; }
+    if (board) {
+      // En minibasket cada periodo empieza desde 0: se recuerda el total, que sigue a la vista junto al marcador
+      if (g.period !== was) {
+        const t = score(g);
+        toast(`${perName(g)} ${g.period}${perPeriodBoard(g) ? ` · total ${scoreTxt(g, t.us, t.them)}` : ''}`);
+      }
+      return;
+    }
     if (d > 0) {
       syncRoster(g);
       openModal({ kind: 'lineup', gid: g.id, title: `Quinteto · ${perName(g)} ${g.period}` });
