@@ -106,7 +106,33 @@ const live = buildGame({
   ],
 });
 
-const DATA = makeData({ teams: [TEAM], games: [finished, live] });
+/* Equipo de solo marcador (sin jugadores, perfil Escuela) con un partido en juego en el periodo 5: 6-4 en el periodo
+   y 27-22 en total (heroAlt en src/i18n/home.ts). Las jugadas van al jugador interno del marcador (_equipo). */
+const BOARD_TEAM = makeTeam({ id: 'peques', name: 'Peques', players: [], board: true, hidden: ['ro', 'rd', 'reb', 'rec', 'lost', 'ast', 'blk', 'blkr', 'fc', 'fr'] });
+function buildBoard() {
+  const events = [];
+  let seq = 0;
+  const push = (period, e) => { seq++; events.push({ id: `pq-e${seq}`, seq, ts: Date.parse('2026-11-15') + seq * 20_000, period, ...e }); };
+  // Por periodo: puntos propios, puntos del rival y tiros fallados propios
+  [[6, 4, 3], [4, 6, 2], [7, 4, 3], [4, 4, 4], [6, 4, 2]].forEach(([us, them, missed], i) => {
+    const period = i + 1, plays = [];
+    for (let left = us; left > 0;) {
+      const type = left >= 3 && rand() < 0.12 ? 't3_ok' : left >= 2 && rand() < 0.75 ? 't2_ok' : 't1_ok';
+      left -= { t1_ok: 1, t2_ok: 2, t3_ok: 3 }[type];
+      plays.push({ type, pid: '_equipo' });
+    }
+    for (let k = 0; k < missed; k++) plays.push({ type: pick(['t2_ko', 't2_ko', 't1_ko', 't3_ko']), pid: '_equipo' });
+    for (let left = them; left > 0;) { const pts = left >= 2 && rand() < 0.8 ? 2 : 1; left -= pts; plays.push({ type: 'opp', pts }); }
+    for (const p of shuffle(plays)) push(period, p);
+  });
+  return makeGame({
+    id: 'g-peques', createdAt: 3, date: '2026-11-15', opponent: 'CB Montalt', teamId: BOARD_TEAM.id, teamName: BOARD_TEAM.name,
+    periods: 8, period: 5, roster: [{ id: '_equipo', number: '', name: 'Equipo (marcador)' }], events, venue: 'home', seq,
+  });
+}
+const board = buildBoard();
+
+const DATA = makeData({ teams: [TEAM, BOARD_TEAM], games: [finished, live, board], currentTeamId: TEAM.id });
 
 /* ── Servidor estático de la app ── */
 
@@ -171,8 +197,10 @@ try {
       document.querySelector('.profiles').closest('.card').scrollIntoView({ block: 'start' });
     })),
     await shot('app-estadisticas', `#/stats/${finished.id}`, '.summary .final'),
+    // La última: abrir el partido de marcador cambia el equipo actual al de solo marcador
+    await shot('app-marcador', `#/partido/${board.id}`, '.board-live .sb-totalbar'),
   ];
-  // Solo se escriben si han salido las tres
+  // Solo se escriben si han salido todas
   for (const { file, data } of shots) {
     await writeFile(file, data);
     console.log(`${file} (${Math.round(data.length / 1024)} KB)`);

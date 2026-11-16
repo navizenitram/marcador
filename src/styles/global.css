@@ -152,6 +152,8 @@ p, li { text-wrap: pretty; }
 .legend-note { margin-top: 2rem; color: var(--ink-soft); max-width: var(--measure); }
 
 .split { display: grid; gap: 2.5rem; align-items: center; }
+/* De marcador a estadísticas: los tres pasos, uno debajo de otro junto a la captura */
+.steps.grow { margin-top: 1.75rem; gap: 1.5rem; }
 .ticks { list-style: none; padding: 0; margin: 0; display: grid; gap: .75rem; }
 .ticks li { position: relative; padding-left: 1.6rem; }
 .ticks li::before { content: ''; position: absolute; left: 0; top: .6em; width: .65rem; height: .65rem; border-radius: 50%; border: 2px solid var(--ball-ink); }
@@ -248,6 +250,7 @@ p, li { text-wrap: pretty; }
   .hero-visual { overflow: visible; margin-inline: 0; padding: 0; }
   .hero-visual .court { width: 95%; right: -24%; }
   .steps { grid-template-columns: repeat(3, 1fr); gap: 2.5rem; }
+  .steps.grow { grid-template-columns: 1fr; gap: 1.5rem; }
   .split { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 4rem; }
   .split.reverse > :first-child { order: 2; }
 }

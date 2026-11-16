@@ -60,8 +60,26 @@ const alternates = [
       </div>
       <div class="hero-visual">
         <Court />
-        <Phone src="/img/app-partido.webp" alt={t.heroAlt} eager />
+        <Phone src="/img/app-marcador.webp" alt={t.heroAlt} eager />
       </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="de-marcador-a-estadisticas">
+    <div class="wrap split reverse">
+      <div>
+        <h2 id="de-marcador-a-estadisticas">{t.growTitle}</h2>
+        <p>{t.growIntro}</p>
+        <ol class="steps grow">
+          {t.grow.map((g) => (
+            <li>
+              <h3>{g.h}</h3>
+              <p>{g.p}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+      <Phone src="/img/app-partido.webp" alt={t.growAlt} />
     </div>
   </section>
 

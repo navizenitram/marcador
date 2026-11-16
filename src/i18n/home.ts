@@ -6,17 +6,26 @@ export interface Faq { q: string; a: string; link?: { href: string; text: string
 
 export const home = {
   es: {
-    title: 'App gratis de estadísticas de baloncesto formativo · My Own Basketball Stats',
+    title: 'Marcador y estadísticas de baloncesto formativo, gratis · My Own Basketball Stats',
     description:
-      'Apunta tiros, rebotes, recuperaciones, asistencias y faltas de cada jugador desde el móvil durante el partido. Estadísticas y valoración al momento. Gratis, sin registro y sin conexión.',
-    h1: 'Apunta lo que hace cada jugador, no solo el marcador',
+      'Un marcador de baloncesto vitaminado: empieza llevando el resultado, sin dar de alta a nadie, y añade tiros, rebotes, faltas o a tus jugadores cuando quieras. Gratis, sin registro y sin conexión.',
+    h1: 'Un marcador de baloncesto vitaminado',
     lead:
-      'My Own Basketball Stats es una app gratuita de estadísticas para minibasket y baloncesto formativo. Durante el partido tocas la acción de cada jugador en pista y, al acabar, tienes sus tiros, rebotes, pérdidas y valoración para preparar los entrenamientos.',
+      'Empieza como con cualquier app de marcador: creas el equipo, tocas +1, +2 y +3 y llevas el resultado periodo a periodo. Cuando quieras más, añade tiros fallados, rebotes, faltas o a tus jugadores, y My Own Basketball Stats se convierte en una app de estadísticas para minibasket y baloncesto formativo.',
     open: 'Abrir la app gratis',
     how: 'Ver cómo funciona',
     facts: ['Sin registro', 'Funciona sin conexión', 'Tus datos se quedan en tu móvil'],
     heroAlt:
-      'Pantalla de partido en My Own Basketball Stats: marcador 38 a 33 en el periodo 6, la valoración del equipo y el +/- del quinteto en pista, y una fila de botones por cada jugador con sus puntos, faltas, valoración y +/-',
+      'Modo marcador de My Own Basketball Stats: cada equipo en su mitad con los puntos del periodo 5 en grande (6 a 4), el total del partido arriba (27 a 22), los botones de tiros anotados y fallados del equipo, +1, +2 y +3 del rival y −1 en los dos para corregir',
+    growTitle: 'Empieza como un marcador. Crece hasta las estadísticas',
+    growIntro: 'No hace falta decidir el primer día cuánto quieres apuntar. Empieza por lo sencillo y ve añadiendo detalle cuando te lo pida el equipo.',
+    grow: [
+      { h: 'Solo marcador', p: 'Crea el equipo con su nombre y empieza el partido. El resultado se ve en grande; en minibasket, cada periodo empieza desde 0 y el total queda siempre a la vista. Con −1 corriges un punto de más, también de un periodo pasado.' },
+      { h: 'Más datos del equipo', p: 'En Ajustes activas tiros fallados, rebotes, recuperaciones, pérdidas o faltas: aparecen debajo de vuestro marcador y la estadística, con porcentajes y valoración, es de todo el equipo.' },
+      { h: 'Cada jugador', p: 'Cuando quieras, añade la plantilla. Los partidos nuevos tienen una fila de botones por jugador en pista, con sus puntos, faltas, valoración y +/-, y los anteriores se quedan como estaban.' },
+    ],
+    growAlt:
+      'Partido con jugadores en My Own Basketball Stats: marcador 38 a 33 en el periodo 6, la valoración del equipo y el +/- del quinteto en pista, y una fila de botones por cada jugador con sus puntos, faltas, valoración y +/-',
     audienceTitle: 'Para quien está en la banda',
     audienceIntro: 'El marcador dice quién ha ganado. Las estadísticas te dicen por qué, y qué trabajar el martes.',
     audience: [
@@ -26,17 +35,17 @@ export const home = {
     ],
     stepsTitle: 'Cómo funciona',
     steps: [
-      { h: 'Crea el equipo', p: 'Añade a los jugadores con su dorsal y su nombre. Si llevas más de un equipo, crea uno por categoría.' },
-      { h: 'Apunta durante el partido', p: 'Elige el quinteto y toca la acción de cada jugador. Tus puntos se suman solos al marcador; los del rival, con +1, +2 y +3.' },
+      { h: 'Crea el equipo', p: 'Con su nombre basta para llevarlo como un marcador. Si quieres la estadística de cada jugador, añádelos con su dorsal y su nombre. Si llevas más de un equipo, crea uno por categoría.' },
+      { h: 'Apunta durante el partido', p: 'Toca las canastas de tu equipo o, con jugadores, elige el quinteto y toca la acción de cada uno. Tus puntos se suman solos al marcador; los del rival, con +1, +2 y +3.' },
       { h: 'Revisa y comparte', p: 'Estadísticas del partido y de la temporada, parciales por periodo y valoración. Envíalas por WhatsApp o email, o descárgalas en CSV.' },
     ],
     actionsTitle: 'Qué puedes apuntar',
-    actionsIntro: 'Hasta 15 botones por jugador, pero no hace falta apuntarlo todo. Elige un perfil según la categoría y, si quieres, activa o desactiva cada botón: con menos botones, cada uno es más grande y más fácil de tocar.',
+    actionsIntro: 'Hasta 15 botones para el equipo o para cada jugador, pero no hace falta apuntarlo todo. Elige un perfil según la categoría y, si quieres, activa o desactiva cada botón: con menos botones, cada uno es más grande y más fácil de tocar.',
     profilesTitle: 'Un perfil para cada categoría',
     profilesIntro: 'Con niños pequeños, quince botones son demasiados: acabas mirando el móvil en vez del partido. Empieza por lo justo y añade botones cuando los necesites.',
     profiles: [
-      { h: 'Escuela', tag: 'Solo puntos · 6 botones', p: 'Tiros libres, de 2 y triples, anotados y fallados. Para los primeros partidos.' },
-      { h: 'Pre-mini', tag: 'Benjamín · 10 botones', p: 'Puntos, rebote con un solo botón, recuperación, pérdida y falta cometida. Es el perfil de los equipos nuevos.' },
+      { h: 'Escuela', tag: 'Solo puntos · 6 botones', p: 'Tiros libres, de 2 y triples, anotados y fallados. Para los primeros partidos y el perfil de los equipos de solo marcador.' },
+      { h: 'Pre-mini', tag: 'Benjamín · 10 botones', p: 'Puntos, rebote con un solo botón, recuperación, pérdida y falta cometida. Es el perfil de los equipos nuevos con jugadores.' },
       { h: 'Mini', tag: 'Alevín · 12 botones', p: 'Lo de pre-mini, con asistencias y faltas recibidas.' },
       { h: 'Completo', tag: 'Todos los botones · 15', p: 'También rebote de ataque y defensivo por separado, tapones y tapones recibidos.' },
     ],
@@ -75,6 +84,7 @@ export const home = {
     paperLink: 'Descarga la plantilla en PDF',
     faqs: [
       { q: '¿Cuánto cuesta?', a: 'Nada. My Own Basketball Stats es gratis y no tiene anuncios. Es un proyecto personal: si te resulta útil, puedes invitarme a un café en Ko-fi.' },
+      { q: '¿La puedo usar solo como marcador?', a: 'Sí. Al crear el equipo, deja marcado «Solo marcador»: no hace falta dar de alta a ningún jugador. Llevas el resultado como en cualquier app de marcador y, si un día quieres más detalle, activas más botones o añades la plantilla.' },
       { q: '¿Tengo que instalar algo o crear una cuenta?', a: 'No. Se abre en el navegador del móvil o de la tablet y no pide ningún dato. Si quieres, puedes añadirla a la pantalla de inicio y se abrirá como una app más.' },
       { q: '¿Funciona sin cobertura en el pabellón?', a: 'Sí. Una vez la has abierto por primera vez, funciona sin conexión.' },
       { q: '¿Qué pasa con los datos si cambio de móvil?', a: 'Los datos se guardan solo en tu dispositivo. Para pasarlos a otro, exporta una copia de seguridad desde Ajustes e impórtala en el nuevo.' },
@@ -83,7 +93,7 @@ export const home = {
         q: '¿Qué pasa si la temporada tiene dos fases?',
         a: 'En minibasket es lo habitual: según la clasificación de la primera fase, en la segunda jugáis contra equipos nuevos en un nivel superior, igual o inferior. En la ficha del equipo indicas en qué fase estás y el nivel de cada una. Los partidos nuevos se apuntan en la fase actual, y puedes ver las estadísticas de cada fase por separado o de toda la temporada.',
       },
-      { q: '¿Tengo que apuntar todas las acciones?', a: 'No. En Ajustes eliges un perfil según la categoría (escuela, pre-mini, mini o completo) y, después, puedes activar o desactivar cada botón. Los equipos nuevos empiezan en pre-mini: puntos, rebotes, recuperaciones, pérdidas y faltas.' },
+      { q: '¿Tengo que apuntar todas las acciones?', a: 'No. En Ajustes eliges un perfil según la categoría (escuela, pre-mini, mini o completo) y, después, puedes activar o desactivar cada botón. Los equipos de solo marcador empiezan en escuela (solo puntos) y los equipos con jugadores, en pre-mini: puntos, rebotes, recuperaciones, pérdidas y faltas.' },
       { q: '¿Por qué hay que usarla con el móvil en horizontal?', a: 'Para que quepan los cinco jugadores en pista con todos sus botones sin tener que hacer scroll durante el partido.' },
       {
         q: '¿Cómo calcula la valoración?',
@@ -103,17 +113,26 @@ export const home = {
     ] as Faq[],
   },
   ca: {
-    title: "App gratuïta d'estadístiques de bàsquet formatiu · My Own Basketball Stats",
+    title: "Marcador i estadístiques de bàsquet formatiu, gratis · My Own Basketball Stats",
     description:
-      "Apunta els tirs, rebots, recuperacions, assistències i faltes de cada jugador des del mòbil durant el partit. Estadístiques i valoració a l'instant. Gratis, sense registre i sense connexió.",
-    h1: 'Apunta el que fa cada jugador, no només el marcador',
+      "Un marcador de bàsquet vitaminat: comença portant el resultat, sense donar d'alta ningú, i afegeix tirs, rebots, faltes o els teus jugadors quan vulguis. Gratis, sense registre i sense connexió.",
+    h1: 'Un marcador de bàsquet vitaminat',
     lead:
-      "My Own Basketball Stats és una app gratuïta d'estadístiques per a minibàsquet i bàsquet formatiu. Durant el partit toques l'acció de cada jugador a la pista i, en acabar, tens els seus tirs, rebots, pèrdues i valoració per preparar els entrenaments.",
+      "Comença com amb qualsevol app de marcador: crees l'equip, toques +1, +2 i +3 i portes el resultat període a període. Quan en vulguis més, afegeix tirs fallats, rebots, faltes o els teus jugadors, i My Own Basketball Stats es converteix en una app d'estadístiques per a minibàsquet i bàsquet formatiu.",
     open: "Obre l'app gratis",
     how: 'Mira com funciona',
     facts: ['Sense registre', 'Funciona sense connexió', 'Les dades es queden al teu mòbil'],
     heroAlt:
-      "Pantalla de partit a My Own Basketball Stats: marcador 38 a 33 al període 6, la valoració de l'equip i el +/- del quintet a la pista, i una fila de botons per a cada jugador amb els seus punts, faltes, valoració i +/-",
+      "Mode marcador de My Own Basketball Stats: cada equip a la seva meitat amb els punts del període 5 en gran (6 a 4), el total del partit a dalt (27 a 22), els botons de tirs anotats i fallats de l'equip, +1, +2 i +3 del rival i −1 als dos per corregir",
+    growTitle: 'Comença com un marcador. Creix fins a les estadístiques',
+    growIntro: "No cal decidir el primer dia quant vols apuntar. Comença pel més senzill i vés afegint detall quan te'l demani l'equip.",
+    grow: [
+      { h: 'Només marcador', p: "Crea l'equip amb el seu nom i comença el partit. El resultat es veu en gran; en minibàsquet, cada període comença des de 0 i el total queda sempre a la vista. Amb −1 corregeixes un punt de més, també d'un període passat." },
+      { h: "Més dades de l'equip", p: "A Ajustes actives tirs fallats, rebots, recuperacions, pèrdues o faltes: apareixen sota el vostre marcador i l'estadística, amb percentatges i valoració, és de tot l'equip." },
+      { h: 'Cada jugador', p: 'Quan vulguis, afegeix la plantilla. Els partits nous tenen una fila de botons per jugador a la pista, amb els seus punts, faltes, valoració i +/-, i els anteriors es queden com estaven.' },
+    ],
+    growAlt:
+      "Partit amb jugadors a My Own Basketball Stats: marcador 38 a 33 al període 6, la valoració de l'equip i el +/- del quintet a la pista, i una fila de botons per a cada jugador amb els seus punts, faltes, valoració i +/-",
     audienceTitle: 'Per a qui és a la banda',
     audienceIntro: 'El marcador diu qui ha guanyat. Les estadístiques et diuen per què, i què cal treballar dimarts.',
     audience: [
@@ -123,17 +142,17 @@ export const home = {
     ],
     stepsTitle: 'Com funciona',
     steps: [
-      { h: "Crea l'equip", p: "Afegeix els jugadors amb el dorsal i el nom. Si portes més d'un equip, crea'n un per categoria." },
-      { h: 'Apunta durant el partit', p: "Tria el quintet i toca l'acció de cada jugador. Els teus punts se sumen sols al marcador; els del rival, amb +1, +2 i +3." },
+      { h: "Crea l'equip", p: "Amb el nom n'hi ha prou per portar-lo com un marcador. Si vols l'estadística de cada jugador, afegeix-los amb el dorsal i el nom. Si portes més d'un equip, crea'n un per categoria." },
+      { h: 'Apunta durant el partit', p: "Toca les cistelles del teu equip o, amb jugadors, tria el quintet i toca l'acció de cadascun. Els teus punts se sumen sols al marcador; els del rival, amb +1, +2 i +3." },
       { h: 'Revisa i comparteix', p: 'Estadístiques del partit i de la temporada, parcials per període i valoració. Envia-les per WhatsApp o correu electrònic, o descarrega-les en CSV.' },
     ],
     actionsTitle: 'Què pots apuntar',
-    actionsIntro: "Fins a 15 botons per jugador, però no cal apuntar-ho tot. Tria un perfil segons la categoria i, si vols, activa o desactiva cada botó: amb menys botons, cadascun és més gran i més fàcil de tocar.",
+    actionsIntro: "Fins a 15 botons per a l'equip o per a cada jugador, però no cal apuntar-ho tot. Tria un perfil segons la categoria i, si vols, activa o desactiva cada botó: amb menys botons, cadascun és més gran i més fàcil de tocar.",
     profilesTitle: 'Un perfil per a cada categoria',
     profilesIntro: "Amb nens petits, quinze botons són massa: acabes mirant el mòbil en lloc del partit. Comença pel just i afegeix botons quan els necessitis.",
     profiles: [
-      { h: 'Escola', tag: 'Només punts · 6 botons', p: 'Tirs lliures, de 2 i triples, anotats i fallats. Per als primers partits.' },
-      { h: 'Pre-mini', tag: 'Benjamí · 10 botons', p: "Punts, rebot amb un sol botó, recuperació, pèrdua i falta comesa. És el perfil dels equips nous." },
+      { h: 'Escola', tag: 'Només punts · 6 botons', p: 'Tirs lliures, de 2 i triples, anotats i fallats. Per als primers partits i el perfil dels equips de només marcador.' },
+      { h: 'Pre-mini', tag: 'Benjamí · 10 botons', p: "Punts, rebot amb un sol botó, recuperació, pèrdua i falta comesa. És el perfil dels equips nous amb jugadors." },
       { h: 'Mini', tag: 'Aleví · 12 botons', p: 'El de pre-mini, amb assistències i faltes rebudes.' },
       { h: 'Complet', tag: 'Tots els botons · 15', p: "També rebot d'atac i defensiu per separat, taps i taps rebuts." },
     ],
@@ -173,6 +192,7 @@ export const home = {
     faqs: [
       { q: 'Quant costa?', a: 'Res. My Own Basketball Stats és gratuïta i no té anuncis. És un projecte personal: si et resulta útil, pots convidar-me a un cafè a Ko-fi.' },
       { q: "En quina llengua està l'app?", a: "De moment, l'app està en castellà. Els botons fan servir abreviatures (REC, PÉR, RO, RD…) que s'entenen igual." },
+      { q: 'La puc fer servir només com a marcador?', a: "Sí. En crear l'equip, deixa marcat «Solo marcador» (a l'app, en castellà): no cal donar d'alta cap jugador. Portes el resultat com en qualsevol app de marcador i, si un dia vols més detall, actives més botons o afegeixes la plantilla." },
       { q: "He d'instal·lar res o crear un compte?", a: "No. S'obre al navegador del mòbil o de la tauleta i no demana cap dada. Si vols, la pots afegir a la pantalla d'inici i s'obrirà com una app més." },
       { q: 'Funciona sense cobertura al pavelló?', a: "Sí. Un cop l'has oberta per primera vegada, funciona sense connexió." },
       { q: 'Què passa amb les dades si canvio de mòbil?', a: "Les dades es desen només al teu dispositiu. Per passar-les a un altre, exporta una còpia de seguretat des d'Ajustes i importa-la al nou." },
@@ -181,7 +201,7 @@ export const home = {
         q: 'Què passa si la temporada té dues fases?',
         a: "En minibàsquet és l'habitual: segons la classificació de la primera fase, a la segona jugueu contra equips nous en un nivell superior, igual o inferior. A la fitxa de l'equip indiques en quina fase ets i el nivell de cadascuna. Els partits nous s'apunten a la fase actual, i pots veure les estadístiques de cada fase per separat o de tota la temporada.",
       },
-      { q: "He d'apuntar totes les accions?", a: "No. A Ajustes tries un perfil segons la categoria (a l'app, en castellà: escuela, pre-mini, mini o completo) i, després, pots activar o desactivar cada botó. Els equips nous comencen en pre-mini: punts, rebots, recuperacions, pèrdues i faltes." },
+      { q: "He d'apuntar totes les accions?", a: "No. A Ajustes tries un perfil segons la categoria (a l'app, en castellà: escuela, pre-mini, mini o completo) i, després, pots activar o desactivar cada botó. Els equips de només marcador comencen en escuela (només punts) i els equips amb jugadors, en pre-mini: punts, rebots, recuperacions, pèrdues i faltes." },
       { q: 'Per què cal fer-la servir amb el mòbil en horitzontal?', a: 'Perquè hi càpiguen els cinc jugadors de la pista amb tots els botons sense haver de desplaçar la pantalla durant el partit.' },
       {
         q: 'Com calcula la valoració?',
