@@ -224,10 +224,11 @@ describe('empezar un partido', () => {
     expect(app.text(app.modal)).toContain('Quinteto inicial · Cuarto 1');
   });
 
-  it('sin jugadores no deja empezar', async () => {
+  it('sin jugadores se empieza como marcador (ver modo-marcador.test.js)', async () => {
     const app = await openApp({ data: makeData({ teams: [makeTeam({ players: [] })] }), hash: '#/partidos' });
-    expect(app.text()).toContain('Primero da de alta a los jugadores');
-    expect(app.$('form[data-form="game"] button[type=submit]').disabled).toBe(true);
+    expect(app.text()).toContain('Modo marcador');
+    expect(app.$('form[data-form="game"] button[type=submit]').disabled).toBe(false);
+    expect(app.text('form[data-form="game"] button[type=submit]')).toBe('Empezar marcador');
   });
 
   it('propone la duración del último partido', async () => {

@@ -96,6 +96,82 @@ test('en el partido caben los 5 jugadores con sus 15 botones, sin scroll y fáci
   expect(layout.minHeight).toBeGreaterThanOrEqual(44);  // tamaño mínimo recomendado para tocar con el dedo
 });
 
+test('solo marcador: un equipo sin jugadores lleva el partido como un marcador', async ({ page }) => {
+  await page.goto(APP);
+  await page.getByLabel('Nombre del equipo').fill('Mis peques');
+  await page.locator('label', { hasText: 'Solo marcador' }).click();
+  await page.getByRole('button', { name: /Crear equipo/ }).click();
+  await expect(page).toHaveURL(/#\/partidos$/);
+
+  await page.getByPlaceholder('Nombre del rival').fill('Lakers');
+  await page.locator('.venue-field label', { hasText: 'Local' }).click();
+  await page.getByRole('button', { name: /Empezar marcador/ }).click();
+  await expect(page.locator('.modal')).toHaveCount(0);
+
+  // Perfil Escuela: tiros anotados y fallados, grandes y sin scroll
+  const us = page.locator('.sb-side.us');
+  await expect(us.locator('button.act')).toHaveCount(6);
+  await us.locator('[data-type="t2_ok"]').tap();
+  await us.locator('[data-type="t3_ok"]').tap();
+  await us.locator('[data-type="t2_ko"]').tap();
+  await page.locator('.sb-side.them [data-pts="2"]').tap();
+  await expect(page.locator('.sb-score.us')).toHaveText('5');
+  await expect(page.locator('.sb-score.them')).toHaveText('2');
+  const layout = await page.evaluate(() => {
+    const buttons = [...document.querySelectorAll('.sb button')].map((b) => b.getBoundingClientRect());
+    // Los de apuntar, del tamaño recomendado para tocar con el dedo; el −1 (corregir) puede ser algo más bajo
+    const main = [...document.querySelectorAll('.sb button:not(.minus)')].map((b) => b.getBoundingClientRect());
+    return {
+      scroll: document.documentElement.scrollHeight - innerHeight,
+      offscreen: buttons.filter((r) => r.bottom > innerHeight + 0.5 || r.right > innerWidth + 0.5).length,
+      minMain: Math.min(...main.map((r) => r.height)),
+      minAll: Math.min(...buttons.map((r) => r.height)),
+    };
+  });
+  expect(layout.scroll).toBeLessThanOrEqual(0);
+  expect(layout.offscreen).toBe(0);
+  expect(layout.minMain).toBeGreaterThanOrEqual(44);
+  expect(layout.minAll).toBeGreaterThanOrEqual(36);
+
+  // Pasar de periodo no pide quinteto, y al recargar sigue todo
+  await page.locator('[data-action="period"][data-d="1"]').tap();
+  await expect(page.locator('.period b')).toHaveText('P2');
+  await expect(page.locator('.modal')).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator('.sb-score.us')).toHaveText('5');
+
+  await page.locator('[data-action="menu"]').tap();
+  await page.getByRole('button', { name: /Finalizar partido/ }).tap();
+  await page.locator('[data-action="confirm-yes"]').tap();
+  await expect(page.locator('.badge')).toHaveText('Victoria');
+  await expect(page.locator('table.stats tfoot td[data-k="pts"]')).toHaveText('5');
+});
+
+test('en el móvil más estrecho, el marcador con todos los botones cabe sin recortar el resultado', async ({ page }) => {
+  await page.setViewportSize({ width: 568, height: 320 });
+  const roster = [{ id: '_equipo', number: '', name: 'Equipo (marcador)' }];
+  const events = [...Array(50)].map((_, i) => ({ id: `e${i}`, seq: i + 1, period: 1, type: 't2_ok', pid: '_equipo' }));
+  const opps = [...Array(44)].map((_, i) => ({ id: `o${i}`, seq: i + 51, period: 1, type: 'opp', pts: 2 }));
+  await seed(page, makeData({ teams: [makeTeam({ players: [], hidden: ['reb'] })], games: [makeGame({ roster, events: [...events, ...opps] })] }));
+  await page.goto(`${APP}#/partido/g1`);
+  await expect(page.locator('.sb-side.us button.act')).toHaveCount(15);
+  const layout = await page.evaluate(() => {
+    const box = (el) => el.getBoundingClientRect();
+    const buttons = [...document.querySelectorAll('.sb button')].map(box);
+    const scores = [...document.querySelectorAll('.sb-score')];
+    return {
+      scroll: Math.max(document.documentElement.scrollHeight - innerHeight, document.documentElement.scrollWidth - innerWidth),
+      offscreen: buttons.filter((r) => r.bottom > innerHeight + 0.5 || r.right > innerWidth + 0.5).length,
+      clipped: scores.filter((s) => { const n = box(s.firstElementChild), b = box(s); return n.width > b.width + 0.5 || n.height > b.height + 0.5; }).length,
+      texts: scores.map((s) => s.textContent),
+    };
+  });
+  expect(layout.texts).toEqual(['100', '88']);
+  expect(layout.scroll).toBeLessThanOrEqual(0);
+  expect(layout.offscreen).toBe(0);
+  expect(layout.clipped).toBe(0);
+});
+
 test('en el móvil más estrecho, el marcador cabe junto a la valoración y el +/- del quinteto', async ({ page }) => {
   await page.setViewportSize({ width: 568, height: 320 });
   // Con registro de quintetos, para que salga también el +/- del quinteto; 88-88 es el marcador más ancho habitual
