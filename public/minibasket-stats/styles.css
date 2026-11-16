@@ -384,7 +384,7 @@ label.btn { flex-direction: row; font-family: var(--font); }
 }
 .sb-sub { flex: none; font-size: clamp(11px, 3.2vh, 14px); font-weight: 600; color: var(--muted); white-space: nowrap; }
 .sb-sub b { font-family: var(--font-digits); color: var(--text); font-size: 1.15em; }
-.sb-sub b.warn { all: unset; font-family: var(--font-digits); font-size: 1.15em; font-weight: 700; color: var(--amber); }
+.sb-sub b.foul-warn { color: var(--amber); }
 .sb-score {
   flex: 1 1 auto; min-height: 0; display: grid; place-items: center;
   font-family: var(--font-digits); font-weight: 700; line-height: .9; font-size: clamp(56px, 30vh, 220px);

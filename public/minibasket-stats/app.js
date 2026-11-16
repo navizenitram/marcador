@@ -183,6 +183,7 @@ const ui = {
   flash: null,           // { pid, type } botón a resaltar tras pulsar
   focus: null,           // selector a enfocar tras renderizar
   pendingModal: null,    // modal a abrir tras la próxima navegación
+  pendingToast: null,    // aviso a mostrar tras la próxima navegación (al cambiar de pantalla se ocultan)
   lastKey: null,         // pantalla pintada la última vez (para conservar el scroll)
 };
 
@@ -728,6 +729,7 @@ function render() {
   if (next && scroll) next.scrollTop = scroll;
   postRender();
   if (ui.pendingModal) { const m = ui.pendingModal; ui.pendingModal = null; openModal(m); }
+  if (ui.pendingToast) { const t = ui.pendingToast; ui.pendingToast = null; toast(t); }
 }
 
 function postRender() {
@@ -1132,11 +1134,7 @@ function viewLive(g) {
   <div class="live${g.finished ? ' finished' : ''}">
     <header class="live-top">
       <button class="icon-btn" data-action="menu" title="Menú" aria-label="Menú">${icon('menu')}</button>
-      <div class="period" style="--p:${round1(g.period / g.periods * 100) / 100}">
-        <button data-action="period" data-d="-1" aria-label="${perName(g)} anterior" ${g.period <= 1 || g.finished ? 'disabled' : ''}>${icon('left')}</button>
-        <div><b>${perAbbr(g, g.period)}</b><small>de ${g.periods}</small></div>
-        <button data-action="period" data-d="1" aria-label="${perName(g)} siguiente"${ro}>${icon('right')}</button>
-      </div>
+      ${periodNav(g)}
       <div class="board">
         <span class="tname ${home} first">${esc(names[home])}</span>
         <span class="score ${home}">${s[home]}</span>
@@ -1158,15 +1156,33 @@ function viewLive(g) {
       <button class="icon-btn" data-action="lineup" title="Quinteto en pista" aria-label="Quinteto en pista"${ro}>${icon('swap')}</button>
       <a class="icon-btn" href="#/stats/${g.id}" title="Estadísticas" aria-label="Estadísticas">${icon('chart')}</a>
     </header>
-    ${g.finished ? `<div class="locked-bar">
-      <span>${icon('flag')} <b>Partido finalizado</b><small> · solo consulta</small></span>
-      <button class="btn" data-action="reopen" data-id="${g.id}">${icon('reopen')} Reabrir</button>
-    </div>` : ''}
+    ${lockedBar(g)}
     ${g.finished && !g.onCourt.length
       ? `<main class="court court-empty"><p class="empty">No quedó nadie en pista al finalizar.<br><a class="btn" href="#/stats/${g.id}">${icon('chart')} Ver estadísticas del partido</a></p></main>`
       : `<main class="court">${rows.join('')}</main>`}
   </div>`;
 }
+
+/* Periodo actual con sus flechas (‹ P3 ›) y la barra de progreso del partido; lo comparten la pista y el marcador */
+function periodNav(g) {
+  const ro = g.finished ? ' disabled' : '';
+  return `<div class="period" style="--p:${round1(g.period / g.periods * 100) / 100}">
+        <button data-action="period" data-d="-1" aria-label="${perName(g)} anterior" ${g.period <= 1 || g.finished ? 'disabled' : ''}>${icon('left')}</button>
+        <div><b>${perAbbr(g, g.period)}</b><small>de ${g.periods}</small></div>
+        <button data-action="period" data-d="1" aria-label="${perName(g)} siguiente"${ro}>${icon('right')}</button>
+      </div>`;
+}
+
+/* Aviso de partido finalizado (solo consulta) con el botón de reabrir */
+function lockedBar(g) {
+  return g.finished ? `<div class="locked-bar">
+      <span>${icon('flag')} <b>Partido finalizado</b><small> · solo consulta</small></span>
+      <button class="btn" data-action="reopen" data-id="${g.id}">${icon('reopen')} Reabrir</button>
+    </div>` : '';
+}
+
+/* A partir de estas faltas del equipo en un periodo, el marcador las resalta (en minibasket, la 5ª ya es bonus) */
+const TEAM_FOUL_WARN = 4;
 
 /* Faltas del equipo en un periodo (el actual, por defecto) en un partido de marcador */
 function teamFouls(g, period = g.period) {
@@ -1188,8 +1204,9 @@ function viewBoard(g) {
   const btn = (t) => `<button class="act ${EV[t].cls}" data-action="ev" data-type="${t}" data-pid="${BOARD_PID}" aria-label="${EV[t].text}"${ro}>${actLabel(t)}</button>`;
   const row = (list, cls = '') => (list.length ? `<div class="sb-row ${cls}" style="--n:${list.length}">${list.map(btn).join('')}</div>` : '');
   const shots = SHOT_ACTIONS.filter(actEnabled);
-  const rest = [...REB_ACTIONS.filter(actEnabled), ...OTHER_ACTIONS.filter(actEnabled)];
-  const fouls = actEnabled('fc') || l.fc > 0;
+  // Rebotes: en uno finalizado, los que se usaron en sus jugadas (como en la pista, ver gameRebs)
+  const rest = [...gameRebs(g), ...OTHER_ACTIONS.filter(actEnabled)];
+  const fouls = actEnabled('fc') || l.fc > 0 ? teamFouls(g) : null;
   const usBtns = `
         ${row(shots.filter(t => EV[t].cls === 'made'), 'made')}
         ${row(shots.filter(t => EV[t].cls === 'miss'), 'miss')}
@@ -1201,7 +1218,7 @@ function viewBoard(g) {
       <section class="sb-side ${k}">
         <div class="sb-head">
           <span class="sb-name">${esc(names[k])}</span>
-          <span class="sb-sub">${perAbbr(g, pi + 1)} <b>${ps[k][pi]}</b>${k === 'us' && fouls ? ` · Faltas <b class="${teamFouls(g) >= 4 ? 'warn' : ''}">${teamFouls(g)}</b>` : ''}</span>
+          <span class="sb-sub">${perAbbr(g, pi + 1)} <b>${ps[k][pi]}</b>${k === 'us' && fouls != null ? ` · Faltas <b class="${fouls >= TEAM_FOUL_WARN ? 'foul-warn' : ''}">${fouls}</b>` : ''}</span>
         </div>
         <div class="sb-score ${k}"><span>${s[k]}</span></div>
         <div class="sb-btns">${k === 'us' ? usBtns : oppBtns}</div>
@@ -1210,11 +1227,7 @@ function viewBoard(g) {
   <div class="live board-live${g.finished ? ' finished' : ''}">
     <header class="live-top">
       <button class="icon-btn" data-action="menu" title="Menú" aria-label="Menú">${icon('menu')}</button>
-      <div class="period" style="--p:${round1(g.period / g.periods * 100) / 100}">
-        <button data-action="period" data-d="-1" aria-label="${perName(g)} anterior" ${g.period <= 1 || g.finished ? 'disabled' : ''}>${icon('left')}</button>
-        <div><b>${perAbbr(g, g.period)}</b><small>de ${g.periods}</small></div>
-        <button data-action="period" data-d="1" aria-label="${perName(g)} siguiente"${ro}>${icon('right')}</button>
-      </div>
+      ${periodNav(g)}
       <span class="grow"></span>
       <div class="live-perf">
         <span title="Valoración del equipo en el partido"><small>VAL</small><b class="${tone(l.val)}">${l.val}</b></span>
@@ -1222,10 +1235,7 @@ function viewBoard(g) {
       <button class="icon-btn" data-action="undo" title="Deshacer última acción" aria-label="Deshacer última acción"${ro}>${icon('undo')}</button>
       <a class="icon-btn" href="#/stats/${g.id}" title="Estadísticas" aria-label="Estadísticas">${icon('chart')}</a>
     </header>
-    ${g.finished ? `<div class="locked-bar">
-      <span>${icon('flag')} <b>Partido finalizado</b><small> · solo consulta</small></span>
-      <button class="btn" data-action="reopen" data-id="${g.id}">${icon('reopen')} Reabrir</button>
-    </div>` : ''}
+    ${lockedBar(g)}
     <main class="sb">${side(home)}${side(away)}</main>
   </div>`;
 }
@@ -1290,7 +1300,7 @@ function viewSettings() {
         <h2>Botones del partido · ${esc(team().name)} <span class="muted">(${n}/${offered.length})</span></h2>
       </div>
       ${team().players.length ? '' : `<p class="board-note">${icon('chart')}<span><b>Modo marcador:</b> este equipo no tiene jugadores, así que estos botones apuntan para todo el equipo, debajo de su resultado.
-      Empieza con <b>Escuela</b> (solo puntos) y añade los que quieras.</span></p>`}
+      Con <b>Escuela</b> (solo puntos) es un marcador sencillo; añade los botones que quieras.</span></p>`}
       <p class="muted small">Elige un perfil según la categoría y, si quieres, activa o desactiva cada botón a tu gusto. Las acciones desactivadas
       no aparecen en la pista ni en las estadísticas (salvo que haya datos de partidos anteriores) y no cuentan en la valoración.
       Con menos botones, cada uno es más grande.</p>
@@ -2490,13 +2500,13 @@ document.addEventListener('submit', async (e) => {
     save();
     if (board) {
       ui.focus = 'input[name=opponent]';
+      ui.pendingToast = `Equipo ${esc(name)} creado. Empieza un partido y llévalo como un marcador.`;
       go('#/partidos');
-      toast(`Equipo ${esc(name)} creado. Empieza un partido y llévalo como un marcador.`);
       return;
     }
     ui.focus = 'input[name=number]';
+    ui.pendingToast = `Equipo ${esc(name)} creado. Añade sus jugadores.`;
     go('#/equipo');
-    toast(`Equipo ${esc(name)} creado. Añade sus jugadores.`);
   }
 
   if (kind === 'game-edit') {

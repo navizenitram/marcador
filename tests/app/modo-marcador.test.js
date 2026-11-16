@@ -25,6 +25,8 @@ describe('crear un equipo de solo marcador', () => {
     expect([...t.hidden].sort()).toEqual([...ESCUELA_HIDDEN].sort());
     expect(app.hash).toBe('#/partidos');
     expect(app.text()).toContain('Empezar marcador');
+    // El aviso se ve en la pantalla nueva (al cambiar de pantalla se ocultan los anteriores)
+    expect(app.toast).toContain('Equipo Mis peques creado');
   });
 
   it('al volver a abrirlo va a los partidos y en la lista de equipos sale como marcador', async () => {
@@ -136,6 +138,22 @@ describe('el marcador', () => {
     await app.act('menu');
     await app.act('log');
     expect(app.text('.log-row')).toContain('Alevín A · Canasta de 2');
+  });
+
+  it('finalizado, enseña los botones de rebote que se usaron aunque el equipo haya cambiado de modo', async () => {
+    const app = await openBoard({ finished: true, events: [ev('ro', BOARD), ev('rd', BOARD)] }, boardTeam({ hidden: [], rebOne: true }));
+    const types = app.$$('.sb-row.rest [data-action="ev"]').map((b) => b.dataset.type);
+    expect(types).toContain('ro');
+    expect(types).toContain('rd');
+    expect(types).not.toContain('reb');
+  });
+
+  it('resalta las faltas del equipo a partir de la 4ª del periodo', async () => {
+    const fouls = (n) => [...Array(n)].map(() => ev('fc', BOARD));
+    let app = await openBoard({ events: fouls(3) }, boardTeam({ hidden: [] }));
+    expect(app.$('.sb-sub .foul-warn')).toBeNull();
+    app = await openBoard({ events: fouls(4) }, boardTeam({ hidden: [] }));
+    expect(app.text('.sb-sub .foul-warn')).toBe('4');
   });
 
   it('finalizado, los botones quedan bloqueados', async () => {
