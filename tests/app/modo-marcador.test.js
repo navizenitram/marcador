@@ -12,9 +12,14 @@ const openBoard = (game = {}, team = boardTeam()) =>
 const score = (app) => app.$$('.sb-score').map((n) => n.textContent.trim()).join('-');
 
 describe('crear un equipo de solo marcador', () => {
+  it('es la opción por defecto al crear un equipo', async () => {
+    const app = await openApp();
+    expect(app.$('form[data-form="team-new"] input[name=mode]:checked').value).toBe('board');
+  });
+
   it('se crea sin jugadores, con el perfil Escuela, y lleva a los partidos', async () => {
     const app = await openApp();
-    await app.submit('team-new', { name: 'Mis peques', mode: 'board' });
+    await app.submit('team-new', { name: 'Mis peques' });
     const t = app.db.teams[0];
     expect(t).toMatchObject({ name: 'Mis peques', players: [], board: true });
     expect([...t.hidden].sort()).toEqual([...ESCUELA_HIDDEN].sort());

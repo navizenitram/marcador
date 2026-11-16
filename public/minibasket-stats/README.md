@@ -14,8 +14,8 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
   entonces se copia con sus partidos finalizados y desde ahí es un equipo normal. Se puede ocultar o eliminar, y
   recuperar con un botón en la pantalla de equipos o en **Ajustes**. Los datos están en `demo.js` (`MBDemo`; el formato está comentado en `app.js`), que se
   genera con `node scripts/demo.mjs <carpeta>` (ver el README de la raíz).
-- **Solo marcador**: al crear un equipo se elige cómo se va a usar, **con jugadores** (estadística de cada uno) o
-  **solo marcador** (sin plantilla). Un equipo sin jugadores lleva sus partidos como cualquier app de marcador: cada
+- **Solo marcador** (la puerta de entrada): al crear un equipo se elige cómo se va a usar, **solo marcador** (sin
+  plantilla; es la opción marcada por defecto) o **con jugadores** (estadística de cada uno). Un equipo sin jugadores lleva sus partidos como cualquier app de marcador: cada
   equipo en su mitad (el local a la izquierda) con su resultado en grande, los botones del perfil debajo del propio
   (**Escuela** por defecto: tiros anotados arriba y fallados debajo; se cambian en **Ajustes** como en cualquier
   equipo) y +1 / +2 / +3 / −1 debajo del rival. Si las faltas cometidas están activas, se ven las del equipo en el

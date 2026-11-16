@@ -63,9 +63,9 @@ describe('arranque y navegación', () => {
 });
 
 describe('equipos', () => {
-  it('crea un equipo y lleva a su plantilla', async () => {
+  it('crea un equipo con jugadores y lleva a su plantilla', async () => {
     const app = await openApp();
-    await app.submit('team-new', { name: '  Alevín B  ' });
+    await app.submit('team-new', { name: '  Alevín B  ', mode: 'players' });
     expect(app.db.teams).toHaveLength(1);
     // Un equipo nuevo empieza con el perfil pre-mini
     expect(app.db.teams[0]).toMatchObject({ name: 'Alevín B', players: [], hidden: ['ro', 'rd', 'ast', 'blk', 'blkr', 'fr'], rebOne: true });

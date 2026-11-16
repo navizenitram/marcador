@@ -881,14 +881,14 @@ function viewTeams() {
         <div class="field">
           <span class="field-label">¿Cómo lo vas a usar?</span>
           <div class="seg-radio">
-            <label><input type="radio" name="mode" value="players" checked><span><b>Con jugadores</b><small>Estadística de cada uno</small></span></label>
-            <label><input type="radio" name="mode" value="board"><span><b>Solo marcador</b><small>Sin plantilla, del equipo</small></span></label>
+            <label><input type="radio" name="mode" value="board" checked><span><b>Solo marcador</b><small>Sin plantilla, del equipo</small></span></label>
+            <label><input type="radio" name="mode" value="players"><span><b>Con jugadores</b><small>Estadística de cada uno</small></span></label>
           </div>
         </div>
         <button class="btn primary big" type="submit">${icon('plus')} Crear equipo</button>
       </form>
       <p class="muted small">Cada equipo tiene su propia plantilla, partidos, estadísticas y botones del partido.
-      Con <b>Solo marcador</b> empiezas a apuntar sin dar de alta a nadie; si después añades jugadores, los partidos nuevos ya son por jugador.</p>
+      Con <b>Solo marcador</b> empiezas a apuntar sin dar de alta a nadie; cuando quieras la estadística de cada jugador, añádelos en Equipo y los partidos nuevos ya serán por jugador.</p>
       <p class="privacy-note">${icon('lock')}<span>Sin registro ni seguimiento: todo se guarda solo en este dispositivo. <a href="#/privacidad">Privacidad</a></span></p>
       ${DEMO && db.demoOff && !demoLoaded() ? `<button class="btn demo-back" data-action="demo-open">${icon('plus')} ${esc(tr('demo.load'))}</button>` : ''}
     </section>

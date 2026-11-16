@@ -14,6 +14,7 @@ test('un partido completo: equipo, plantilla, quinteto, jugadas y estadísticas'
   await expect(page.getByRole('heading', { name: /Bienvenido/ })).toBeVisible();
 
   await page.getByLabel('Nombre del equipo').fill('Alevín A');
+  await page.locator('label', { hasText: 'Con jugadores' }).click();
   await page.getByRole('button', { name: /Crear equipo/ }).click();
   for (const [number, name] of [['4', 'Ana'], ['7', 'Bruno'], ['10', 'Carla'], ['12', 'Dani'], ['15', 'Eva'], ['21', 'Fran']]) {
     await page.getByLabel('Dorsal').fill(number);
@@ -99,7 +100,8 @@ test('en el partido caben los 5 jugadores con sus 15 botones, sin scroll y fáci
 test('solo marcador: un equipo sin jugadores lleva el partido como un marcador', async ({ page }) => {
   await page.goto(APP);
   await page.getByLabel('Nombre del equipo').fill('Mis peques');
-  await page.locator('label', { hasText: 'Solo marcador' }).click();
+  // Es la opción por defecto
+  await expect(page.locator('input[name=mode][value=board]')).toBeChecked();
   await page.getByRole('button', { name: /Crear equipo/ }).click();
   await expect(page).toHaveURL(/#\/partidos$/);
 
