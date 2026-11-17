@@ -110,13 +110,14 @@ test('solo marcador: un equipo sin jugadores lleva el partido como un marcador',
   await page.getByRole('button', { name: /Empezar marcador/ }).click();
   await expect(page.locator('.modal')).toHaveCount(0);
 
-  // Perfil Escuela: tiros anotados y fallados, grandes y sin scroll
+  // Perfil Marcador: los botones verdes de anotado y la falta de cada equipo, grandes y sin scroll
   const us = page.locator('.sb-side.us');
-  await expect(us.locator('button.act')).toHaveCount(6);
+  const them = page.locator('.sb-side.them');
+  await expect(us.locator('button.act')).toHaveCount(4);
+  await expect(us.locator('[data-type="t2_ko"]')).toHaveCount(0);
   await us.locator('[data-type="t2_ok"]').tap();
   await us.locator('[data-type="t3_ok"]').tap();
-  await us.locator('[data-type="t2_ko"]').tap();
-  await page.locator('.sb-side.them [data-pts="2"]').tap();
+  await them.locator('[data-pts="2"]').tap();
   await expect(page.locator('.sb-score.us span')).toHaveText('5');
   await expect(page.locator('.sb-score.them span')).toHaveText('2');
   const layout = await page.evaluate(() => {
@@ -135,10 +136,20 @@ test('solo marcador: un equipo sin jugadores lleva el partido como un marcador',
   expect(layout.minMain).toBeGreaterThanOrEqual(44);
   expect(layout.minAll).toBeGreaterThanOrEqual(36);
 
+  // Faltas de equipo: con la 4ª del periodo, el rival entra en bonus
+  for (let i = 0; i < 4; i++) await them.locator('[data-type="fr"]').tap();
+  await expect(them.locator('.sb-sub')).toContainText('Faltas 4');
+  await expect(them.locator('.bonus-tag')).toBeVisible();
+  await us.locator('[data-type="fc"]').tap();
+  await expect(us.locator('.sb-sub')).toContainText('Faltas 1');
+
   // Pasar de periodo no pide quinteto; en minibasket el periodo empieza en 0 y el total sigue a la vista
+  // (y las faltas de equipo vuelven a 0)
   await page.locator('[data-action="period"][data-d="1"]').tap();
   await expect(page.locator('.period b')).toHaveText('P2');
   await expect(page.locator('.modal')).toHaveCount(0);
+  await expect(them.locator('.sb-sub')).toContainText('Faltas 0');
+  await expect(them.locator('.bonus-tag')).toHaveCount(0);
   await expect(page.locator('.sb-score.us span')).toHaveText('0');
   await expect(page.locator('.sb-totalbar b.us')).toHaveText('5');
   // Volviendo al periodo anterior se corrigen sus puntos con el −1 del propio equipo
@@ -162,7 +173,9 @@ test('en el móvil más estrecho, el marcador con todos los botones cabe sin rec
   const opps = [...Array(44)].map((_, i) => ({ id: `o${i}`, seq: i + 51, period: 1, type: 'opp', pts: 2 }));
   await seed(page, makeData({ teams: [makeTeam({ players: [], hidden: ['reb'] })], games: [makeGame({ roster, events: [...events, ...opps] })] }));
   await page.goto(`${APP}#/partido/g1`);
-  await expect(page.locator('.sb-side.us button.act')).toHaveCount(15);
+  // La falta recibida (la del rival) va debajo de los puntos del rival
+  await expect(page.locator('.sb-side.us button.act')).toHaveCount(14);
+  await expect(page.locator('.sb-side.them button.act')).toHaveCount(1);
   const layout = await page.evaluate(() => {
     const box = (el) => el.getBoundingClientRect();
     const buttons = [...document.querySelectorAll('.sb button')].map(box);
@@ -180,7 +193,7 @@ test('en el móvil más estrecho, el marcador con todos los botones cabe sin rec
   expect(layout.clipped).toBe(0);
 });
 
-test('en el móvil más estrecho, el marcador cabe junto a la valoración y el +/- del quinteto', async ({ page }) => {
+test('en el móvil más estrecho, el marcador cabe junto a la valoración, el +/- del quinteto y las faltas de equipo', async ({ page }) => {
   await page.setViewportSize({ width: 568, height: 320 });
   // Con registro de quintetos, para que salga también el +/- del quinteto; 88-88 es el marcador más ancho habitual
   const events = [...Array(44)].map((_, i) => ({ id: `e${i}`, seq: i + 2, period: 1, type: 't2_ok', pid: 'p4' }));
@@ -188,10 +201,11 @@ test('en el móvil más estrecho, el marcador cabe junto a la valoración y el +
   await seed(page, makeData({ games: [makeGame({ onCourt: [...FIVE], lineupFrom: 1, lineups: [{ seq: 1, period: 1, on: [...FIVE] }], events: [...events, ...opps] })] }));
   await page.goto(`${APP}#/partido/g1`);
   await expect(page.locator('.live-perf b')).toHaveCount(2);
+  await expect(page.locator('.board .tfouls')).toHaveCount(2);
   const layout = await page.evaluate(() => {
     const box = (el) => el.getBoundingClientRect();
     const board = box(document.querySelector('.board'));
-    const scores = [...document.querySelectorAll('.board .score')];
+    const scores = [...document.querySelectorAll('.board .score, .board .tfouls')];
     return {
       scroll: document.documentElement.scrollWidth - innerWidth,
       // Cada marcador entero dentro de su caja y sin recortar sus cifras
@@ -200,7 +214,7 @@ test('en el móvil más estrecho, el marcador cabe junto a la valoración y el +
       texts: scores.map((s) => s.textContent),
     };
   });
-  expect(layout.texts).toEqual(['88', '88']);
+  expect(layout.texts).toEqual(['Faltas0', '88', '88', 'Faltas0']);
   expect(layout.scroll).toBeLessThanOrEqual(0);
   expect(layout.inside).toBe(true);
   expect(layout.clipped).toBe(0);

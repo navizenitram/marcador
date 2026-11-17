@@ -5,6 +5,8 @@ import { ev, makeData, makeGame, makeTeam, opp } from '../helpers/fixtures.js';
 
 const BOARD = '_equipo';
 const ESCUELA_HIDDEN = ['ro', 'rd', 'reb', 'rec', 'lost', 'ast', 'blk', 'blkr', 'fc', 'fr'];
+// Perfil Marcador (el de los equipos nuevos sin jugadores): tiros anotados y las faltas de los dos equipos
+const MARCADOR_HIDDEN = ['ro', 'rd', 'reb', 'rec', 'lost', 'ast', 'blk', 'blkr', 'miss'];
 const boardTeam = (o = {}) => makeTeam({ players: [], board: true, hidden: [...ESCUELA_HIDDEN], ...o });
 const boardGame = (o = {}) => makeGame({ roster: [{ id: BOARD, number: '', name: 'Equipo (marcador)' }], ...o });
 const openBoard = (game = {}, team = boardTeam()) =>
@@ -18,12 +20,12 @@ describe('crear un equipo de solo marcador', () => {
     expect(app.$('form[data-form="team-new"] input[name=mode]:checked').value).toBe('board');
   });
 
-  it('se crea sin jugadores, con el perfil Escuela, y lleva a los partidos', async () => {
+  it('se crea sin jugadores, con el perfil Marcador, y lleva a los partidos', async () => {
     const app = await openApp();
     await app.submit('team-new', { name: 'Mis peques' });
     const t = app.db.teams[0];
     expect(t).toMatchObject({ name: 'Mis peques', players: [], board: true });
-    expect([...t.hidden].sort()).toEqual([...ESCUELA_HIDDEN].sort());
+    expect([...t.hidden].sort()).toEqual([...MARCADOR_HIDDEN].sort());
     expect(app.hash).toBe('#/partidos');
     expect(app.text()).toContain('Empezar marcador');
     // El aviso se ve en la pantalla nueva (al cambiar de pantalla se ocultan los anteriores)
@@ -174,7 +176,7 @@ describe('el marcador', () => {
     expect(app.$$('.sb-row.rest [data-action="ev"]')).toHaveLength(9);
     expect(app.text('.sb-side.us .sb-sub')).toContain('Faltas 1');
     await app.act('ev', { pid: BOARD, type: 'fc' });
-    expect(app.toast).toContain('Falta cometida · 2 en P2');
+    expect(app.toast).toContain('Falta cometida · 2 faltas en P2');
     expect(app.text('.sb-side.us .sb-sub')).toContain('Faltas 2');
   });
 
@@ -182,6 +184,7 @@ describe('el marcador', () => {
     const app = await openApp({ data: makeData({ teams: [boardTeam()] }), hash: '#/ajustes' });
     expect(app.text('.board-note')).toContain('Modo marcador');
     expect(app.$('.profile.on').dataset.v).toBe('escuela');
+    expect(app.$$('.opts').map((o) => o.textContent).join(' ')).toContain('Falta del rival');
   });
 
   it('pasar de periodo no pide quinteto ni lleva registro de quintetos', async () => {
@@ -222,12 +225,107 @@ describe('el marcador', () => {
     expect(types).not.toContain('reb');
   });
 
-  it('resalta las faltas del equipo a partir de la 4ª del periodo', async () => {
+  it('con 4 faltas en el periodo, el equipo entra en bonus', async () => {
     const fouls = (n) => [...Array(n)].map(() => ev('fc', BOARD));
-    let app = await openBoard({ events: fouls(3) }, boardTeam({ hidden: [] }));
+    const app = await openBoard({ events: fouls(3) }, boardTeam({ hidden: [] }));
     expect(app.$('.sb-sub .foul-warn')).toBeNull();
-    app = await openBoard({ events: fouls(4) }, boardTeam({ hidden: [] }));
-    expect(app.text('.sb-sub .foul-warn')).toBe('4');
+    expect(app.$('.bonus-tag')).toBeNull();
+    await app.act('ev', { pid: BOARD, type: 'fc' });
+    expect(app.toast).toContain('4ª falta en P1, entra en bonus');
+    expect(app.text('.sb-side.us .sb-sub .foul-warn')).toBe('4');
+    expect(app.text('.sb-side.us .bonus-tag')).toBe('Bonus');
+    await app.act('ev', { pid: BOARD, type: 'fc' });
+    expect(app.toast).toContain('5 faltas en P1, bonus (2 TL)');
+    // Al empezar el periodo siguiente, la cuenta vuelve a 0
+    await app.act('period', { d: '1' });
+    expect(app.text('.sb-side.us .sb-sub')).toContain('Faltas 0');
+    expect(app.$('.bonus-tag')).toBeNull();
+  });
+
+  describe('faltas del rival', () => {
+    it('el perfil Marcador lleva solo los botones verdes y la falta de cada equipo', async () => {
+      const app = await openBoard({}, boardTeam({ hidden: [...MARCADOR_HIDDEN] }));
+      const types = (side) => app.$$(`.sb-side.${side} [data-action="ev"]`).map((b) => b.dataset.type);
+      expect(types('us')).toEqual(['t1_ok', 't2_ok', 't3_ok', 'fc']);
+      expect(types('them')).toEqual(['fr']);
+      expect(app.$('.sb-row.miss')).toBeNull();
+    });
+
+    it('la falta del rival se apunta debajo de sus puntos y cuenta para su bonus', async () => {
+      const app = await openBoard({ events: [ev('fr', BOARD), ev('fr', BOARD), ev('fr', BOARD)] }, boardTeam({ hidden: [...MARCADOR_HIDDEN] }));
+      expect(app.text('.sb-side.them .sb-sub')).toContain('Faltas 3');
+      expect(app.$('.sb-side.them .bonus-tag')).toBeNull();
+      await app.act('ev', { pid: BOARD, type: 'fr' });
+      expect(app.toast).toContain('Rival · Falta cometida · 4ª falta en P1, entra en bonus');
+      expect(app.text('.sb-side.them .bonus-tag')).toBe('Bonus');
+      // Las propias van aparte
+      expect(app.text('.sb-side.us .sb-sub')).toContain('Faltas 0');
+      await app.act('menu');
+      await app.act('log');
+      expect(app.text('.log-row')).toContain('Rival · Falta cometida');
+      expect(app.$('.log-row').classList.contains('opp')).toBe(true);   // con el color del rival, no como jugada propia
+    });
+
+    it('en Ajustes, la vista previa no pone la falta del rival entre los botones del equipo', async () => {
+      const app = await openApp({ data: makeData({ teams: [boardTeam({ hidden: [...MARCADOR_HIDDEN] })] }), hash: '#/ajustes' });
+      const preview = app.$$('.preview .act').map((b) => b.textContent);
+      expect(preview.some((t) => t.startsWith('FC'))).toBe(true);
+      expect(preview.some((t) => t.startsWith('FR'))).toBe(false);
+    });
+
+    it('si su botón no se usa, no se lleva la cuenta', async () => {
+      const app = await openBoard({}, boardTeam({ hidden: [...MARCADOR_HIDDEN, 'fr'] }));
+      expect(app.$('.sb-side.them [data-action="ev"]')).toBeNull();
+      expect(app.text('.sb-side.them .sb-sub')).not.toContain('Faltas');
+      expect(app.text('.sb-side.us .sb-sub')).toContain('Faltas 0');
+    });
+  });
+
+  describe('solo tiros anotados', () => {
+    it('en Ajustes se elige entre anotados y fallados o solo anotados', async () => {
+      const app = await openApp({ data: makeData({ teams: [boardTeam()] }), hash: '#/ajustes' });
+      expect(app.$('.miss-mode .on').dataset.v).toBe('both');
+      await app.act('miss-mode', { v: 'made' });
+      expect(app.db.teams[0].hidden).toContain('miss');
+      expect(app.$('.miss-mode .on').dataset.v).toBe('made');
+      expect(app.$$('.opts .act.miss')).toHaveLength(0);
+      expect(app.$('.profile.on')).toBeNull();   // Escuela con solo anotados ya no es ningún perfil
+      await app.act('profile', { v: 'marcador' });
+      expect(app.$('.profile.on').dataset.v).toBe('marcador');
+      await app.act('miss-mode', { v: 'both' });
+      expect(app.db.teams[0].hidden).not.toContain('miss');
+    });
+
+    it('el perfil Marcador y la opción solo se ofrecen sin jugadores', async () => {
+      const app = await openApp({ data: makeData({ teams: [makeTeam({ hidden: ['miss'] })] }), hash: '#/ajustes' });
+      expect(app.$('.miss-mode')).toBeNull();
+      expect(app.$('[data-action="profile"][data-v="marcador"]')).toBeNull();
+    });
+
+    it('con jugadores vuelven los fallados aunque el equipo tuviera solo anotados', async () => {
+      const games = [makeGame({ onCourt: ['p4'] })];
+      const app = await openApp({ data: makeData({ teams: [makeTeam({ hidden: ['miss'] })], games }), hash: '#/partido/g1' });
+      expect(app.$('.prow [data-type="t2_ko"]')).not.toBeNull();
+    });
+
+    it('las estadísticas dan los tiros anotados, sin porcentajes ni avanzadas', async () => {
+      const events = [ev('t2_ok', BOARD), ev('t2_ok', BOARD), ev('t3_ok', BOARD), ev('t1_ok', BOARD)];
+      const team = boardTeam({ hidden: [...MARCADOR_HIDDEN] });
+      const app = await openApp({ data: makeData({ teams: [team], games: [boardGame({ events })] }), hash: '#/stats/g1' });
+      expect(app.text('table.stats tfoot [data-k="t2"]')).toBe('2');
+      expect(app.text('table.stats tfoot [data-k="t1"]')).toBe('1');
+      expect(app.$('[data-action="adv"]')).toBeNull();
+      await app.act('share', { arg: 'g1' });
+      expect(app.ui.modal.text).toContain('T1 1 · T2 2 · T3 1');
+    });
+
+    it('si hay tiros fallados apuntados, se ven como siempre', async () => {
+      const events = [ev('t2_ok', BOARD), ev('t2_ko', BOARD)];
+      const team = boardTeam({ hidden: [...MARCADOR_HIDDEN] });
+      const app = await openApp({ data: makeData({ teams: [team], games: [boardGame({ events })] }), hash: '#/stats/g1' });
+      expect(app.text('table.stats tfoot [data-k="t2"]')).toContain('1/2');
+      expect(app.$('[data-action="adv"]')).not.toBeNull();
+    });
   });
 
   it('finalizado, los botones quedan bloqueados', async () => {

@@ -281,20 +281,24 @@
       hidden: !!hidden,
       ...extra,
     });
+    // Sin tiros fallados (marcador de solo anotados) no hay intentos: ninguna de las cuatro se puede calcular
+    const noMiss = rec.miss === false;
     return {
-      efg: metric(fgm + 0.5 * l.t3m, fga, false, { fgOnly: !rec.t3 }),
-      ts: metric(pts / 2, tsa, !rec.t1),
-      tov: metric(l.lost, tsa + l.lost, !rec.lost),
-      ftr: metric(l.t1a, fga, !rec.t1),
+      efg: metric(fgm + 0.5 * l.t3m, fga, noMiss, { fgOnly: !rec.t3 }),
+      ts: metric(pts / 2, tsa, noMiss || !rec.t1),
+      tov: metric(l.lost, tsa + l.lost, noMiss || !rec.lost),
+      ftr: metric(l.t1a, fga, noMiss || !rec.t1),
     };
   }
 
-  /* Qué datos se apuntaron en un ámbito: el botón está activo (no está en hidden) o hay alguna jugada de ese tipo */
+  /* Qué datos se apuntaron en un ámbito: el botón está activo (no está en hidden) o hay alguna jugada de ese tipo.
+     miss: los tiros fallados ('miss' en hidden: un marcador que solo lleva los anotados) */
   function recordedOpts(total, hidden) {
     return {
       t1: !hidden.includes('t1') || total.t1a > 0,
       t3: !hidden.includes('t3') || total.t3a > 0,
       lost: !hidden.includes('lost') || total.lost > 0,
+      miss: !hidden.includes('miss') || total.t1a + total.t2a + total.t3a > total.t1m + total.t2m + total.t3m,
     };
   }
 

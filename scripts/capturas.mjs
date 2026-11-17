@@ -106,24 +106,26 @@ const live = buildGame({
   ],
 });
 
-/* Equipo de solo marcador (sin jugadores, perfil Escuela) con un partido en juego en el periodo 5: 6-4 en el periodo
-   y 27-22 en total (growAlt en src/i18n/home.ts). Las jugadas van al jugador interno del marcador (_equipo). Los botones
-   ocultos son todos menos los de Escuela (t1, t2 y t3): la app no los lee de aquí, pero si cambian sus botones, el test
-   tests/app/modo-marcador.test.js (ESCUELA_HIDDEN) lo detecta y hay que cambiar también esta lista. */
-const BOARD_TEAM = makeTeam({ id: 'peques', name: 'Peques', players: [], board: true, hidden: ['ro', 'rd', 'reb', 'rec', 'lost', 'ast', 'blk', 'blkr', 'fc', 'fr'] });
+/* Equipo de solo marcador (sin jugadores, perfil Marcador) con un partido en juego en el periodo 5: 6-4 en el periodo
+   y 27-22 en total, con 2 faltas propias y el rival en bonus con 4 (growAlt en src/i18n/home.ts). Las jugadas van al
+   jugador interno del marcador (_equipo); las faltas del rival son sus faltas recibidas (fr). Los botones ocultos son
+   los que no lleva el perfil Marcador (y 'miss': solo tiros anotados): la app no los lee de aquí, pero si cambian sus
+   botones, el test tests/app/modo-marcador.test.js (MARCADOR_HIDDEN) lo detecta y hay que cambiar también esta lista. */
+const BOARD_TEAM = makeTeam({ id: 'peques', name: 'Peques', players: [], board: true, hidden: ['ro', 'rd', 'reb', 'rec', 'lost', 'ast', 'blk', 'blkr', 'miss'] });
 function buildBoard() {
   const events = [];
   let seq = 0;
   const push = (period, e) => { seq++; events.push({ id: `pq-e${seq}`, seq, ts: Date.parse('2026-11-15') + seq * 20_000, period, ...e }); };
-  // Por periodo: puntos propios, puntos del rival y tiros fallados propios
-  [[6, 4, 3], [4, 6, 2], [7, 4, 3], [4, 4, 4], [6, 4, 2]].forEach(([us, them, missed], i) => {
+  // Por periodo: puntos propios, puntos del rival, faltas propias y faltas del rival
+  [[6, 4, 1, 2], [4, 6, 3, 1], [7, 4, 2, 4], [4, 4, 0, 3], [6, 4, 2, 4]].forEach(([us, them, fouls, oppFouls], i) => {
     const period = i + 1, plays = [];
     for (let left = us; left > 0;) {
       const type = left >= 3 && rand() < 0.12 ? 't3_ok' : left >= 2 && rand() < 0.75 ? 't2_ok' : 't1_ok';
       left -= { t1_ok: 1, t2_ok: 2, t3_ok: 3 }[type];
       plays.push({ type, pid: '_equipo' });
     }
-    for (let k = 0; k < missed; k++) plays.push({ type: pick(['t2_ko', 't2_ko', 't1_ko', 't3_ko']), pid: '_equipo' });
+    for (let k = 0; k < fouls; k++) plays.push({ type: 'fc', pid: '_equipo' });
+    for (let k = 0; k < oppFouls; k++) plays.push({ type: 'fr', pid: '_equipo' });
     for (let left = them; left > 0;) { const pts = left >= 2 && rand() < 0.8 ? 2 : 1; left -= pts; plays.push({ type: 'opp', pts }); }
     for (const p of shuffle(plays)) push(period, p);
   });
