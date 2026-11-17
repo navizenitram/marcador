@@ -355,6 +355,11 @@ label.btn { flex-direction: row; font-family: var(--font); }
 .tfouls b { font-family: var(--font-digits); font-size: clamp(15px, 5vh, 20px); color: var(--text); }
 .tfouls.bonus { background: color-mix(in srgb, var(--red) 16%, var(--surface)); border-color: color-mix(in srgb, var(--red) 55%, var(--surface)); }
 .tfouls.bonus small, .tfouls.bonus b { color: var(--red); }
+/* Con las faltas de equipo, si no queda sitio para los nombres enteros, mejor sin nombres que cortados («C…») */
+.board { container: board / inline-size; }
+@container board (max-width: 540px) {
+  .board:has(.tfouls) .tname { display: none; }
+}
 
 /* Rendimiento en directo: valoración del equipo y +/- del quinteto en pista */
 .live-perf { display: flex; gap: 3px; flex: none; height: 100%; max-height: 46px; }

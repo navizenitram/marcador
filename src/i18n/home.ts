@@ -16,7 +16,7 @@ export const home = {
     how: 'Ver cómo funciona',
     facts: ['Sin registro', 'Funciona sin conexión', 'Tus datos se quedan en tu móvil'],
     heroAlt:
-      'Pantalla de partido en My Own Basketball Stats: marcador 38 a 33 en el periodo 6, la valoración del equipo y el +/- del quinteto en pista, y una fila de botones por cada jugador con sus puntos, faltas, valoración y +/-',
+      'Pantalla de partido en My Own Basketball Stats: marcador 38 a 33 en el periodo 6 con las faltas de equipo de cada uno (0 y 2), la valoración del equipo y el +/- del quinteto en pista, y una fila de botones por cada jugador con sus puntos, faltas, valoración y +/-',
     growTitle: 'También es un marcador vitaminado',
     growIntro: '¿Solo quieres llevar el resultado? Empieza como con cualquier app de marcador, sin dar de alta a nadie, y ve añadiendo detalle cuando te lo pida el equipo.',
     grow: [
@@ -25,7 +25,7 @@ export const home = {
       { h: 'Cada jugador', p: 'Cuando quieras, añade la plantilla. Los partidos nuevos tienen una fila de botones por jugador en pista, con sus puntos, faltas, valoración y +/-, y los anteriores se quedan como estaban.' },
     ],
     growAlt:
-      'Modo marcador de My Own Basketball Stats: cada equipo en su mitad con los puntos del periodo 5 en grande (6 a 4), el total del partido arriba (27 a 22), los botones de tiros anotados y fallados del equipo, +1, +2 y +3 del rival y −1 en los dos para corregir',
+      'Modo marcador de My Own Basketball Stats: cada equipo en su mitad con los puntos del periodo 5 en grande (6 a 4), el total del partido arriba (27 a 22), las faltas de equipo del periodo (2 propias y 4 del rival, que está en bonus), los botones de tiros anotados y de falta del equipo, +1, +2, +3 y falta del rival y −1 en los dos para corregir',
     audienceTitle: 'Para quien está en la banda',
     audienceIntro: 'El marcador dice quién ha ganado. Las estadísticas te dicen por qué, y qué trabajar el martes.',
     audience: [
@@ -124,7 +124,7 @@ export const home = {
     how: 'Mira com funciona',
     facts: ['Sense registre', 'Funciona sense connexió', 'Les dades es queden al teu mòbil'],
     heroAlt:
-      "Pantalla de partit a My Own Basketball Stats: marcador 38 a 33 al període 6, la valoració de l'equip i el +/- del quintet a la pista, i una fila de botons per a cada jugador amb els seus punts, faltes, valoració i +/-",
+      "Pantalla de partit a My Own Basketball Stats: marcador 38 a 33 al període 6 amb les faltes d'equip de cadascun (0 i 2), la valoració de l'equip i el +/- del quintet a la pista, i una fila de botons per a cada jugador amb els seus punts, faltes, valoració i +/-",
     growTitle: 'També és un marcador vitaminat',
     growIntro: "Només vols portar el resultat? Comença com amb qualsevol app de marcador, sense donar d'alta ningú, i vés afegint detall quan te'l demani l'equip.",
     grow: [
@@ -133,7 +133,7 @@ export const home = {
       { h: 'Cada jugador', p: 'Quan vulguis, afegeix la plantilla. Els partits nous tenen una fila de botons per jugador a la pista, amb els seus punts, faltes, valoració i +/-, i els anteriors es queden com estaven.' },
     ],
     growAlt:
-      "Mode marcador de My Own Basketball Stats: cada equip a la seva meitat amb els punts del període 5 en gran (6 a 4), el total del partit a dalt (27 a 22), els botons de tirs anotats i fallats de l'equip, +1, +2 i +3 del rival i −1 als dos per corregir",
+      "Mode marcador de My Own Basketball Stats: cada equip a la seva meitat amb els punts del període 5 en gran (6 a 4), el total del partit a dalt (27 a 22), les faltes d'equip del període (2 pròpies i 4 del rival, que està en bonus), els botons de tirs anotats i de falta de l'equip, +1, +2, +3 i falta del rival i −1 als dos per corregir",
     audienceTitle: 'Per a qui és a la banda',
     audienceIntro: 'El marcador diu qui ha guanyat. Les estadístiques et diuen per què, i què cal treballar dimarts.',
     audience: [
