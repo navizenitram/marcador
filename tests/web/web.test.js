@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import { JSDOM } from 'jsdom';
@@ -47,6 +47,18 @@ describe('scripts/postbuild.mjs', () => {
       expect(html).not.toContain('%SITE_URL%');
       expect(html).toContain(`<link rel="canonical" href="https://ejemplo.com/${app}/">`);
     }
+  }));
+
+  it('pone la fecha de la versión en la app de estadísticas: la de APP_DATE o, sin git, la de hoy', () => withDist((dir) => {
+    const copy = () => { for (const app of ['minibasket-stats', 'marcador']) cpSync(join(ROOT, 'public', app, 'index.html'), join(dir, 'dist', app, 'index.html')); };
+    const time = () => /<time datetime="([^"]*)">([^<]*)<\/time>/.exec(readFileSync(join(dir, 'dist/minibasket-stats/index.html'), 'utf8'));
+    copy();
+    execFileSync(process.execPath, [join(ROOT, 'scripts/postbuild.mjs')], { cwd: dir, env: { ...process.env, APP_DATE: '2026-11-17' }, stdio: 'pipe' });
+    expect(time().slice(1)).toEqual(['2026-11-17', '2026-11-17']);
+    // La carpeta temporal no es un repositorio de git: la fecha de la compilación
+    copy();
+    execFileSync(process.execPath, [join(ROOT, 'scripts/postbuild.mjs')], { cwd: dir, env: { ...process.env, APP_DATE: '', GIT_CEILING_DIRECTORIES: dirname(dir) }, stdio: 'pipe' });
+    expect(time()[1]).toBe(new Date().toISOString().slice(0, 10));
   }));
 
   it('falla si falta alguna de las apps en dist/', () => withDist((dir) => {

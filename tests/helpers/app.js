@@ -28,18 +28,21 @@ const SCRIPTS = [...HTML.matchAll(/<script src="([^"]+)"><\/script>/g)]
  * @param {Record<string,string>} [opts.storage] otras claves de localStorage
  * @param {string} [opts.origin] dirección donde se abre la app, p. ej. 'https://marcador-kohl.vercel.app'
  * @param {string} [opts.siteUrl] valor de %SITE_URL% (la canonical); sin él queda el marcador tal cual
+ * @param {string} [opts.appDate] valor de %APP_DATE% (fecha de la versión); sin él queda el marcador tal cual
  * @param {boolean} [opts.compression] da a la ventana CompressionStream y DecompressionStream (jsdom no los tiene)
  * @param {object|true} [opts.demo] equipo de ejemplo con el que arranca la app: true, el de verdad (demo.js); un
  *   objeto, ese en su lugar (MBDemo). Por defecto, ninguno: los tests no dependen de los datos del ejemplo
  */
-export async function openApp({ data, hash = '', storage = {}, origin = 'https://app.test', siteUrl, compression = false, demo } = {}) {
+export async function openApp({ data, hash = '', storage = {}, origin = 'https://app.test', siteUrl, appDate, compression = false, demo } = {}) {
   const errors = [];
   const logs = [];
   const virtualConsole = new VirtualConsole();
   virtualConsole.on('jsdomError', (e) => errors.push(e));
   for (const level of ['log', 'info', 'warn', 'error']) virtualConsole.on(level, (...args) => logs.push({ level, args }));
 
-  const dom = new JSDOM(siteUrl ? HTML.replaceAll('%SITE_URL%', siteUrl) : HTML, {
+  let html = siteUrl ? HTML.replaceAll('%SITE_URL%', siteUrl) : HTML;
+  if (appDate) html = html.replaceAll('%APP_DATE%', appDate);
+  const dom = new JSDOM(html, {
     url: `${origin}/minibasket-stats/${hash}`,
     runScripts: 'outside-only',
     pretendToBeVisual: true,

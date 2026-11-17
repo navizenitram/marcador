@@ -11,7 +11,10 @@ baloncesto formativo. El repositorio contiene tres cosas:
 | `/marcador/` | El marcador de minibasket | `public/marcador/index.html` |
 
 Las dos apps no pasan por ningún proceso de build: Astro copia `public/` tal cual. Lo único que se toca después de
-compilar es el marcador `%SITE_URL%` de sus etiquetas canonical y Open Graph (`scripts/postbuild.mjs`).
+compilar (`scripts/postbuild.mjs`) es el marcador `%SITE_URL%` de sus etiquetas canonical y Open Graph y, en la app de
+estadísticas, `%APP_DATE%`: la fecha de la última versión que se ve en la pantalla de «Gira el dispositivo». Es la de
+la variable `APP_DATE` si se define, si no la del último commit que cambió `public/minibasket-stats/` (sin su README) y,
+si la compilación no tiene historial de git, la del día de la compilación.
 
 ## Desarrollo
 
