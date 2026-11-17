@@ -1128,7 +1128,7 @@ function viewLive(g) {
   const run = MBCore.lineupRun(g);
   const pm = MBCore.plusMinus(g);
   const rosterById = Object.fromEntries(g.roster.map(p => [p.id, p]));
-  const fouls = foulCounts(g);   // faltas de equipo del periodo, junto al resultado de cada uno
+  const teamFoulsBySide = foulCounts(g);   // faltas de equipo del periodo, junto al resultado de cada uno
   const rows = [];
   for (let i = 0; i < MAX_ON_COURT; i++) {
     const pid = g.onCourt[i];
@@ -1159,11 +1159,11 @@ function viewLive(g) {
       ${periodNav(g)}
       <div class="board">
         <span class="tname ${home} first">${esc(names[home])}</span>
-        ${foulBox(g, home, fouls[home])}
+        ${foulBox(g, home, teamFoulsBySide[home])}
         <span class="score ${home}">${s[home]}</span>
         <span class="dash">–</span>
         <span class="score ${away}">${s[away]}</span>
-        ${foulBox(g, away, fouls[away])}
+        ${foulBox(g, away, teamFoulsBySide[away])}
         <span class="tname ${away}">${esc(names[away])}</span>
       </div>
       <div class="live-perf">
@@ -1282,8 +1282,8 @@ function viewBoard(g) {
   // La falta recibida es la que comete el rival: va en su lado, debajo de sus puntos
   const rest = [...gameRebs(g), ...OTHER_ACTIONS.filter(t => t !== 'fr' && actEnabled(t))];
   const fouls = foulCounts(g);
-  // Con pocos botones (el perfil Marcador: solo la falta) la fila del resto es tan alta como las de los tiros
-  const restCls = rest.length > 4 ? 'rest' : 'rest few';
+  // Con uno o dos botones (el perfil Marcador: solo la falta) la fila del resto es tan alta como las de los tiros
+  const restCls = rest.length > 2 ? 'rest' : 'rest few';
   const usBtns = `
         ${row(shots.filter(t => EV[t].cls === 'made'), 'made')}
         ${row(shots.filter(t => EV[t].cls === 'miss'), 'miss')}
@@ -1383,7 +1383,7 @@ function viewSettings() {
     <div class="preview">
       <div class="prow">
         <span class="pid"><span class="num">7${foulDots(0)}</span><span class="pinfo"><span class="pname">Jugador</span><span class="pline"><b>0</b> pts · 0 F</span></span></span>
-        ${actsHTML(sample)}
+        ${actsHTML(sample, board ? actGroups().map(gr => gr.filter(t => t !== 'fr')).filter(gr => gr.length) : undefined)}
       </div>
     </div>
   </section>
@@ -1935,7 +1935,9 @@ function colVisible(k, data) {
 function statsTable(data) {
   const cols = (showAdv(data) ? ADV_COLS : COLS)
     .filter(c => (!c.season || data.season) && colVisible(c.k, data))
-    .map(c => (c.adv || c.k === 'fg' ? { ...c, ...advHead(c, data) } : c.tk ? { ...c, t: tr(c.tk) } : c));
+    .map(c => (c.adv || c.k === 'fg' ? { ...c, ...advHead(c, data) } : c.tk ? { ...c, t: tr(c.tk) } : c))
+    // Solo anotados: los tiros son solo los anotados
+    .map(c => (c.shot && data.made ? { ...c, t: c.t.replace('(anotados/intentados)', 'anotados') } : c));
   const { key, dir } = ui.sort;
   const sk = (r) => {
     const c = cols.find(c => c.k === key) || cols[0];
@@ -2109,11 +2111,13 @@ function renderEditGame(m) {
   </form>`;
 }
 
+/* En el marcador, la falta recibida del equipo es la que comete el rival (su botón va debajo de sus puntos) */
+const isRivalFoul = (e) => e.type === 'fr' && e.pid === BOARD_PID;
+
 function eventText(g, e) {
   if (e.type === 'opp') return `<span class="them">${esc(g.opponent)}</span> ${e.pts > 0 ? '+' + e.pts : e.pts}`;
   if (e.type === MBCore.ADJ) return `<b>${esc(whoLabel(g, g.roster.find(x => x.id === e.pid)))}</b> · Corrección de puntos ${e.pts > 0 ? '+' + e.pts : e.pts}`;
-  // En el marcador, la falta recibida es la que comete el rival
-  if (e.type === 'fr' && e.pid === BOARD_PID) return `<span class="them">${esc(g.opponent)}</span> · Falta cometida`;
+  if (isRivalFoul(e)) return `<span class="them">${esc(g.opponent)}</span> · Falta cometida`;
   const p = g.roster.find(x => x.id === e.pid);
   return `<b>${esc(whoLabel(g, p))}</b> · ${EV[e.type] ? EV[e.type].text : esc(e.type)}`;
 }
@@ -2125,7 +2129,7 @@ function renderLog(m) {
   <div class="modal-head"><h3>Jugadas registradas</h3><span class="muted">${evs.length}</span></div>
   <div class="log">
     ${evs.length ? evs.map(e => `
-      <div class="log-row ${e.type === 'opp' ? 'opp' : e.type === MBCore.ADJ ? 'miss' : (EV[e.type] && EV[e.type].cls) || ''}">
+      <div class="log-row ${e.type === 'opp' || isRivalFoul(e) ? 'opp' : e.type === MBCore.ADJ ? 'miss' : (EV[e.type] && EV[e.type].cls) || ''}">
         <span class="lp">${perAbbr(g, e.period)}</span>
         <span class="lt">${eventText(g, e)}</span>
         ${g.finished ? '' : `<button class="icon-btn danger" data-action="del-event" data-id="${e.id}" title="Eliminar" aria-label="Eliminar jugada">${icon('x')}</button>`}

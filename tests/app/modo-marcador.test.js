@@ -263,6 +263,14 @@ describe('el marcador', () => {
       await app.act('menu');
       await app.act('log');
       expect(app.text('.log-row')).toContain('Rival · Falta cometida');
+      expect(app.$('.log-row').classList.contains('opp')).toBe(true);   // con el color del rival, no como jugada propia
+    });
+
+    it('en Ajustes, la vista previa no pone la falta del rival entre los botones del equipo', async () => {
+      const app = await openApp({ data: makeData({ teams: [boardTeam({ hidden: [...MARCADOR_HIDDEN] })] }), hash: '#/ajustes' });
+      const preview = app.$$('.preview .act').map((b) => b.textContent);
+      expect(preview.some((t) => t.startsWith('FC'))).toBe(true);
+      expect(preview.some((t) => t.startsWith('FR'))).toBe(false);
     });
 
     it('si su botón no se usa, no se lleva la cuenta', async () => {
