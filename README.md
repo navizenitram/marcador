@@ -11,7 +11,10 @@ baloncesto formativo. El repositorio contiene tres cosas:
 | `/marcador/` | El marcador de minibasket | `public/marcador/index.html` |
 
 Las dos apps no pasan por ningún proceso de build: Astro copia `public/` tal cual. Lo único que se toca después de
-compilar es el marcador `%SITE_URL%` de sus etiquetas canonical y Open Graph (`scripts/postbuild.mjs`).
+compilar (`scripts/postbuild.mjs`) es el marcador `%SITE_URL%` de sus etiquetas canonical y Open Graph y, en la app de
+estadísticas, `%APP_DATE%`: la fecha de la última versión que se ve en la pantalla de «Gira el dispositivo». Es la de
+la variable `APP_DATE` si se define, si no la del último commit que cambió `public/minibasket-stats/` (sin su README) y,
+si la compilación no tiene historial de git, la del día de la compilación.
 
 ## Desarrollo
 
@@ -144,8 +147,9 @@ que menciona a Vercel como servicio de alojamiento) y subir la versión de la ca
 
 - `public/img/app-*.webp`: capturas reales de la app con datos de ejemplo, en un viewport de 844×390 a 2x y en modo
   oscuro. Se rehacen con `node scripts/capturas.mjs` (Chromium de Playwright; los datos de ejemplo, con un equipo en
-  el perfil mini, se generan en el propio script y salen siempre iguales). Si cambian, revisa los textos alternativos
-  (`heroAlt`, `miniAlt` y `statsAlt` en `src/i18n/home.ts`).
+  el perfil mini y otro de solo marcador, se generan en el propio script y salen siempre iguales). Si cambian, revisa
+  los textos alternativos (`heroAlt` del partido con jugadores, `growAlt` del marcador, `miniAlt` y `statsAlt` en
+  `src/i18n/home.ts`).
 - `public/minibasket-stats/demo.js`: el equipo de ejemplo de la app (Penya Verdinegra). Son las jugadas reales del
   Joventut Badalona en la Liga Endesa 2026-27 con nombres inventados para el equipo, los jugadores y los rivales
   (`FICCION` en `scripts/demo.mjs`). Se rehace con `node scripts/demo.mjs <carpeta>` para añadir las jornadas nuevas:

@@ -2959,6 +2959,20 @@ async function toggleFullscreen() {
   if (ui.modal && ui.modal.kind === 'menu') { closeModal(true); render(); }
 }
 
+/* ─────────────── Fecha de la versión ─────────────── */
+/* En la pantalla de «Gira el dispositivo», la fecha de la última versión de la app (aaaa-mm-dd en el datetime, que
+   pone scripts/postbuild.mjs al compilar). Se escribe como «17 nov 2026»; si no hay fecha (sin compilar), no se ve. */
+function showVersion() {
+  const el = document.getElementById('app-version');
+  const time = el && el.querySelector('time');
+  if (!time) return;
+  const iso = time.getAttribute('datetime') || '';
+  const d = dateParts(iso);   // sin una fecha aaaa-mm-dd válida (sin compilar) no trae mes y la línea sigue oculta
+  if (!d.month) { el.hidden = true; return; }
+  time.textContent = `${d.day} ${d.month} ${iso.slice(0, 4)}`;
+  el.hidden = false;
+}
+
 /* ─────────────── Añadir a la pantalla de inicio ─────────────── */
 // Se muestra en la pantalla de "Gira el dispositivo" si la app no está instalada.
 let installPrompt = null;   // evento beforeinstallprompt (Android / Chrome)
@@ -3046,5 +3060,6 @@ document.addEventListener('pointerdown', keepScreenOn, true);
 const incoming = takeTransfer();
 render();
 renderInstall();
+showVersion();
 keepScreenOn();
 if (incoming) receiveTransfer(incoming);

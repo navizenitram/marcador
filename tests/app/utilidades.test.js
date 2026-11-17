@@ -21,6 +21,15 @@ describe('esc', () => {
 });
 
 describe('fechas', () => {
+  it('la pantalla de «Gira el dispositivo» enseña la fecha de la última versión; sin compilar, no se ve', async () => {
+    const built = await openApp({ appDate: '2026-11-17' });
+    expect(built.$('#app-version').hidden).toBe(false);
+    expect(built.text('#app-version')).toBe('Última versión: 17 nov 2026');
+    expect(built.$('#app-version time').getAttribute('datetime')).toBe('2026-11-17');
+    const raw = await openApp();
+    expect(raw.$('#app-version').hidden).toBe(true);
+  });
+
   it('fmtDate pasa de ISO a dd/mm/aaaa, o dd/mm en formato corto', () => {
     expect(app.fn.fmtDate('2026-11-08')).toBe('08/11/2026');
     expect(app.fn.fmtDate('2026-11-08', true)).toBe('08/11');
