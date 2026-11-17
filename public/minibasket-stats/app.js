@@ -2967,12 +2967,11 @@ function showVersion() {
   const time = el && el.querySelector('time');
   if (!time) return;
   const iso = time.getAttribute('datetime') || '';
-  if (!ISO_DATE.test(iso)) { el.hidden = true; return; }
-  const d = dateParts(iso);
+  const d = dateParts(iso);   // sin una fecha aaaa-mm-dd válida (sin compilar) no trae mes y la línea sigue oculta
+  if (!d.month) { el.hidden = true; return; }
   time.textContent = `${d.day} ${d.month} ${iso.slice(0, 4)}`;
   el.hidden = false;
 }
-showVersion();
 
 /* ─────────────── Añadir a la pantalla de inicio ─────────────── */
 // Se muestra en la pantalla de "Gira el dispositivo" si la app no está instalada.
@@ -3061,5 +3060,6 @@ document.addEventListener('pointerdown', keepScreenOn, true);
 const incoming = takeTransfer();
 render();
 renderInstall();
+showVersion();
 keepScreenOn();
 if (incoming) receiveTransfer(incoming);

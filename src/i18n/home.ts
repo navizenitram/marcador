@@ -21,7 +21,7 @@ export const home = {
     growIntro: '¿Solo quieres llevar el resultado? Empieza como con cualquier app de marcador, sin dar de alta a nadie, y ve añadiendo detalle cuando te lo pida el equipo.',
     grow: [
       { h: 'Solo marcador', p: 'Crea el equipo con su nombre y empieza el partido. El resultado se ve en grande; en minibasket, cada periodo empieza desde 0 y el total queda siempre a la vista. Con −1 corriges un punto de más, también de un periodo pasado.' },
-      { h: 'Más datos del equipo', p: 'En Ajustes activas tiros fallados, rebotes, recuperaciones, pérdidas o faltas: aparecen debajo de vuestro marcador y la estadística, con porcentajes y valoración, es de todo el equipo.' },
+      { h: 'Más datos del equipo', p: 'Con los tiros anotados y fallados ya tienes porcentajes y valoración. En Ajustes añades rebotes, recuperaciones, pérdidas o faltas: aparecen debajo de vuestro marcador y la estadística es de todo el equipo.' },
       { h: 'Cada jugador', p: 'Cuando quieras, añade la plantilla. Los partidos nuevos tienen una fila de botones por jugador en pista, con sus puntos, faltas, valoración y +/-, y los anteriores se quedan como estaban.' },
     ],
     growAlt:
@@ -128,7 +128,7 @@ export const home = {
     growIntro: "Només vols portar el resultat? Comença com amb qualsevol app de marcador, sense donar d'alta ningú, i vés afegint detall quan te'l demani l'equip.",
     grow: [
       { h: 'Només marcador', p: "Crea l'equip amb el seu nom i comença el partit. El resultat es veu en gran; en minibàsquet, cada període comença des de 0 i el total queda sempre a la vista. Amb −1 corregeixes un punt de més, també d'un període passat." },
-      { h: "Més dades de l'equip", p: "A Ajustes actives tirs fallats, rebots, recuperacions, pèrdues o faltes: apareixen sota el vostre marcador i l'estadística, amb percentatges i valoració, és de tot l'equip." },
+      { h: "Més dades de l'equip", p: "Amb els tirs anotats i fallats ja tens percentatges i valoració. A Ajustes hi afegeixes rebots, recuperacions, pèrdues o faltes: apareixen sota el vostre marcador i l'estadística és de tot l'equip." },
       { h: 'Cada jugador', p: 'Quan vulguis, afegeix la plantilla. Els partits nous tenen una fila de botons per jugador a la pista, amb els seus punts, faltes, valoració i +/-, i els anteriors es queden com estaven.' },
     ],
     growAlt:

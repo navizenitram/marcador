@@ -107,7 +107,9 @@ const live = buildGame({
 });
 
 /* Equipo de solo marcador (sin jugadores, perfil Escuela) con un partido en juego en el periodo 5: 6-4 en el periodo
-   y 27-22 en total (heroAlt en src/i18n/home.ts). Las jugadas van al jugador interno del marcador (_equipo). */
+   y 27-22 en total (growAlt en src/i18n/home.ts). Las jugadas van al jugador interno del marcador (_equipo). Los botones
+   ocultos son todos menos los de Escuela (t1, t2 y t3): la app no los lee de aquí, pero si cambian sus botones, el test
+   tests/app/modo-marcador.test.js (ESCUELA_HIDDEN) lo detecta y hay que cambiar también esta lista. */
 const BOARD_TEAM = makeTeam({ id: 'peques', name: 'Peques', players: [], board: true, hidden: ['ro', 'rd', 'reb', 'rec', 'lost', 'ast', 'blk', 'blkr', 'fc', 'fr'] });
 function buildBoard() {
   const events = [];
@@ -197,7 +199,6 @@ try {
       document.querySelector('.profiles').closest('.card').scrollIntoView({ block: 'start' });
     })),
     await shot('app-estadisticas', `#/stats/${finished.id}`, '.summary .final'),
-    // La última: abrir el partido de marcador cambia el equipo actual al de solo marcador
     await shot('app-marcador', `#/partido/${board.id}`, '.board-live .sb-totalbar'),
   ];
   // Solo se escriben si han salido todas

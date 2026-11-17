@@ -57,8 +57,11 @@ describe('scripts/postbuild.mjs', () => {
     expect(time().slice(1)).toEqual(['2026-11-17', '2026-11-17']);
     // La carpeta temporal no es un repositorio de git: la fecha de la compilación
     copy();
+    const day = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
+    const before = day();
     execFileSync(process.execPath, [join(ROOT, 'scripts/postbuild.mjs')], { cwd: dir, env: { ...process.env, APP_DATE: '', GIT_CEILING_DIRECTORIES: dirname(dir) }, stdio: 'pipe' });
-    expect(time()[1]).toBe(new Date().toISOString().slice(0, 10));
+    // El día de España; si la compilación cae justo en la medianoche, cualquiera de los dos
+    expect([before, day()]).toContain(time()[1]);
   }));
 
   it('falla si falta alguna de las apps en dist/', () => withDist((dir) => {

@@ -250,7 +250,7 @@ p, li { text-wrap: pretty; }
   .hero-visual { overflow: visible; margin-inline: 0; padding: 0; }
   .hero-visual .court { width: 95%; right: -24%; }
   .steps { grid-template-columns: repeat(3, 1fr); gap: 2.5rem; }
-  .steps.grow { grid-template-columns: 1fr; gap: 1.5rem; }
+  .steps.grow { grid-template-columns: 1fr; }
   .split { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 4rem; }
   .split.reverse > :first-child { order: 2; }
 }
