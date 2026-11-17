@@ -6,26 +6,26 @@ export interface Faq { q: string; a: string; link?: { href: string; text: string
 
 export const home = {
   es: {
-    title: 'Marcador y estadísticas de baloncesto formativo, gratis · My Own Basketball Stats',
+    title: 'App gratis de estadísticas de baloncesto formativo · My Own Basketball Stats',
     description:
-      'Un marcador de baloncesto vitaminado: empieza llevando el resultado, sin dar de alta a nadie, y añade tiros, rebotes, faltas o a tus jugadores cuando quieras. Gratis, sin registro y sin conexión.',
-    h1: 'Un marcador de baloncesto vitaminado',
+      'Apunta tiros, rebotes, recuperaciones, asistencias y faltas de cada jugador desde el móvil durante el partido. Estadísticas y valoración al momento. Gratis, sin registro y sin conexión.',
+    h1: 'Apunta lo que hace cada jugador, no solo el marcador',
     lead:
-      'Empieza como con cualquier app de marcador: creas el equipo, tocas +1, +2 y +3 y llevas el resultado periodo a periodo. Cuando quieras más, añade tiros fallados, rebotes, faltas o a tus jugadores, y My Own Basketball Stats se convierte en una app de estadísticas para minibasket y baloncesto formativo.',
+      'My Own Basketball Stats es una app gratuita de estadísticas para minibasket y baloncesto formativo. Durante el partido tocas la acción de cada jugador en pista y, al acabar, tienes sus tiros, rebotes, pérdidas y valoración para preparar los entrenamientos.',
     open: 'Abrir la app gratis',
     how: 'Ver cómo funciona',
     facts: ['Sin registro', 'Funciona sin conexión', 'Tus datos se quedan en tu móvil'],
     heroAlt:
-      'Modo marcador de My Own Basketball Stats: cada equipo en su mitad con los puntos del periodo 5 en grande (6 a 4), el total del partido arriba (27 a 22), los botones de tiros anotados y fallados del equipo, +1, +2 y +3 del rival y −1 en los dos para corregir',
-    growTitle: 'Empieza como un marcador. Crece hasta las estadísticas',
-    growIntro: 'No hace falta decidir el primer día cuánto quieres apuntar. Empieza por lo sencillo y ve añadiendo detalle cuando te lo pida el equipo.',
+      'Pantalla de partido en My Own Basketball Stats: marcador 38 a 33 en el periodo 6, la valoración del equipo y el +/- del quinteto en pista, y una fila de botones por cada jugador con sus puntos, faltas, valoración y +/-',
+    growTitle: 'También es un marcador vitaminado',
+    growIntro: '¿Solo quieres llevar el resultado? Empieza como con cualquier app de marcador, sin dar de alta a nadie, y ve añadiendo detalle cuando te lo pida el equipo.',
     grow: [
       { h: 'Solo marcador', p: 'Crea el equipo con su nombre y empieza el partido. El resultado se ve en grande; en minibasket, cada periodo empieza desde 0 y el total queda siempre a la vista. Con −1 corriges un punto de más, también de un periodo pasado.' },
       { h: 'Más datos del equipo', p: 'En Ajustes activas tiros fallados, rebotes, recuperaciones, pérdidas o faltas: aparecen debajo de vuestro marcador y la estadística, con porcentajes y valoración, es de todo el equipo.' },
       { h: 'Cada jugador', p: 'Cuando quieras, añade la plantilla. Los partidos nuevos tienen una fila de botones por jugador en pista, con sus puntos, faltas, valoración y +/-, y los anteriores se quedan como estaban.' },
     ],
     growAlt:
-      'Partido con jugadores en My Own Basketball Stats: marcador 38 a 33 en el periodo 6, la valoración del equipo y el +/- del quinteto en pista, y una fila de botones por cada jugador con sus puntos, faltas, valoración y +/-',
+      'Modo marcador de My Own Basketball Stats: cada equipo en su mitad con los puntos del periodo 5 en grande (6 a 4), el total del partido arriba (27 a 22), los botones de tiros anotados y fallados del equipo, +1, +2 y +3 del rival y −1 en los dos para corregir',
     audienceTitle: 'Para quien está en la banda',
     audienceIntro: 'El marcador dice quién ha ganado. Las estadísticas te dicen por qué, y qué trabajar el martes.',
     audience: [
@@ -113,26 +113,26 @@ export const home = {
     ] as Faq[],
   },
   ca: {
-    title: "Marcador i estadístiques de bàsquet formatiu, gratis · My Own Basketball Stats",
+    title: "App gratuïta d'estadístiques de bàsquet formatiu · My Own Basketball Stats",
     description:
-      "Un marcador de bàsquet vitaminat: comença portant el resultat, sense donar d'alta ningú, i afegeix tirs, rebots, faltes o els teus jugadors quan vulguis. Gratis, sense registre i sense connexió.",
-    h1: 'Un marcador de bàsquet vitaminat',
+      "Apunta els tirs, rebots, recuperacions, assistències i faltes de cada jugador des del mòbil durant el partit. Estadístiques i valoració a l'instant. Gratis, sense registre i sense connexió.",
+    h1: 'Apunta el que fa cada jugador, no només el marcador',
     lead:
-      "Comença com amb qualsevol app de marcador: crees l'equip, toques +1, +2 i +3 i portes el resultat període a període. Quan en vulguis més, afegeix tirs fallats, rebots, faltes o els teus jugadors, i My Own Basketball Stats es converteix en una app d'estadístiques per a minibàsquet i bàsquet formatiu.",
+      "My Own Basketball Stats és una app gratuïta d'estadístiques per a minibàsquet i bàsquet formatiu. Durant el partit toques l'acció de cada jugador a la pista i, en acabar, tens els seus tirs, rebots, pèrdues i valoració per preparar els entrenaments.",
     open: "Obre l'app gratis",
     how: 'Mira com funciona',
     facts: ['Sense registre', 'Funciona sense connexió', 'Les dades es queden al teu mòbil'],
     heroAlt:
-      "Mode marcador de My Own Basketball Stats: cada equip a la seva meitat amb els punts del període 5 en gran (6 a 4), el total del partit a dalt (27 a 22), els botons de tirs anotats i fallats de l'equip, +1, +2 i +3 del rival i −1 als dos per corregir",
-    growTitle: 'Comença com un marcador. Creix fins a les estadístiques',
-    growIntro: "No cal decidir el primer dia quant vols apuntar. Comença pel més senzill i vés afegint detall quan te'l demani l'equip.",
+      "Pantalla de partit a My Own Basketball Stats: marcador 38 a 33 al període 6, la valoració de l'equip i el +/- del quintet a la pista, i una fila de botons per a cada jugador amb els seus punts, faltes, valoració i +/-",
+    growTitle: 'També és un marcador vitaminat',
+    growIntro: "Només vols portar el resultat? Comença com amb qualsevol app de marcador, sense donar d'alta ningú, i vés afegint detall quan te'l demani l'equip.",
     grow: [
       { h: 'Només marcador', p: "Crea l'equip amb el seu nom i comença el partit. El resultat es veu en gran; en minibàsquet, cada període comença des de 0 i el total queda sempre a la vista. Amb −1 corregeixes un punt de més, també d'un període passat." },
       { h: "Més dades de l'equip", p: "A Ajustes actives tirs fallats, rebots, recuperacions, pèrdues o faltes: apareixen sota el vostre marcador i l'estadística, amb percentatges i valoració, és de tot l'equip." },
       { h: 'Cada jugador', p: 'Quan vulguis, afegeix la plantilla. Els partits nous tenen una fila de botons per jugador a la pista, amb els seus punts, faltes, valoració i +/-, i els anteriors es queden com estaven.' },
     ],
     growAlt:
-      "Partit amb jugadors a My Own Basketball Stats: marcador 38 a 33 al període 6, la valoració de l'equip i el +/- del quintet a la pista, i una fila de botons per a cada jugador amb els seus punts, faltes, valoració i +/-",
+      "Mode marcador de My Own Basketball Stats: cada equip a la seva meitat amb els punts del període 5 en gran (6 a 4), el total del partit a dalt (27 a 22), els botons de tirs anotats i fallats de l'equip, +1, +2 i +3 del rival i −1 als dos per corregir",
     audienceTitle: 'Per a qui és a la banda',
     audienceIntro: 'El marcador diu qui ha guanyat. Les estadístiques et diuen per què, i què cal treballar dimarts.',
     audience: [

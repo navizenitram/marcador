@@ -3,7 +3,7 @@ import { expect, test } from './fixtures.js';
 
 test('la portada abre la app', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('h1')).toContainText('Un marcador de baloncesto vitaminado');
+  await expect(page.locator('h1')).toContainText('Apunta lo que hace cada jugador');
   await page.getByRole('link', { name: 'Abrir la app gratis' }).first().click();
   await expect(page).toHaveURL(/\/minibasket-stats\/#\/equipos$/);
   await expect(page.getByRole('heading', { name: /Bienvenido/ })).toBeVisible();
@@ -12,7 +12,7 @@ test('la portada abre la app', async ({ page }) => {
 test('la portada en catalán', async ({ page }) => {
   await page.goto('/ca/');
   await expect(page.locator('html')).toHaveAttribute('lang', 'ca');
-  await expect(page.locator('h1')).toContainText('Un marcador de bàsquet vitaminat');
+  await expect(page.locator('h1')).toContainText('Apunta el que fa cada jugador');
 });
 
 for (const [path, title] of [
