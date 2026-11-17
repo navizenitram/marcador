@@ -345,6 +345,16 @@ label.btn { flex-direction: row; font-family: var(--font); }
 .board .score.us { color: var(--green); text-shadow: 0 0 calc(18px * var(--glow)) color-mix(in srgb, var(--green) 60%, transparent); }
 .board .score.them { color: var(--blue); text-shadow: 0 0 calc(18px * var(--glow)) color-mix(in srgb, var(--blue) 60%, transparent); }
 .board .dash { color: var(--gray); font-size: 20px; font-weight: 700; flex: none; margin: 0 -3px; }
+/* Faltas de equipo del periodo, por fuera de cada resultado; desde la 4ª, el equipo está en bonus (en rojo) */
+.tfouls {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; flex: none;
+  min-width: 40px; height: 100%; max-height: 46px; padding: 0 5px; border-radius: 9px;
+  background: var(--field); border: 1px solid var(--border); line-height: 1;
+}
+.tfouls small { font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.tfouls b { font-family: var(--font-digits); font-size: clamp(15px, 5vh, 20px); color: var(--text); }
+.tfouls.bonus { background: color-mix(in srgb, var(--red) 16%, var(--surface)); border-color: color-mix(in srgb, var(--red) 55%, var(--surface)); }
+.tfouls.bonus small, .tfouls.bonus b { color: var(--red); }
 
 /* Rendimiento en directo: valoración del equipo y +/- del quinteto en pista */
 .live-perf { display: flex; gap: 3px; flex: none; height: 100%; max-height: 46px; }
@@ -384,7 +394,11 @@ label.btn { flex-direction: row; font-family: var(--font); }
 }
 .sb-sub { flex: none; font-size: clamp(11px, 3.2vh, 14px); font-weight: 600; color: var(--muted); white-space: nowrap; }
 .sb-sub b { font-family: var(--font-digits); color: var(--text); font-size: 1.15em; }
-.sb-sub b.foul-warn { color: var(--amber); }
+.sb-sub b.foul-warn { color: var(--red); }
+.bonus-tag {
+  display: inline-block; padding: 1px 6px 0; border-radius: 6px; font-size: .8em; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); border: 1px solid color-mix(in srgb, var(--red) 50%, transparent);
+}
 .sb-score {
   flex: 1 1 auto; min-height: 0; display: grid; place-items: center;
   font-family: var(--font-digits); font-weight: 700; line-height: .9; font-size: clamp(56px, 30vh, 220px);
@@ -397,7 +411,7 @@ label.btn { flex-direction: row; font-family: var(--font); }
 .sb-btns { flex: none; display: flex; flex-direction: column; gap: 4px; }
 .sb-row { display: grid; grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr)); gap: 4px; height: clamp(38px, 13vh, 96px); }
 /* Con muchos botones (perfil completo), la fila del resto es algo más baja para que el resultado siga mandando */
-.sb-row.rest { height: clamp(34px, 11vh, 80px); }
+.sb-row.rest:not(.few) { height: clamp(34px, 11vh, 80px); }
 .sb-row.made .act b { font-size: clamp(18px, min(7vh, 4vw), 30px); }
 .sb-opp {
   border-radius: 10px; font-family: var(--font-digits); font-weight: 700; font-size: clamp(20px, 7.5vh, 34px); color: var(--blue);
@@ -1020,10 +1034,20 @@ table.stats tfoot td.zero { color: var(--muted); }
   .opp-btns button { min-width: 32px; }
   .board { gap: 5px; }
   .board .score { min-width: 1.45em; }
+  .tfouls { min-width: 34px; padding: 0 3px; }
+  .tfouls small { font-size: 8px; letter-spacing: .02em; }
   .summary:has(.trend) { flex-wrap: wrap; }
   .kpis { max-width: none; }
   .trend { flex-basis: 100%; min-width: 0; padding-left: 0; border-left: 0; }
   .trend-plot { height: 56px; flex: none; }
+}
+/* Móviles muy estrechos: las faltas de equipo, solo la cifra (en rojo, el bonus; el detalle, en el aviso al apuntar) */
+@media (max-width: 600px) {
+  .board { gap: 2px; }
+  .board .score { min-width: 1.2em; padding: .06em .12em 0; }
+  .tfouls { min-width: 0; padding: 0 2px; background: none; border-color: transparent; }
+  .tfouls.bonus { padding: 0 3px; }
+  .tfouls small { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -76,7 +76,17 @@ describe('advanced', () => {
 describe('recordedOpts (qué se apuntó en un ámbito)', () => {
   it('un dato se apuntó si su botón está activo o si hay alguna jugada de ese tipo', () => {
     const total = line({ t1a: 0, t3a: 2, lost: 0 });
-    expect(plain(core.recordedOpts(total, ['t1', 't3', 'lost']))).toEqual({ t1: false, t3: true, lost: false });
-    expect(plain(core.recordedOpts(total, []))).toEqual({ t1: true, t3: true, lost: true });
+    expect(plain(core.recordedOpts(total, ['t1', 't3', 'lost']))).toEqual({ t1: false, t3: true, lost: false, miss: true });
+    expect(plain(core.recordedOpts(total, []))).toEqual({ t1: true, t3: true, lost: true, miss: true });
+  });
+
+  it('sin el botón de fallados (marcador de solo anotados), los fallados se apuntaron si hay alguno', () => {
+    expect(core.recordedOpts(line({ t2m: 2, t2a: 2 }), ['miss']).miss).toBe(false);
+    expect(core.recordedOpts(line({ t2m: 2, t2a: 3 }), ['miss']).miss).toBe(true);
+  });
+
+  it('sin tiros fallados no se calcula ninguna avanzada', () => {
+    const a = core.advanced(line({ t1m: 4, t1a: 4, t2m: 6, t2a: 6, t3m: 2, t3a: 2 }), 'season', { ...ALL, miss: false });
+    for (const k of ['efg', 'ts', 'tov', 'ftr']) expect(a[k].hidden, k).toBe(true);
   });
 });

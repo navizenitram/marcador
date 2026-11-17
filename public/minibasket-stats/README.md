@@ -17,13 +17,16 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
 - **Solo marcador** (la puerta de entrada): al crear un equipo se elige cómo se va a usar, **solo marcador** (sin
   plantilla; es la opción marcada por defecto) o **con jugadores** (estadística de cada uno). Un equipo sin jugadores lleva sus partidos como cualquier app de marcador: cada
   equipo en su mitad (el local a la izquierda) con su resultado en grande, los botones del perfil debajo del propio
-  (**Escuela** por defecto: tiros anotados arriba y fallados debajo; se cambian en **Ajustes** como en cualquier
-  equipo) y +1 / +2 / +3 debajo del rival. Los dos tienen **−1** para corregir los puntos del periodo que se ve, también
+  (**Marcador** por defecto: los botones verdes de tiro anotado y la falta cometida; se cambian en **Ajustes** como en
+  cualquier equipo) y +1 / +2 / +3 debajo del rival, con su botón de falta (por dentro, la falta recibida del equipo,
+  `fr`). Sin jugadores, en **Ajustes › Tiros** se elige **anotados y fallados** o **solo anotados** (`'miss'` en
+  `team.hidden`; con jugadores no cuenta): con solo anotados, las estadísticas dan los tiros anotados sin porcentajes
+  ni avanzadas (salvo que haya fallados apuntados). Los dos tienen **−1** para corregir los puntos del periodo que se ve, también
   de uno pasado (se vuelve a él con ‹); el del equipo propio se guarda como una corrección (`adj`, con sus puntos en
   `pts`) que cuenta en el resultado, los parciales, los puntos y la valoración. En **minibasket (8 periodos)** cada
   periodo empieza en 0: el número grande es el del periodo y el **total del partido** se ve siempre en la barra de
-  arriba; con 4 cuartos, el grande es el total y al lado va el parcial. Si las faltas cometidas están activas, se ven
-  las del equipo en el periodo. La estadística es de todo el equipo: en **Estadísticas** salen los totales, sin líderes, quintetos ni
+  arriba; con 4 cuartos, el grande es el total y al lado va el parcial. Junto al nombre de cada equipo, sus **faltas de
+  equipo** en el periodo y, con 4, **Bonus** (ver Partido en directo). La estadística es de todo el equipo: en **Estadísticas** salen los totales, sin líderes, quintetos ni
   informes. Para ir a más basta con añadir jugadores en **Equipo**: los partidos nuevos ya son por jugador y los de
   marcador siguen como estaban (en la temporada, como la fila «Equipo (marcador)»).
   Por dentro, las jugadas del marcador van a un jugador interno del partido (`_equipo`, en `roster`), así que no cambia
@@ -51,6 +54,8 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
     Los rebotes van justo después de los tiros; el de ataque (amarillo) y el defensivo (morado) tienen colores distintos.
   - Los botones se eligen en **Ajustes** con un **perfil** según la categoría y, si se quiere, botón a botón
     (cada entrenador activa solo lo que quiere apuntar):
+    - **Marcador** (5 botones; solo en equipos sin jugadores, y el de los nuevos sin jugadores): tiros anotados y las
+      faltas de los dos equipos.
     - **Escuela** (6 botones): solo puntos (tiros anotados y fallados).
     - **Pre-mini** (benjamín, 10 botones; el de los equipos nuevos): puntos, rebote con un solo botón, recuperación,
       pérdida y falta cometida.
@@ -61,6 +66,11 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
     elegir **un solo botón** (REB) que no distingue ataque y defensa: cuenta en los rebotes totales (RT) y en la valoración.
   - Tocar el nombre del jugador → cambio con alguien del banquillo.
   - Las faltas de cada jugador se ven de un vistazo (un punto por falta bajo su dorsal), con aviso visual a las 4 y jugador eliminado a las 5.
+  - **Faltas de equipo y bonus**: junto al resultado de cada equipo, sus faltas en el periodo. Las propias son las faltas
+    cometidas (FC) de todos los jugadores; las del rival, las recibidas (FR). Como en las reglas FIBA (art. 41) y las de
+    minibasket, con **4 faltas en un periodo** el equipo entra en **bonus** (en rojo): desde la 5ª, cada falta personal
+    sobre un jugador que no está tirando son 2 tiros libres. La cuenta vuelve a 0 en cada periodo. Al apuntar una falta,
+    el aviso dice cuántas lleva el equipo y si entra en bonus. Si el botón (FC o FR) no se usa, esa cuenta no se lleva.
   - ↶ deshacer la última acción y listado de jugadas para borrar cualquier error.
   - Registro automático de los periodos jugados por cada jugador.
 - **Estadísticas**: por partido, de temporada o de cada fase (totales o promedio por partido), parciales por periodo,

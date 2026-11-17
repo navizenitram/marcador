@@ -21,7 +21,7 @@ export const home = {
     growIntro: '¿Solo quieres llevar el resultado? Empieza como con cualquier app de marcador, sin dar de alta a nadie, y ve añadiendo detalle cuando te lo pida el equipo.',
     grow: [
       { h: 'Solo marcador', p: 'Crea el equipo con su nombre y empieza el partido. El resultado se ve en grande; en minibasket, cada periodo empieza desde 0 y el total queda siempre a la vista. Con −1 corriges un punto de más, también de un periodo pasado.' },
-      { h: 'Más datos del equipo', p: 'Con los tiros anotados y fallados ya tienes porcentajes y valoración. En Ajustes añades rebotes, recuperaciones, pérdidas o faltas: aparecen debajo de vuestro marcador y la estadística es de todo el equipo.' },
+      { h: 'Más datos del equipo', p: 'Con las faltas de los dos equipos sabes cuándo entra cada uno en bonus. Activa los tiros fallados y tendrás porcentajes; en Ajustes añades rebotes, recuperaciones o pérdidas: aparecen debajo de vuestro marcador y la estadística es de todo el equipo.' },
       { h: 'Cada jugador', p: 'Cuando quieras, añade la plantilla. Los partidos nuevos tienen una fila de botones por jugador en pista, con sus puntos, faltas, valoración y +/-, y los anteriores se quedan como estaban.' },
     ],
     growAlt:
@@ -44,7 +44,7 @@ export const home = {
     profilesTitle: 'Un perfil para cada categoría',
     profilesIntro: 'Con niños pequeños, quince botones son demasiados: acabas mirando el móvil en vez del partido. Empieza por lo justo y añade botones cuando los necesites.',
     profiles: [
-      { h: 'Escuela', tag: 'Solo puntos · 6 botones', p: 'Tiros libres, de 2 y triples, anotados y fallados. Para los primeros partidos y el perfil de los equipos de solo marcador.' },
+      { h: 'Escuela', tag: 'Solo puntos · 6 botones', p: 'Tiros libres, de 2 y triples, anotados y fallados. Para los primeros partidos.' },
       { h: 'Pre-mini', tag: 'Benjamín · 10 botones', p: 'Puntos, rebote con un solo botón, recuperación, pérdida y falta cometida. Es el perfil de los equipos nuevos con jugadores.' },
       { h: 'Mini', tag: 'Alevín · 12 botones', p: 'Lo de pre-mini, con asistencias y faltas recibidas.' },
       { h: 'Completo', tag: 'Todos los botones · 15', p: 'También rebote de ataque y defensivo por separado, tapones y tapones recibidos.' },
@@ -56,6 +56,7 @@ export const home = {
       'Temporada en dos fases: indicas en cuál estás y el nivel de cada una, y si en la segunda subes, bajas o sigues igual.',
       'Cuenta sola los periodos que juega cada jugador: solo tienes que elegir el quinteto.',
       'Aviso a las 4 faltas y jugador eliminado con la quinta.',
+      'Faltas de equipo de los dos equipos en cada periodo, con aviso cuando uno entra en bonus.',
       'Cambios tocando el nombre del jugador en pista.',
       'Si te equivocas, deshaces la última acción o borras cualquier jugada de la lista.',
       'Todo cabe en la pantalla del móvil en horizontal, sin hacer scroll.',
@@ -93,7 +94,7 @@ export const home = {
         q: '¿Qué pasa si la temporada tiene dos fases?',
         a: 'En minibasket es lo habitual: según la clasificación de la primera fase, en la segunda jugáis contra equipos nuevos en un nivel superior, igual o inferior. En la ficha del equipo indicas en qué fase estás y el nivel de cada una. Los partidos nuevos se apuntan en la fase actual, y puedes ver las estadísticas de cada fase por separado o de toda la temporada.',
       },
-      { q: '¿Tengo que apuntar todas las acciones?', a: 'No. En Ajustes eliges un perfil según la categoría (escuela, pre-mini, mini o completo) y, después, puedes activar o desactivar cada botón. Los equipos de solo marcador empiezan en escuela (solo puntos) y los equipos con jugadores, en pre-mini: puntos, rebotes, recuperaciones, pérdidas y faltas.' },
+      { q: '¿Tengo que apuntar todas las acciones?', a: 'No. En Ajustes eliges un perfil según la categoría (escuela, pre-mini, mini o completo) y, después, puedes activar o desactivar cada botón. Los equipos de solo marcador empiezan con los botones de canasta y las faltas de los dos equipos (para saber cuándo entra cada uno en bonus), y los equipos con jugadores, en pre-mini: puntos, rebotes, recuperaciones, pérdidas y faltas.' },
       { q: '¿Por qué hay que usarla con el móvil en horizontal?', a: 'Para que quepan los cinco jugadores en pista con todos sus botones sin tener que hacer scroll durante el partido.' },
       {
         q: '¿Cómo calcula la valoración?',
@@ -128,7 +129,7 @@ export const home = {
     growIntro: "Només vols portar el resultat? Comença com amb qualsevol app de marcador, sense donar d'alta ningú, i vés afegint detall quan te'l demani l'equip.",
     grow: [
       { h: 'Només marcador', p: "Crea l'equip amb el seu nom i comença el partit. El resultat es veu en gran; en minibàsquet, cada període comença des de 0 i el total queda sempre a la vista. Amb −1 corregeixes un punt de més, també d'un període passat." },
-      { h: "Més dades de l'equip", p: "Amb els tirs anotats i fallats ja tens percentatges i valoració. A Ajustes hi afegeixes rebots, recuperacions, pèrdues o faltes: apareixen sota el vostre marcador i l'estadística és de tot l'equip." },
+      { h: "Més dades de l'equip", p: "Amb les faltes dels dos equips saps quan entra cadascun en bonus. Activa els tirs fallats i tindràs percentatges; a Ajustes hi afegeixes rebots, recuperacions o pèrdues: apareixen sota el vostre marcador i l'estadística és de tot l'equip." },
       { h: 'Cada jugador', p: 'Quan vulguis, afegeix la plantilla. Els partits nous tenen una fila de botons per jugador a la pista, amb els seus punts, faltes, valoració i +/-, i els anteriors es queden com estaven.' },
     ],
     growAlt:
@@ -151,7 +152,7 @@ export const home = {
     profilesTitle: 'Un perfil per a cada categoria',
     profilesIntro: "Amb nens petits, quinze botons són massa: acabes mirant el mòbil en lloc del partit. Comença pel just i afegeix botons quan els necessitis.",
     profiles: [
-      { h: 'Escola', tag: 'Només punts · 6 botons', p: 'Tirs lliures, de 2 i triples, anotats i fallats. Per als primers partits i el perfil dels equips de només marcador.' },
+      { h: 'Escola', tag: 'Només punts · 6 botons', p: 'Tirs lliures, de 2 i triples, anotats i fallats. Per als primers partits.' },
       { h: 'Pre-mini', tag: 'Benjamí · 10 botons', p: "Punts, rebot amb un sol botó, recuperació, pèrdua i falta comesa. És el perfil dels equips nous amb jugadors." },
       { h: 'Mini', tag: 'Aleví · 12 botons', p: 'El de pre-mini, amb assistències i faltes rebudes.' },
       { h: 'Complet', tag: 'Tots els botons · 15', p: "També rebot d'atac i defensiu per separat, taps i taps rebuts." },
@@ -163,6 +164,7 @@ export const home = {
       'Temporada en dues fases: indiques en quina ets i el nivell de cadascuna, i si a la segona puges, baixes o et quedes igual.',
       'Compta sola els períodes que juga cada jugador: només has de triar el quintet.',
       'Avís a les 4 faltes i jugador eliminat amb la cinquena.',
+      "Faltes d'equip dels dos equips a cada període, amb avís quan un entra en bonus.",
       'Canvis tocant el nom del jugador a la pista.',
       "Si t'equivoques, desfàs l'última acció o esborres qualsevol jugada de la llista.",
       'Tot cap a la pantalla del mòbil en horitzontal, sense haver de desplaçar-la.',
@@ -201,7 +203,7 @@ export const home = {
         q: 'Què passa si la temporada té dues fases?',
         a: "En minibàsquet és l'habitual: segons la classificació de la primera fase, a la segona jugueu contra equips nous en un nivell superior, igual o inferior. A la fitxa de l'equip indiques en quina fase ets i el nivell de cadascuna. Els partits nous s'apunten a la fase actual, i pots veure les estadístiques de cada fase per separat o de tota la temporada.",
       },
-      { q: "He d'apuntar totes les accions?", a: "No. A Ajustes tries un perfil segons la categoria (a l'app, en castellà: escuela, pre-mini, mini o completo) i, després, pots activar o desactivar cada botó. Els equips de només marcador comencen en escuela (només punts) i els equips amb jugadors, en pre-mini: punts, rebots, recuperacions, pèrdues i faltes." },
+      { q: "He d'apuntar totes les accions?", a: "No. A Ajustes tries un perfil segons la categoria (a l'app, en castellà: escuela, pre-mini, mini o completo) i, després, pots activar o desactivar cada botó. Els equips de només marcador comencen amb els botons de cistella i les faltes dels dos equips (per saber quan entra cadascun en bonus), i els equips amb jugadors, en pre-mini: punts, rebots, recuperacions, pèrdues i faltes." },
       { q: 'Per què cal fer-la servir amb el mòbil en horitzontal?', a: 'Perquè hi càpiguen els cinc jugadors de la pista amb tots els botons sense haver de desplaçar la pantalla durant el partit.' },
       {
         q: 'Com calcula la valoració?',

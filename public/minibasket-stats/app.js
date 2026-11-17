@@ -35,6 +35,7 @@ const EV = {
   blkr:  { label: 'TR', sub: 'Recibe', cls: 'neg', text: 'Tapón recibido' },
 };
 const SHOT_ACTIONS = ['t1_ok', 't1_ko', 't2_ok', 't2_ko', 't3_ok', 't3_ko'];
+const MISS_ACTIONS = ['t1_ko', 't2_ko', 't3_ko'];
 /* Los rebotes van justo después de los tiros, en su propio grupo: de ataque y defensivo o, si el equipo lo prefiere
    (team.rebOne), un único botón de rebote que no distingue (cuenta en los rebotes totales y en la valoración). */
 const REB_ACTIONS = ['ro', 'rd', 'reb'];
@@ -54,15 +55,17 @@ const OPTIONS = [
   { id: 'ast', acts: ['ast'], name: 'Asistencia', desc: 'Pase de canasta' },
   { id: 'blk', acts: ['blk'], name: 'Tapón', desc: 'Tapón puesto' },
   { id: 'blkr', acts: ['blkr'], name: 'Tapón recibido', desc: 'Le ponen un tapón' },
-  { id: 'fc', acts: ['fc'], name: 'Falta cometida', desc: 'Cuenta para las 5 faltas' },
-  { id: 'fr', acts: ['fr'], name: 'Falta recibida', desc: 'Le hacen falta' },
+  { id: 'fc', acts: ['fc'], name: 'Falta cometida', desc: 'Las 5 faltas y el bonus del equipo' },
+  { id: 'fr', acts: ['fr'], name: 'Falta recibida', desc: 'Le hacen falta: bonus del rival' },
 ];
 
 /* Perfiles: combinaciones de botones según la categoría. Al elegir uno se aplican sus botones (y su modo de rebote);
    después cada botón se puede activar o desactivar a mano. El perfil no se guarda: se deduce de los botones activos,
-   y si no coinciden con ninguno, son «Personalizado». Los equipos nuevos empiezan en DEFAULT_PROFILE. */
+   y si no coinciden con ninguno, son «Personalizado». Los equipos nuevos empiezan en DEFAULT_PROFILE.
+   El perfil Marcador (made: solo tiros anotados, ver missOff) es solo para los equipos sin jugadores (board). */
 const PRE_MINI = ['t1', 't2', 't3', 'reb', 'rec', 'lost', 'fc'];
 const PROFILES = [
+  { id: 'marcador', name: 'Marcador', desc: 'Puntos y faltas', opts: ['t1', 't2', 't3', 'fc', 'fr'], made: true, board: true },
   { id: 'escuela', name: 'Escuela', desc: 'Solo puntos', opts: ['t1', 't2', 't3'] },
   { id: 'premini', name: 'Pre-mini', desc: 'Benjamín', opts: PRE_MINI },
   { id: 'mini', name: 'Mini', desc: 'Alevín', opts: [...PRE_MINI, 'ast', 'fr'] },
@@ -79,17 +82,29 @@ const DEFAULT_PROFILE = 'premini';
    t.board: el equipo se creó como «Solo marcador» (al abrirlo se va a los partidos, no a la plantilla). */
 const BOARD_PID = '_equipo';
 const BOARD_NAME = 'Equipo (marcador)';
-const BOARD_PROFILE = 'escuela';
+const BOARD_PROFILE = 'marcador';
 const isBoard = (g) => !!g && g.roster.some(p => p.id === BOARD_PID);
 const isBoardRow = (r) => r.id === BOARD_PID;
-/* Botones por jugador de un perfil (los tiros van por parejas: anotado y fallado) */
-const profileButtons = (p) => p.opts.reduce((n, id) => n + OPTIONS.find(o => o.id === id).acts.length, 0);
+/* Botones de un perfil (los tiros van por parejas, anotado y fallado, salvo en los de solo anotados) */
+const profileButtons = (p) => p.opts.reduce((n, id) => n + OPTIONS.find(o => o.id === id).acts.filter(a => !p.made || !MISS_ACTIONS.includes(a)).length, 0);
+
+/* Tiros fallados: en un equipo sin jugadores (modo marcador) se pueden quitar para llevar solo los puntos, con los
+   botones verdes de anotado. Se guarda como 'miss' en t.hidden; con jugadores no se tiene en cuenta (los porcentajes
+   de tiro de cada jugador necesitan los fallados), así que si después se añaden jugadores vuelven los fallados. */
+const missOffered = (t = team()) => !!t && !t.players.length;
+const missOff = (t = team()) => missOffered(t) && t.hidden.includes('miss');
+/* Botones ocultos tal como cuentan para las estadísticas (recordedOpts): 'miss' solo vale sin jugadores */
+const statHidden = (t = team()) => (!t ? [] : missOff(t) ? t.hidden : t.hidden.filter(id => id !== 'miss'));
+
+/* Perfiles que se ofrecen al equipo: el de Marcador, solo sin jugadores */
+const profilesFor = (t = team()) => PROFILES.filter(p => !p.board || missOffered(t));
 
 /* Deja el equipo con los botones de un perfil. Sin botones de rebote (escuela), el modo de rebote no cambia. */
 function applyProfile(t, id) {
-  const p = PROFILES.find(x => x.id === id);
+  const p = profilesFor(t).find(x => x.id === id);
   if (!p) return null;
   t.hidden = OPTIONS.map(o => o.id).filter(x => !p.opts.includes(x));
+  if (p.made) t.hidden.push('miss');
   const one = p.opts.includes('reb') ? true : p.opts.includes('ro') ? false : rebOne(t);
   if (one) t.rebOne = true; else delete t.rebOne;
   return p;
@@ -98,7 +113,8 @@ function applyProfile(t, id) {
 /* Perfil del equipo actual según sus botones activos (null si no coincide con ninguno) */
 function currentProfile() {
   const on = OPTIONS.filter(o => optEnabled(o.id)).map(o => o.id);
-  return PROFILES.find(p => p.opts.length === on.length && p.opts.every(id => on.includes(id))) || null;
+  const made = missOff();
+  return profilesFor().find(p => !!p.made === made && p.opts.length === on.length && p.opts.every(id => on.includes(id))) || null;
 }
 
 /* Modo de rebote: true, un único botón REB; false, RO y RD. Por defecto, el del equipo actual. */
@@ -111,7 +127,11 @@ function optEnabled(id) {
   const t = team();
   return optOffered(id, rebOne(t)) && (!t || !t.hidden.includes(id));
 }
-function actEnabled(type) { const o = OPTIONS.find(o => o.acts.includes(type)); return !o || optEnabled(o.id); }
+function actEnabled(type) {
+  if (MISS_ACTIONS.includes(type) && missOff()) return false;
+  const o = OPTIONS.find(o => o.acts.includes(type));
+  return !o || optEnabled(o.id);
+}
 
 /* Grupos de botones de una fila (tiros | rebotes | resto) según los ajustes del equipo. rebs: los botones de rebote,
    si no son los del equipo (ver gameRebs). Se calculan una vez por pantalla, no por fila. */
@@ -1108,6 +1128,7 @@ function viewLive(g) {
   const run = MBCore.lineupRun(g);
   const pm = MBCore.plusMinus(g);
   const rosterById = Object.fromEntries(g.roster.map(p => [p.id, p]));
+  const fouls = foulCounts(g);   // faltas de equipo del periodo, junto al resultado de cada uno
   const rows = [];
   for (let i = 0; i < MAX_ON_COURT; i++) {
     const pid = g.onCourt[i];
@@ -1138,9 +1159,11 @@ function viewLive(g) {
       ${periodNav(g)}
       <div class="board">
         <span class="tname ${home} first">${esc(names[home])}</span>
+        ${foulBox(g, home, fouls[home])}
         <span class="score ${home}">${s[home]}</span>
         <span class="dash">–</span>
         <span class="score ${away}">${s[away]}</span>
+        ${foulBox(g, away, fouls[away])}
         <span class="tname ${away}">${esc(names[away])}</span>
       </div>
       <div class="live-perf">
@@ -1182,12 +1205,53 @@ function lockedBar(g) {
     </div>` : '';
 }
 
-/* A partir de estas faltas del equipo en un periodo, el marcador las resalta (en minibasket, la 5ª ya es bonus) */
-const TEAM_FOUL_WARN = 4;
+/* ── Faltas de equipo y bonus ──
+   Reglas FIBA (art. 41) y de minibasket de la FEB: un equipo entra en bonus (situación de penalización) cuando ha
+   cometido 4 faltas de equipo en un periodo; desde la 5ª, cada falta personal sobre un jugador que no está tirando
+   se castiga con 2 tiros libres (salvo las del equipo que ataca). La cuenta vuelve a 0 al empezar cada periodo (en
+   las prórrogas, que la app no tiene, sigue la del último periodo). Las propias son las faltas cometidas (FC) de todo
+   el equipo; las del rival, las recibidas (FR). Si el botón no se apunta (y no hay jugadas suyas en el partido), esa
+   cuenta no se lleva. */
+const TEAM_FOUL_BONUS = 4;
+const TEAM_FOUL_TYPE = { us: 'fc', them: 'fr' };
 
-/* Faltas del equipo en un periodo (el actual, por defecto) en un partido de marcador */
-function teamFouls(g, period = g.period) {
-  return g.events.filter(e => e.pid === BOARD_PID && e.type === 'fc' && e.period === period).length;
+/* Faltas de equipo de un lado ('us' o 'them') en un periodo (el actual, por defecto) */
+function teamFouls(g, side = 'us', period = g.period) {
+  const type = TEAM_FOUL_TYPE[side];
+  return g.events.filter(e => e.type === type && e.period === period).length;
+}
+/* Faltas de equipo de cada lado en el periodo actual: null si no se llevan (botón oculto y sin jugadas suyas) */
+function foulCounts(g) {
+  const out = {};
+  for (const [side, type] of Object.entries(TEAM_FOUL_TYPE)) {
+    out[side] = actEnabled(type) || g.events.some(e => e.type === type) ? teamFouls(g, side) : null;
+  }
+  return out;
+}
+const inBonus = (n) => n >= TEAM_FOUL_BONUS;
+
+/* Faltas de equipo de un lado en la cabecera del partido con jugadores: «Faltas 3» o, desde la 4ª, «Bonus 4» */
+function foulBox(g, side, n) {
+  if (n == null) return '';
+  const name = side === 'us' ? g.teamName : g.opponent;
+  const title = `Faltas de equipo de ${name} en ${perAbbr(g, g.period)}: ${n}${inBonus(n) ? ' · en bonus (desde la 5ª, 2 tiros libres)' : ''}`;
+  return `<span class="tfouls ${side}${inBonus(n) ? ' bonus' : ''}" title="${esc(title)}" aria-label="${esc(title)}"><small>${inBonus(n) ? 'Bonus' : 'Faltas'}</small><b>${n}</b></span>`;
+}
+
+/* Lo mismo junto al nombre de cada equipo en el marcador: «Faltas 3» o «Faltas 4 · BONUS» */
+function foulSub(n) {
+  if (n == null) return '';
+  return `Faltas <b class="${inBonus(n) ? 'foul-warn' : ''}">${n}</b>${inBonus(n) ? ' <span class="bonus-tag">Bonus</span>' : ''}`;
+}
+
+/* Aviso al apuntar una falta de equipo: cuántas lleva el equipo en el periodo y si entra (o está) en bonus.
+   Con who, de quién son (la falta recibida de un jugador es del rival) */
+function foulNote(g, side, who = '') {
+  const n = teamFouls(g, side), per = perAbbr(g, g.period);
+  const pre = who ? ` · ${esc(who)}:` : ' ·';
+  if (n === TEAM_FOUL_BONUS) return `${pre} ${n}ª falta en ${per}, <b>entra en bonus</b>`;
+  if (n > TEAM_FOUL_BONUS) return `${pre} ${n} faltas en ${per}, <b>bonus</b> (2 TL)`;
+  return `${pre} ${n} falta${n === 1 ? '' : 's'} en ${per}`;
 }
 
 /* ── Partido de marcador ──
@@ -1215,21 +1279,26 @@ function viewBoard(g) {
   const row = (list, cls = '') => (list.length ? `<div class="sb-row ${cls}" style="--n:${list.length}">${list.map(btn).join('')}</div>` : '');
   const shots = SHOT_ACTIONS.filter(actEnabled);
   // Rebotes: en uno finalizado, los que se usaron en sus jugadas (como en la pista, ver gameRebs)
-  const rest = [...gameRebs(g), ...OTHER_ACTIONS.filter(actEnabled)];
-  const fouls = actEnabled('fc') || l.fc > 0 ? teamFouls(g) : null;
+  // La falta recibida es la que comete el rival: va en su lado, debajo de sus puntos
+  const rest = [...gameRebs(g), ...OTHER_ACTIONS.filter(t => t !== 'fr' && actEnabled(t))];
+  const fouls = foulCounts(g);
+  // Con pocos botones (el perfil Marcador: solo la falta) la fila del resto es tan alta como las de los tiros
+  const restCls = rest.length > 4 ? 'rest' : 'rest few';
   const usBtns = `
         ${row(shots.filter(t => EV[t].cls === 'made'), 'made')}
         ${row(shots.filter(t => EV[t].cls === 'miss'), 'miss')}
-        ${row(rest, 'rest')}
+        ${row(rest, restCls)}
         ${minus('adj', g.teamName)}`;
+  const oppFoul = actEnabled('fr') ? `<div class="sb-row ${restCls} opp-foul" style="--n:1"><button class="act foul" data-action="ev" data-type="fr" data-pid="${BOARD_PID}" aria-label="Falta de ${esc(g.opponent)}"${ro}><b>FC</b><i>Comete</i></button></div>` : '';
   const oppBtns = `
         <div class="sb-row opp" style="--n:3">${[1, 2, 3].map(n => `<button class="sb-opp" data-action="opp" data-pts="${n}" aria-label="${esc(g.opponent)} +${n}"${ro}>+${n}</button>`).join('')}</div>
+        ${oppFoul}
         ${minus('opp', g.opponent)}`;
   const side = (k) => `
       <section class="sb-side ${k}">
         <div class="sb-head">
           <span class="sb-name">${esc(names[k])}</span>
-          <span class="sb-sub">${[byPeriod ? '' : `${perAbbr(g, pi + 1)} <b>${ps[k][pi]}</b>`, k === 'us' && fouls != null ? `Faltas <b class="${fouls >= TEAM_FOUL_WARN ? 'foul-warn' : ''}">${fouls}</b>` : ''].filter(Boolean).join(' · ')}</span>
+          <span class="sb-sub">${[byPeriod ? '' : `${perAbbr(g, pi + 1)} <b>${ps[k][pi]}</b>`, foulSub(fouls[k])].filter(Boolean).join(' · ')}</span>
         </div>
         <div class="sb-score ${k}">${byPeriod ? `<small class="sb-per">${perAbbr(g, pi + 1)}</small>` : ''}<span>${big(k)}</span></div>
         <div class="sb-btns">${k === 'us' ? usBtns : oppBtns}</div>
@@ -1276,10 +1345,19 @@ function actsHTML(btn, groups = actGroups()) {
 }
 
 /* ── Ajustes ── */
+const BOARD_OPT_TEXT = {
+  fc: { desc: 'Faltas del equipo y su bonus' },
+  fr: { name: 'Falta del rival', desc: 'Debajo de sus puntos: su bonus' },
+};
 function viewSettings() {
   const sample = (t) => `<span class="act ${EV[t].cls}">${actLabel(t)}</span>`;
+  const board = missOffered();
   const item = (o) => {
     const on = optEnabled(o.id);
+    // En el marcador, la falta recibida es la que comete el rival: su botón va debajo de los puntos del rival
+    if (board && BOARD_OPT_TEXT[o.id]) o = { ...o, ...BOARD_OPT_TEXT[o.id] };
+    // Solo anotados: los tiros, sin su botón de fallado
+    if (missOff() && o.acts.some(a => MISS_ACTIONS.includes(a))) o = { ...o, acts: o.acts.filter(a => !MISS_ACTIONS.includes(a)), desc: 'Solo anotado' };
     return `
     <button class="opt ${on ? 'on' : ''}" data-action="toggle-opt" data-id="${o.id}" role="switch" aria-checked="${on}">
       <span class="opt-btns">${o.acts.map(sample).join('')}</span>
@@ -1297,6 +1375,8 @@ function viewSettings() {
   const profile = (p) => `<button class="profile ${prof === p ? 'on' : ''}" data-action="profile" data-v="${p.id}" aria-pressed="${prof === p}">
       <b>${p.name}</b><small>${p.desc} · ${profileButtons(p)} botones</small></button>`;
   const rebMode = (v, label) => `<button class="${one === (v === 'one') ? 'on' : ''}" data-action="reb-mode" data-v="${v}" aria-pressed="${one === (v === 'one')}">${label}</button>`;
+  const made = missOff();
+  const missMode = (v, label) => `<button class="${made === (v === 'made') ? 'on' : ''}" data-action="miss-mode" data-v="${v}" aria-pressed="${made === (v === 'made')}">${label}</button>`;
   return shell('ajustes', `
   <section class="card preview-card">
     <h2>Vista previa de un jugador en pista</h2>
@@ -1313,14 +1393,18 @@ function viewSettings() {
         <h2>Botones del partido · ${esc(team().name)} <span class="muted">(${n}/${offered.length})</span></h2>
       </div>
       ${team().players.length ? '' : `<p class="board-note">${icon('chart')}<span><b>Modo marcador:</b> este equipo no tiene jugadores, así que estos botones apuntan para todo el equipo, debajo de su resultado.
-      Con <b>Escuela</b> (solo puntos) es un marcador sencillo; añade los botones que quieras.</span></p>`}
+      Con <b>Marcador</b> es un marcador sencillo: los botones verdes para sumar puntos y las faltas de los dos equipos
+      (la del rival, debajo de sus puntos). Añade los que quieras.</span></p>`}
       <p class="muted small">Elige un perfil según la categoría y, si quieres, activa o desactiva cada botón a tu gusto. Las acciones desactivadas
       no aparecen en la pista ni en las estadísticas (salvo que haya datos de partidos anteriores) y no cuentan en la valoración.
       Con menos botones, cada uno es más grande.</p>
       <h3 class="sub">Perfil</h3>
-      <div class="profiles" role="group" aria-label="Perfil de botones">${PROFILES.map(profile).join('')}</div>
+      <div class="profiles" role="group" aria-label="Perfil de botones">${profilesFor().map(profile).join('')}</div>
       ${prof ? '' : '<p class="muted small profile-custom"><b>Personalizado:</b> has cambiado botones a mano. Toca un perfil para volver a sus botones.</p>'}
       <h3 class="sub">Tiros</h3>
+      ${missOffered() ? `<div class="seg wide miss-mode" role="group" aria-label="Botones de tiro">
+        ${missMode('both', 'Anotados y fallados')}${missMode('made', 'Solo anotados')}
+      </div>` : ''}
       <div class="opts">${shots.map(item).join('')}</div>
       <h3 class="sub">Rebotes</h3>
       <div class="seg wide reb-mode" role="group" aria-label="Botones de rebote">
@@ -1406,18 +1490,18 @@ function statsData(arg) {
   if (scope) {
     let rows = seasonRows(scope.games);
     const total = { ...totalsRow(rows, scope.games.length), ...teamPlusMinus(scope.games) };
-    withAdvanced(rows, total, 'season');   // antes de promediar: los porcentajes salen de los totales
+    const rec = withAdvanced(rows, total, 'season');   // antes de promediar: los porcentajes salen de los totales
     if (ui.avg) rows = rows.map(averageRow);
     const board = boardScope(scope.games, rows);
-    return { season: true, phase: scope.phase, scopeGames: scope.games, rows: board ? [] : rows, total: ui.avg ? averageRow(total) : total, games, board };  // scopeGames: del más reciente al más antiguo
+    return { season: true, phase: scope.phase, scopeGames: scope.games, rows: board ? [] : rows, total: ui.avg ? averageRow(total) : total, games, board, made: !rec.miss };  // scopeGames: del más reciente al más antiguo
   }
   const g = getGame(arg);
   if (!g) return null;
   const rows = gameRows(g);
   const total = { ...totalsRow(rows, 1), ...teamPlusMinus([g]) };
-  withAdvanced(rows, total, 'game');
+  const rec = withAdvanced(rows, total, 'game');
   const board = boardScope([g], rows);
-  return { season: false, game: g, rows: board ? [] : rows, total, games, board };
+  return { season: false, game: g, rows: board ? [] : rows, total, games, board, made: !rec.miss };
 }
 
 /* Solo partidos de marcador (sin jugadores): la única fila es la del equipo, que ya da la fila de totales.
@@ -1430,10 +1514,12 @@ function boardHint() {
   return 'Partidos de marcador: la estadística es de todo el equipo. Para tener la de cada jugador, añádelos en Equipo; los partidos nuevos ya se apuntarán por jugador.';
 }
 
-/* Añade a cada fila sus estadísticas avanzadas (r.adv). Qué datos se apuntaron se decide con el total del ámbito. */
+/* Añade a cada fila sus estadísticas avanzadas (r.adv). Qué datos se apuntaron se decide con el total del ámbito,
+   y se devuelve (data.made: sin tiros fallados, los tiros se dan solo como anotados, sin porcentaje). */
 function withAdvanced(rows, total, scope) {
-  const rec = MBCore.recordedOpts(total, team().hidden);
+  const rec = MBCore.recordedOpts(total, statHidden());
   for (const r of [...rows, total]) r.adv = MBCore.advanced(r, scope, rec);
+  return rec;
 }
 
 function viewStats(arg) {
@@ -1467,10 +1553,10 @@ function viewStats(arg) {
           <button class="${ui.avg ? '' : 'on'}" data-action="avg" data-v="0">Totales</button>
           <button class="${ui.avg ? 'on' : ''}" data-action="avg" data-v="1">Por partido</button>
         </div>` : ''}
-      <div class="seg">
+      ${data.made ? '' : `<div class="seg">
         <button class="${ui.adv ? '' : 'on'}" data-action="adv" data-v="0">${tr('stats.basic')}</button>
         <button class="${ui.adv ? 'on' : ''}" data-action="adv" data-v="1">${tr('stats.advanced')}</button>
-      </div>
+      </div>`}
       <span class="grow"></span>
       ${!data.season && !g.finished ? `<button class="btn" data-action="finish" data-id="${g.id}" title="Finalizar partido">${icon('flag')} Finalizar</button>` : ''}
       ${!data.season ? `<a class="btn" href="#/partido/${g.id}">${g.finished ? 'Ver partido' : `${icon('play', 'solid')} Volver al partido`}</a>` : ''}
@@ -1485,7 +1571,7 @@ function viewStats(arg) {
     <section class="card table-card">${statsTable(data)}</section>
     ${data.season && data.rows.some(r => r.gp && !isBoardRow(r)) ? `<p class="muted small report-hint">${esc(tr('report.hint'))}</p>` : ''}
     ${data.board ? `<p class="muted small board-hint">${esc(boardHint())}</p>` : unitsCard(data)}
-    ${ui.adv ? `<p class="muted small adv-note">${esc(tr('adv.note'))} Toca la cabecera de una columna para ordenar.</p>${glossary(data)}` : `
+    ${showAdv(data) ? `<p class="muted small adv-note">${esc(tr('adv.note'))} Toca la cabecera de una columna para ordenar.</p>${glossary(data)}` : `
     <p class="muted small formula"><b>VAL</b> (valoración ACB) = puntos + rebotes + asistencias + recuperaciones + tapones + faltas recibidas − tiros fallados (cada uno resta 1) − tapones recibidos − pérdidas − faltas cometidas.
     Toca la cabecera de una columna para ordenar.</p>`}
     <p class="support">¿Te es útil la app? <a href="${KOFI_URL}" target="_blank" rel="noopener">${icon('coffee')} Invítame a un café</a></p>
@@ -1811,10 +1897,14 @@ function glossary(data) {
   </section>`;
 }
 
-function cellValue(r, c) {
+/* Vista de avanzadas: sin tiros fallados (marcador de solo anotados) no hay ninguna que calcular */
+const showAdv = (data) => ui.adv && !data.made;
+
+function cellValue(r, c, made = false) {
   if (c.adv) return advValue(r.adv[c.k], c.fmt);
   if (c.k === 'fg') return `${r.t2m + r.t3m}/${r.t2a + r.t3a}`;
   if (c.k === 'pm') return r.pm == null ? '–' : `<span class="val ${r.pm > 0 ? 'pos' : r.pm < 0 ? 'neg' : ''}">${signedNum(r.pm)}</span>`;
+  if (c.shot && made) return `<span class="shot">${r[`t${c.shot}m`]}</span>`;
   if (c.shot) {
     const m = r[`t${c.shot}m`], a = r[`t${c.shot}a`];
     const meter = a ? `<i class="meter" style="--p:${Math.min(round1(m / a * 100) / 100, 1)}"><i></i></i>` : '';
@@ -1843,7 +1933,7 @@ function colVisible(k, data) {
 }
 
 function statsTable(data) {
-  const cols = (ui.adv ? ADV_COLS : COLS)
+  const cols = (showAdv(data) ? ADV_COLS : COLS)
     .filter(c => (!c.season || data.season) && colVisible(c.k, data))
     .map(c => (c.adv || c.k === 'fg' ? { ...c, ...advHead(c, data) } : c.tk ? { ...c, t: tr(c.tk) } : c));
   const { key, dir } = ui.sort;
@@ -1873,7 +1963,7 @@ function statsTable(data) {
   const scopeArg = data.season ? (data.phase ? `fase-${data.phase}` : 'temporada') : '';
   const value = (r, c) => (c.k === 'name' && scopeArg && r.gp && r.id !== '_team' && !isBoardRow(r)
     ? `<button class="pname-btn" data-action="report" data-pid="${r.id}" data-arg="${scopeArg}" title="${esc(tr('report.action'))}">${esc(r.name)}</button>`
-    : cellValue(r, c));
+    : cellValue(r, c, data.made));
   const cell = (r, c, i) => `<td class="${colCls[i]}${isZero(r, c) ? ' zero' : ''}${c.k === 'fc' && !data.season && r.fc >= MAX_FOULS ? ' neg' : ''}" data-k="${c.k}">${value(r, c)}</td>`;
   return `
   <div class="table-wrap">
@@ -2022,6 +2112,8 @@ function renderEditGame(m) {
 function eventText(g, e) {
   if (e.type === 'opp') return `<span class="them">${esc(g.opponent)}</span> ${e.pts > 0 ? '+' + e.pts : e.pts}`;
   if (e.type === MBCore.ADJ) return `<b>${esc(whoLabel(g, g.roster.find(x => x.id === e.pid)))}</b> · Corrección de puntos ${e.pts > 0 ? '+' + e.pts : e.pts}`;
+  // En el marcador, la falta recibida es la que comete el rival
+  if (e.type === 'fr' && e.pid === BOARD_PID) return `<span class="them">${esc(g.opponent)}</span> · Falta cometida`;
   const p = g.roster.find(x => x.id === e.pid);
   return `<b>${esc(whoLabel(g, p))}</b> · ${EV[e.type] ? EV[e.type].text : esc(e.type)}`;
 }
@@ -2140,14 +2232,15 @@ function record(g, type, pid) {
   ui.flash = { pid, type };
   render();
   const p = g.roster.find(x => x.id === pid);
-  let msg = `<b>${esc(whoLabel(g, p))}</b> · ${EV[type].text}`;
-  if (type === 'fc' && pid === BOARD_PID) {
-    msg += ` · ${teamFouls(g)} en ${perAbbr(g, g.period)}`;
-  } else if (type === 'fc') {
+  let msg = eventText(g, e);
+  if (type === 'fc' && pid !== BOARD_PID) {
     const f = g.events.filter(x => x.pid === pid && x.type === 'fc').length;
     if (f >= MAX_FOULS) msg = `⛔ <b>${esc(pLabel(p))}</b> · ${f} faltas: eliminado/a`;
     else if (f === MAX_FOULS - 1) msg = `⚠️ <b>${esc(pLabel(p))}</b> · ${f} faltas`;
   }
+  // Faltas de equipo: cuántas lleva cada uno en el periodo y si entra en bonus
+  if (type === 'fc') msg += foulNote(g, 'us', pid === BOARD_PID ? '' : 'Equipo');
+  if (type === 'fr') msg += foulNote(g, 'them', pid === BOARD_PID ? '' : g.opponent);
   toast(msg, e.id);
 }
 
@@ -2430,6 +2523,14 @@ const actions = {
     else hidden.push(id);
     save(); vibrate(8); render();
   },
+  'miss-mode'(el) {
+    const t = team(), made = el.dataset.v === 'made';
+    if (!missOffered(t) || missOff(t) === made) return;
+    t.hidden = t.hidden.filter(id => id !== 'miss');
+    if (made) t.hidden.push('miss');
+    save(); vibrate(8); render();
+    toast(made ? 'Tiros: solo los anotados (botones verdes)' : 'Tiros: anotados y fallados');
+  },
   'reb-mode'(el) {
     const t = team(), one = el.dataset.v === 'one';
     if (rebOne(t) === one) return;
@@ -2459,7 +2560,7 @@ const actions = {
     const p = applyProfile(team(), el.dataset.v);
     if (!p) return;
     save(); vibrate(8); render();
-    toast(`Perfil ${p.name}: ${profileButtons(p)} botones por jugador`);
+    toast(`Perfil ${p.name}: ${profileButtons(p)} botones${missOffered() ? '' : ' por jugador'}`);
   },
   theme() { toggleTheme(); },
   'modal-close'() { closeModal(); },
@@ -2823,7 +2924,7 @@ async function receiveTransfer(code) {
   toast(`✅ Datos traspasados: ${what}`);
 }
 
-function shotTxt(r, n) { return `${r[`t${n}m`]}/${r[`t${n}a`]}`; }
+function shotTxt(r, n, made = false) { return made ? `${r[`t${n}m`]}` : `${r[`t${n}m`]}/${r[`t${n}a`]}`; }
 
 function buildText(arg) {
   const data = statsData(arg);
@@ -2848,12 +2949,12 @@ function buildText(arg) {
   const rows = [...data.rows].filter(r => r.gp > 0).sort((a, b) => b.val - a.val || byNumber(a, b));
   for (const r of rows) {
     out.push(`${pLabel(r)}${data.season ? ` (${r.gp} PJ)` : ''}`);
-    out.push(`   ${r.pts} pts · T1 ${shotTxt(r, 1)} · T2 ${shotTxt(r, 2)} · T3 ${shotTxt(r, 3)}`);
+    out.push(`   ${r.pts} pts · T1 ${shotTxt(r, 1, data.made)} · T2 ${shotTxt(r, 2, data.made)} · T3 ${shotTxt(r, 3, data.made)}`);
     out.push(`   Reb ${rebTxt(r)} · As ${r.ast} · Tap ${r.blk} · TapRec ${r.blkr} · Rec ${r.rec} · Pér ${r.lost} · FC ${r.fc} · FR ${r.fr} · VAL ${r.val}`);
   }
   const t = data.total;
   out.push('');
-  out.push(`EQUIPO: ${t.pts} pts · T1 ${shotTxt(t, 1)} · T2 ${shotTxt(t, 2)} · T3 ${shotTxt(t, 3)} · Reb ${rebTxt(t)} · As ${t.ast} · Tap ${t.blk} · TapRec ${t.blkr} · Rec ${t.rec} · Pér ${t.lost} · FC ${t.fc} · FR ${t.fr} · VAL ${t.val}`);
+  out.push(`EQUIPO: ${t.pts} pts · T1 ${shotTxt(t, 1, data.made)} · T2 ${shotTxt(t, 2, data.made)} · T3 ${shotTxt(t, 3, data.made)} · Reb ${rebTxt(t)} · As ${t.ast} · Tap ${t.blk} · TapRec ${t.blkr} · Rec ${t.rec} · Pér ${t.lost} · FC ${t.fc} · FR ${t.fr} · VAL ${t.val}`);
   out.push('');
   out.push('VAL = puntos + rebotes + asistencias + recuperaciones + tapones + faltas recibidas − tiros fallados − tapones recibidos − pérdidas − faltas cometidas');
   return out.join('\n');
@@ -2895,7 +2996,7 @@ function shareReport(arg, pid) {
   const t = team();
   const total = totalsRow(seasonRows(scope.games), scope.games.length);
   const current = t.players.find(p => p.id === pid);   // nombre y dorsal de hoy, como en la tabla
-  const model = MBCore.reportModel(scope.games, pid, MBCore.recordedOpts(total, t.hidden), current);
+  const model = MBCore.reportModel(scope.games, pid, MBCore.recordedOpts(total, statHidden(t)), current);
   if (!model) return;
   const scopeLabel = scope.phase ? phaseLabel(t, scope.phase) : tr('report.season');
   const text = MBCore.reportText(model, {

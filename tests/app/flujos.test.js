@@ -356,6 +356,52 @@ describe('partido en directo', () => {
     expect(app.toast).toContain('5 faltas: eliminado/a');
   });
 
+  describe('faltas de equipo y bonus', () => {
+    const fouls = (app, side) => app.$(`.board .tfouls.${side}`);
+
+    it('suma las faltas cometidas de todos y, con 4 en el periodo, el equipo entra en bonus', async () => {
+      const app = await live();
+      await tap(app, 'p4', 'fc', 2);
+      await tap(app, 'p7', 'fc');
+      expect(app.toast).toContain('#7 Bruno · Falta cometida · Equipo: 3 faltas en P1');
+      expect(app.text(fouls(app, 'us'))).toBe('Faltas3');
+      expect(fouls(app, 'us').classList.contains('bonus')).toBe(false);
+      await tap(app, 'p10', 'fc');
+      expect(app.toast).toContain('Equipo: 4ª falta en P1, entra en bonus');
+      expect(app.text(fouls(app, 'us'))).toBe('Bonus4');
+      expect(fouls(app, 'us').classList.contains('bonus')).toBe(true);
+      await tap(app, 'p12', 'fc');
+      expect(app.toast).toContain('Equipo: 5 faltas en P1, bonus (2 TL)');
+    });
+
+    it('las faltas recibidas son las del rival: su cuenta y su bonus', async () => {
+      const app = await live({ events: [ev('fr', 'p4'), ev('fr', 'p7'), ev('fr', 'p4')] });
+      expect(app.text(fouls(app, 'them'))).toBe('Faltas3');
+      await tap(app, 'p12', 'fr');
+      expect(app.toast).toContain('#12 Dani · Falta recibida · Rival: 4ª falta en P1, entra en bonus');
+      expect(fouls(app, 'them').classList.contains('bonus')).toBe(true);
+      expect(app.text(fouls(app, 'us'))).toBe('Faltas0');
+    });
+
+    it('la cuenta vuelve a 0 en cada periodo', async () => {
+      const app = await live({ period: 2, events: [ev('fc', 'p4', 1), ev('fc', 'p4', 1), ev('fc', 'p7', 1), ev('fc', 'p7', 1), ev('fc', 'p10', 2)] });
+      expect(app.text(fouls(app, 'us'))).toBe('Faltas1');
+      expect(app.fn.teamFouls(app.db.games[0], 'us', 1)).toBe(4);
+    });
+
+    it('sin el botón de falta (cometida o recibida) no se lleva esa cuenta', async () => {
+      let app = await live({}, makeTeam({ hidden: ['fr'] }));
+      expect(fouls(app, 'us')).not.toBeNull();
+      expect(fouls(app, 'them')).toBeNull();
+      app = await live({}, makeTeam({ hidden: ['fc', 'fr'] }));
+      expect(app.$('.tfouls')).toBeNull();
+      // Salvo que el partido ya tenga faltas apuntadas
+      app = await live({ events: [ev('fc', 'p4')] }, makeTeam({ hidden: ['fc', 'fr'] }));
+      expect(app.text(fouls(app, 'us'))).toBe('Faltas1');
+      expect(fouls(app, 'them')).toBeNull();
+    });
+  });
+
   it('las faltas de cada jugador se ven también como puntos bajo su dorsal', async () => {
     const app = await live();
     const dots = (pid) => rowOf(app, pid).querySelectorAll('.fouls-dots i.on').length;
@@ -601,10 +647,11 @@ describe('marcador: el local a la izquierda', () => {
 
   it('de local, el equipo propio va a la izquierda; de visitante, a la derecha', async () => {
     const home = await openApp({ data: makeData({ games: [game('home')] }), hash: '#/partido/g1' });
-    expect(board(home)).toEqual(['tname us first:Alevín A', 'score us:3', 'dash:–', 'score them:0', 'tname them:Rival']);
+    // Las faltas de equipo de cada uno, por fuera de su resultado
+    expect(board(home)).toEqual(['tname us first:Alevín A', 'tfouls us:Faltas0', 'score us:3', 'dash:–', 'score them:0', 'tfouls them:Faltas0', 'tname them:Rival']);
 
     const away = await openApp({ data: makeData({ games: [game('away')] }), hash: '#/partido/g1' });
-    expect(board(away)).toEqual(['tname them first:Rival', 'score them:0', 'dash:–', 'score us:3', 'tname us:Alevín A']);
+    expect(board(away)).toEqual(['tname them first:Rival', 'tfouls them:Faltas0', 'score them:0', 'dash:–', 'score us:3', 'tfouls us:Faltas0', 'tname us:Alevín A']);
     expect(scoreboard(away)).toBe('3-0');   // los puntos siguen en su sitio: los del rival se suman al rival
   });
 
