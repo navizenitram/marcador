@@ -5,7 +5,7 @@ import Phone from './Phone.astro';
 import ActionLegend from './ActionLegend.astro';
 import FinalCta from './FinalCta.astro';
 import { home } from '../i18n/home';
-import { APP_URL, KOFI_URL, SITE_NAME, TEMPLATE_PDF, type Lang } from '../consts';
+import { APP_URL, KOFI_URL, SITE_NAME, TEMPLATE_PDF, UMAMI_WEBSITE_ID, type Lang } from '../consts';
 
 interface Props { lang: Lang }
 const { lang } = Astro.props;
@@ -54,7 +54,7 @@ const alternates = [
         <p class="lead">{t.lead}</p>
         <div class="actions">
           <a class="btn btn-primary" href={APP_URL} data-umami-event="abrir-app" data-umami-event-origen="portada">{t.open}</a>
-          <a class="btn btn-ghost" href="#como-funciona">{t.how}</a>
+          <a class="btn btn-ghost" href="#como-funciona" data-umami-event="ver-como-funciona" data-umami-event-idioma={lang}>{t.how}</a>
         </div>
         <ul class="facts">{t.facts.map((f) => <li>{f}</li>)}</ul>
       </div>
@@ -65,7 +65,7 @@ const alternates = [
     </div>
   </section>
 
-  <section class="section" aria-labelledby="tambien-marcador">
+  <section class="section" aria-labelledby="tambien-marcador" data-seccion="marcador">
     <div class="wrap split reverse">
       <div>
         <h2 id="tambien-marcador">{t.growTitle}</h2>
@@ -100,7 +100,7 @@ const alternates = [
     </div>
   </section>
 
-  <section class="section" id="como-funciona" aria-labelledby="como-funciona-titulo">
+  <section class="section" id="como-funciona" aria-labelledby="como-funciona-titulo" data-seccion="como-funciona">
     <div class="wrap">
       <div class="section-intro">
         <h2 id="como-funciona-titulo">{t.stepsTitle}</h2>
@@ -168,17 +168,17 @@ const alternates = [
       <div class="privacy">
         <h2 id="privacidad">{t.privacyTitle}</h2>
         {t.privacy.map((p) => <p>{p}</p>)}
-        <p>{t.about} <a href={KOFI_URL} target="_blank" rel="noopener" data-umami-event="kofi">{t.kofi}</a>.</p>
+        <p>{t.about} <a href={KOFI_URL} target="_blank" rel="noopener" data-umami-event="kofi" data-umami-event-origen="portada">{t.kofi}</a>.</p>
       </div>
     </div>
   </section>
 
-  <section class="section section-paper" aria-labelledby="preguntas">
+  <section class="section section-paper" aria-labelledby="preguntas" data-seccion="preguntas">
     <div class="wrap">
       <div class="faq">
         <h2 id="preguntas">{t.faqTitle}</h2>
         {t.faqs.map((f) => (
-          <details>
+          <details data-faq={f.id}>
             <summary>{f.q}</summary>
             <p>{f.a}{f.link && <> <a
               href={f.link.href}
@@ -195,4 +195,34 @@ const alternates = [
   </section>
 
   <FinalCta lang={lang} origin="final" />
+
+  {UMAMI_WEBSITE_ID && (
+    <script is:inline>
+      // Analítica de la portada (Umami): hasta dónde se lee (ver-seccion) y qué preguntas se abren (abrir-faq).
+      // Cada cosa se cuenta una vez por visita. El script de Umami se carga con defer: si aún no está, se espera.
+      (() => {
+        const idioma = document.documentElement.lang;
+        const sent = new Set();
+        const track = (name, data, tries = 0) => {
+          if (window.umami) window.umami.track(name, { ...data, idioma });
+          else if (tries < 20) setTimeout(() => track(name, data, tries + 1), 500);
+        };
+        const once = (key, name, data) => { if (!sent.has(key)) { sent.add(key); track(name, data); } };
+        if ('IntersectionObserver' in window) {
+          // Una sección cuenta como vista cuando su parte de arriba pasa la mitad de la pantalla
+          const io = new IntersectionObserver((entries) => {
+            for (const e of entries) {
+              if (!e.isIntersecting) continue;
+              io.unobserve(e.target);
+              once(`s:${e.target.dataset.seccion}`, 'ver-seccion', { seccion: e.target.dataset.seccion });
+            }
+          }, { rootMargin: '0px 0px -50% 0px' });
+          document.querySelectorAll('[data-seccion]').forEach((el) => io.observe(el));
+        }
+        document.querySelectorAll('details[data-faq]').forEach((d) => d.addEventListener('toggle', () => {
+          if (d.open) once(`f:${d.dataset.faq}`, 'abrir-faq', { pregunta: d.dataset.faq });
+        }));
+      })();
+    </script>
+  )}
 </Base>

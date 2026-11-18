@@ -42,7 +42,9 @@ Durante la campaña conviene:
 
 - Responder a los comentarios el mismo día, sobre todo los de los consejos.
 - Fijar en el perfil la llamada del viernes de cada semana.
-- Mirar en Umami las visitas que llegan de X (los eventos `abrir-app` y `x`) para ver qué viernes funciona mejor.
+- Poner en los enlaces de cada post `?utm_source=x&utm_campaign=<fecha del viernes>` (por ejemplo, `utm_campaign=2026-11-13`).
+- Mirar en Umami las visitas que llegan de X (los eventos `abrir-app` y `x`, filtrando por `utm_campaign`) para ver qué
+  viernes funciona mejor y, con el embudo «Activación» del README, cuántos de ellos acaban finalizando un partido.
 
 ## Calendario completo
 

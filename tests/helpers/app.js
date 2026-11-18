@@ -29,11 +29,13 @@ const SCRIPTS = [...HTML.matchAll(/<script src="([^"]+)"><\/script>/g)]
  * @param {string} [opts.origin] dirección donde se abre la app, p. ej. 'https://marcador-kohl.vercel.app'
  * @param {string} [opts.siteUrl] valor de %SITE_URL% (la canonical); sin él queda el marcador tal cual
  * @param {string} [opts.appDate] valor de %APP_DATE% (fecha de la versión); sin él queda el marcador tal cual
+ * @param {string} [opts.umamiId] valor de %UMAMI_WEBSITE_ID% (estadísticas de uso); sin él queda el marcador y no se envía nada
+ * @param {(window: Window) => void} [opts.setup] prepara la ventana antes de cargar los scripts (p. ej. un fetch falso)
  * @param {boolean} [opts.compression] da a la ventana CompressionStream y DecompressionStream (jsdom no los tiene)
  * @param {object|true} [opts.demo] equipo de ejemplo con el que arranca la app: true, el de verdad (demo.js); un
  *   objeto, ese en su lugar (MBDemo). Por defecto, ninguno: los tests no dependen de los datos del ejemplo
  */
-export async function openApp({ data, hash = '', storage = {}, origin = 'https://app.test', siteUrl, appDate, compression = false, demo } = {}) {
+export async function openApp({ data, hash = '', storage = {}, origin = 'https://app.test', siteUrl, appDate, umamiId, setup, compression = false, demo } = {}) {
   const errors = [];
   const logs = [];
   const virtualConsole = new VirtualConsole();
@@ -42,6 +44,7 @@ export async function openApp({ data, hash = '', storage = {}, origin = 'https:/
 
   let html = siteUrl ? HTML.replaceAll('%SITE_URL%', siteUrl) : HTML;
   if (appDate) html = html.replaceAll('%APP_DATE%', appDate);
+  if (umamiId !== undefined) html = html.replaceAll('%UMAMI_WEBSITE_ID%', umamiId);
   const dom = new JSDOM(html, {
     url: `${origin}/minibasket-stats/${hash}`,
     runScripts: 'outside-only',
@@ -55,6 +58,7 @@ export async function openApp({ data, hash = '', storage = {}, origin = 'https:/
   if (data !== undefined) window.localStorage.setItem(STORE_KEY, typeof data === 'string' ? data : JSON.stringify(data));
   for (const [k, v] of Object.entries(storage)) window.localStorage.setItem(k, v);
 
+  if (setup) setup(window);
   if (demo && demo !== true) window.MBDemo = JSON.parse(JSON.stringify(demo));
   for (const { src, script } of SCRIPTS) {
     if (src === 'demo.js' && demo !== true) continue;

@@ -6,7 +6,11 @@
 // aaaa-mm-dd): la variable APP_DATE si está; si no, la del último commit de la rama que cambió la app (sin contar su
 // README). Con --first-parent, en main es la fecha en que se fusionó el cambio (cuando se publicó), no la del commit en
 // su rama. Si no hay historial de git (una copia sin .git), la de hoy en España, que es la del despliegue.
+//
+// La app de estadísticas manda estadísticas de uso anónimas a Umami (analytics.js) con el mismo ID de sitio que la web:
+// %UMAMI_WEBSITE_ID% se sustituye por PUBLIC_UMAMI_WEBSITE_ID (de las variables de entorno o de .env). Vacío, no envía nada.
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { SITE_URL } from '../site.config.mjs';
 
@@ -28,13 +32,24 @@ function appDate() {
   return today();
 }
 
+/* El ID de Umami, como lo ve Astro: primero las variables de entorno, si no el archivo .env */
+function umamiId() {
+  if (process.env.PUBLIC_UMAMI_WEBSITE_ID !== undefined) return process.env.PUBLIC_UMAMI_WEBSITE_ID.trim();
+  try {
+    const env = readFileSync('.env', 'utf8').match(/^\s*PUBLIC_UMAMI_WEBSITE_ID\s*=\s*["']?([\w-]*)["']?\s*$/m);
+    return env ? env[1] : '';
+  } catch { return ''; }
+}
+
 const APP_DATE = appDate();
+const UMAMI_WEBSITE_ID = umamiId();
+if (UMAMI_WEBSITE_ID && !/^[\w-]+$/.test(UMAMI_WEBSITE_ID)) throw new Error(`PUBLIC_UMAMI_WEBSITE_ID no es válido: ${UMAMI_WEBSITE_ID}`);
 const files = ['dist/minibasket-stats/index.html', 'dist/marcador/index.html'];
 
 for (const file of files) {
   const html = await readFile(file, 'utf8');
-  const out = html.replaceAll('%SITE_URL%', SITE_URL).replaceAll('%APP_DATE%', APP_DATE);
-  if (/%(SITE_URL|APP_DATE)%/.test(out)) throw new Error(`Quedan marcadores sin sustituir en ${file}`);
+  const out = html.replaceAll('%SITE_URL%', SITE_URL).replaceAll('%APP_DATE%', APP_DATE).replaceAll('%UMAMI_WEBSITE_ID%', UMAMI_WEBSITE_ID);
+  if (/%(SITE_URL|APP_DATE|UMAMI_WEBSITE_ID)%/.test(out)) throw new Error(`Quedan marcadores sin sustituir en ${file}`);
   await writeFile(file, out);
-  console.log(`postbuild: ${file} → ${SITE_URL}${html.includes('%APP_DATE%') ? ` · versión del ${APP_DATE}` : ''}`);
+  console.log(`postbuild: ${file} → ${SITE_URL}${html.includes('%APP_DATE%') ? ` · versión del ${APP_DATE}` : ''}${html.includes('%UMAMI_WEBSITE_ID%') ? ` · estadísticas de uso ${UMAMI_WEBSITE_ID ? 'activas' : 'desactivadas (sin PUBLIC_UMAMI_WEBSITE_ID)'}` : ''}`);
 }

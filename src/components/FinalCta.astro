@@ -9,7 +9,7 @@ const shareText = ca
   : `Mira esta app gratuita de estadísticas de baloncesto formativo. Apuntas lo que hace cada jugador durante el partido: ${home}`;
 const wa = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 ---
-<section class="final-cta">
+<section class="final-cta" data-seccion="final">
   <div class="wrap final-inner">
     <h2>{ca ? 'Prova-la al pròxim partit' : 'Pruébala en el próximo partido'}</h2>
     <p>{ca
@@ -24,7 +24,7 @@ const wa = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
       </a>
     </div>
     <p class="aside">{ca
-      ? <>Només vols portar el resultat? També hi ha un <a href={SCOREBOARD_URL}>marcador senzill de minibàsquet</a>.</>
-      : <>¿Solo quieres llevar el resultado? También hay un <a href={SCOREBOARD_URL}>marcador sencillo de minibasket</a>.</>}</p>
+      ? <>Només vols portar el resultat? També hi ha un <a href={SCOREBOARD_URL} data-umami-event="abrir-marcador" data-umami-event-origen={origin}>marcador senzill de minibàsquet</a>.</>
+      : <>¿Solo quieres llevar el resultado? También hay un <a href={SCOREBOARD_URL} data-umami-event="abrir-marcador" data-umami-event-origen={origin}>marcador sencillo de minibasket</a>.</>}</p>
   </div>
 </section>

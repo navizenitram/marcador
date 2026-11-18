@@ -23,6 +23,8 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="My Own Basketball Stats: estadísticas de baloncesto formativo desde el móvil">
 <meta name="twitter:card" content="summary_large_image">
+<!-- ID de Umami para las estadísticas de uso anónimas (analytics.js); scripts/postbuild.mjs lo sustituye -->
+<meta name="mbs-analytics" content="%UMAMI_WEBSITE_ID%">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -57,7 +59,7 @@
       </svg>
       <h1 class="splash-name">My Own<br>Basketball <span>Stats</span></h1>
       <p class="splash-tag">Estadísticas de baloncesto formativo</p>
-      <p class="splash-privacy"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Sin registro ni seguimiento: tus datos se quedan en tu móvil</span></p>
+      <p class="splash-privacy"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Sin registro ni publicidad: tus datos se quedan en tu móvil</span></p>
     </div>
     <div class="install" id="install" hidden></div>
     <div class="rotate-hint">
@@ -73,6 +75,7 @@
   <script src="i18n.js"></script>
   <script src="i18n/es.js"></script>
   <script src="demo.js"></script>
+  <script src="analytics.js"></script>
   <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {

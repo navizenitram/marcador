@@ -15,7 +15,7 @@
 | Partidos antiguos | **«No disponible»** para +/- y quintetos | Sin reconstrucción por `played` (§2.3) |
 | +/- en el informe para familias | **Sí, muy bien explicado** | Texto propuesto en la fase 4 |
 | Portugués | **pt-PT** | Fase 5 |
-| Umami en la web | **Activo** | La comparativa dice «sin analítica en la app», no «sin rastreo» en general (fase 3) |
+| Umami en la web | **Activo** | Desde noviembre de 2026 la app también manda estadísticas de uso anónimas (desactivables): la comparativa ya no puede decir «sin analítica en la app» (fase 3) |
 | Prioridad | **Encontrar qué 5 jugadores juntos son el mejor quinteto** | La fase 1B es el centro del plan (§3) |
 
 Sobre «registrar qué jugadores han participado en cada cuarto»: **ya se hace**. `g.played` guarda los periodos
@@ -158,7 +158,7 @@ es más simple y no da datos a medias. Quedaría como mejora futura, sin cambios
 | --- | --- | --- |
 | «Registramos tiempo de juego por jugador» | Solo **periodos jugados** (`g.played`, columna `PER`). No hay reloj | Decidido: todo en periodos, sin minutos (§2.2) |
 | «ES/CA en app y landing» | La app y el marcador solo están en ES. En la web, CA solo tiene la portada | La mejora 5 incluye traducir la app al **catalán** |
-| «Sin analítica» | Es cierto en la **app**. La **web** carga Umami (sin cookies), que **está activo** en producción (`Base.astro`) | La comparativa y los textos de la web solo pueden decir «sin analítica» de la **app** (fase 3) |
+| «Sin analítica» | Ya no es cierto: la **web** carga Umami (sin cookies) y la **app** manda estadísticas de uso anónimas, sin datos de lo que se apunta y desactivables en Ajustes (`analytics.js`) | La comparativa dice «sin cookies, sin cuentas y sin enviar tus datos», no «sin analítica» (fase 3) |
 | Las métricas avanzadas siempre tienen datos | Cada equipo puede **desactivar botones** (`t.hidden`). Sin `t1` no hay TLI, y sin `lost` no hay pérdidas | Hay que ocultar la métrica cuando falta un dato, no mostrar un 0 (§2.4) |
 | Los quintetos aparecen solos | Solo si quien apunta registra los cambios en la app | Indicadores de cobertura y avisos (§4) |
 
@@ -556,17 +556,17 @@ necesitaría la app en inglés (pregunta 10).
   competencia** (reseñas de terceros escritas por una parte interesada). `FAQPage` es opcional: Google ya no
   suele mostrarlo como resultado enriquecido.
 - **Marcas:** se nombran solo para identificar cada app, sin logos ni capturas de la competencia.
-- **Privacidad, con Umami activo:** la página dice «la **app** no tiene analítica, cookies ni cuentas». De la web
-  dice la verdad: «la web usa una analítica sin cookies (Umami) para contar visitas». No se usa «sin rastreo» en
-  general. En la fila «analítica/seguimiento» de la tabla, nuestra celda distingue entre la app y la web. Un test
-  comprueba que la página no contiene «sin rastreo» ni «sin seguimiento» sin precisar que se refiere a la app.
+- **Privacidad, con Umami activo:** la página dice «la **app** no tiene cookies ni cuentas y no envía lo que apuntas».
+  De la web y la app dice la verdad: las dos cuentan visitas y usos de forma anónima con Umami (sin cookies), y en la
+  app se puede desactivar. No se usa «sin rastreo», «sin seguimiento» ni «sin analítica». En la fila
+  «analítica/seguimiento» de la tabla, nuestra celda lo explica. Un test comprueba que la página no contiene esas frases.
 
 **Datos de la competencia: todos quedan como TODO para que los revises tú.** No escribiré ninguna celda sin fuente.
 La plantilla de cada celda es `{ valor: 'TODO', fuente: 'TODO (URL oficial)', consultado: 'TODO (fecha)' }`.
 
 **Datos propios** (verificables en el código; se rellenan ya): gratis, sin cuenta (no hay inicio de sesión), web
 instalable como PWA (`manifest.webmanifest`), sin conexión (`sw.js`), datos solo en el dispositivo (`localStorage`),
-sin analítica en la app, sin estadísticas del rival (solo sus puntos), 8 periodos o 4 cuartos, faltas 4/5,
+sin enviar lo que se apunta (solo estadísticas de uso anónimas y desactivables), sin estadísticas del rival (solo sus puntos), 8 periodos o 4 cuartos, faltas 4/5,
 exportación CSV/JSON, varios equipos y, cuando estén publicadas, +/-, **mejor quinteto**, avanzadas e informe por jugador. El mejor quinteto sin toques
 extra es un argumento propio fuerte: conviene comprobar (TODO) qué apps de la lista lo ofrecen y con qué esfuerzo.
 

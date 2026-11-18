@@ -114,11 +114,39 @@ Es la valoración de la ACB / Euroliga. Cada tiro fallado resta 1, sea de 1, 2 o
 
 ## Privacidad
 
-My Own Basketball Stats no recoge, no envía y no rastrea ningún dato: no hay cuentas, cookies, publicidad ni analítica,
-y no se cargan recursos de terceros (las fuentes Rajdhani y Barlow van incluidas en `fonts/`, licencia SIL OFL 1.1,
-y los iconos se dibujan en el propio código).
-Todo se guarda en el `localStorage` del navegador y solo sale del dispositivo si el usuario lo comparte o exporta.
+No hay cuentas, cookies ni publicidad, y no se cargan recursos de terceros (las fuentes Rajdhani y Barlow van incluidas
+en `fonts/`, licencia SIL OFL 1.1, y los iconos se dibujan en el propio código).
+Lo que se apunta se guarda en el `localStorage` del navegador y solo sale del dispositivo si el usuario lo comparte o exporta.
 El texto completo está en la propia app (`#/privacidad`, enlazado desde Ajustes y desde la pantalla de equipos).
+
+### Estadísticas de uso anónimas
+
+`analytics.js` (`MBAnalytics`) cuenta unos pocos hitos para saber si la gente llega a usar la app. Los envía con
+`fetch` a la API de Umami (`https://cloud.umami.is/api/send`), sin cargar su script, con el mismo ID de sitio que la
+web, así que en Umami se ve el recorrido completo: de la portada (`abrir-app`) a finalizar partidos.
+
+| Evento | Cuándo | Propiedades |
+| --- | --- | --- |
+| `app-abierta` | Cada vez que se carga la app | `instalada` (true/false), `equipos` (`0`, `1`, `2+`; sin el de ejemplo) |
+| `equipo-creado` | Al crear un equipo | `modo`: `marcador` o `jugadores` |
+| `ejemplo-abierto` | Al tocar el equipo de ejemplo por primera vez | — |
+| `jugadores-anadidos` | Al añadir el primer jugador a un equipo | `equipo`: `marcador` (se creó como solo marcador) o `jugadores` |
+| `partido-empezado` | Al crear un partido | `tipo` (`marcador`/`jugadores`), `periodos` (8/4), `perfil` (id o `personalizado`) |
+| `partido-finalizado` | Al finalizarlo (también al proponerlo al empezar otro). No cuentan los del ejemplo | `tipo`, `periodos`, `n`: finalizados del equipo (`1`, `2-5`, `6-10`, `11+`) |
+| `compartir-resultado` | Al copiar, compartir, enviar por email o descargar las estadísticas | `canal` (`copiar`, `nativo`, `email`, `texto`, `csv`), `que` (`partido`, `temporada`, `informe`) |
+| `pwa-instalada` | Evento `appinstalled` del navegador | — |
+
+Reglas:
+
+- **Nunca** se envían nombres, rivales, resultados ni estadísticas. `track()` descarta lo que no sea un texto corto,
+  un número o un booleano, y la URL es siempre `/minibasket-stats/` (las rutas llevan ids de partidos).
+- Solo envía si `scripts/postbuild.mjs` ha puesto el ID (`<meta name="mbs-analytics">`, de `PUBLIC_UMAMI_WEBSITE_ID`) y
+  la app está en el dominio de la canonical. En local, en las vistas previas y en la dirección antigua no envía nada.
+- Se desactiva en **Ajustes › Privacidad** (`localStorage['mbstats.uso'] = 'off'`). Tampoco envía si el navegador
+  manda Global Privacy Control o Do Not Track.
+- Sin conexión, los eventos esperan en `localStorage['mbstats.uso.cola']` (30 como mucho) y se envían al volver la
+  conexión o al abrir la app otra vez. Umami los registra con la hora del envío, no con la del hito.
+- Un evento nuevo tiene que añadirse a la lista de `app.js`, a la de la pantalla de Privacidad y a esta tabla.
 
 ## Desarrollo local
 
@@ -145,6 +173,7 @@ index.html            Shell de la SPA
 core.js               Núcleo de cálculo: funciones puras sin DOM (MBCore). Se carga antes que app.js
 i18n.js, i18n/        Textos por idioma (MBI18n.t). Por ahora solo los nuevos, en castellano
 demo.js               Equipo de ejemplo (generado por scripts/demo.mjs)
+analytics.js          Estadísticas de uso anónimas (MBAnalytics): cola, envío a Umami y desactivación
 app.js                Vistas, acciones y almacenamiento
 styles.css            Estilos (layout horizontal)
 sw.js                 Service worker (modo sin conexión)

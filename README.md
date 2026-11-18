@@ -84,7 +84,7 @@ informe de Playwright queda como artefacto de la ejecución.
 | Variable | Para qué | Por defecto |
 | --- | --- | --- |
 | `SITE_URL` | URL pública, sin barra final. Se usa en canonical, Open Graph, sitemap y robots.txt | `https://myownbasketballstats.com` |
-| `PUBLIC_UMAMI_WEBSITE_ID` | Activa la analítica de Umami (sin cookies) en la web. La app no lleva analítica | vacía: sin analítica |
+| `PUBLIC_UMAMI_WEBSITE_ID` | Activa la analítica de Umami (sin cookies) en la web y las estadísticas de uso anónimas de la app (mismo ID, `scripts/postbuild.mjs` lo pone en la app) | vacía: sin analítica |
 | `PUBLIC_GSC_VERIFICATION` | Código de verificación de Google Search Console (etiqueta meta) | el de la propiedad actual, en `src/consts.ts` |
 
 Ver `.env.example`.
@@ -94,12 +94,38 @@ Ver `.env.example`.
 | Evento | Cuándo | Propiedad |
 | --- | --- | --- |
 | `abrir-app` | Clic en cualquier botón o enlace que abre la app | `origen`: portada, cabecera, final, pie, guía… |
+| `abrir-marcador` | Clic en un enlace al marcador | `origen`: final, guía…, pie |
+| `ver-como-funciona` | Clic en «Ver cómo funciona» de la portada | `idioma` |
+| `ver-seccion` | La portada llega a una sección (su parte de arriba pasa la mitad de la pantalla). Una vez por visita | `seccion`: marcador, como-funciona, preguntas, final; `idioma` |
+| `abrir-faq` | Se abre una pregunta frecuente de la portada. Una vez por pregunta y visita | `pregunta`: el `id` de `src/i18n/home.ts`; `idioma` |
 | `compartir-whatsapp` | Clic en «Compartirla por WhatsApp» | `origen` |
 | `descargar-plantilla` | Descarga del PDF | `origen` |
-| `kofi` | Clic en «Invítame a un café» | — |
+| `kofi` | Clic en «Invítame a un café» | `origen`: portada, pie |
+| `x` | Clic en un enlace al perfil de X | `origen`: faq, pie, pie-proyecto |
 
-La conversión que importa de verdad (crear un equipo, terminar el primer partido) ocurre dentro de la app, que hoy no
-mide nada para cumplir su promesa de «sin seguimiento».
+`ver-seccion` y `abrir-faq` los envía un script de `src/components/Home.astro`; el resto, los atributos
+`data-umami-event` de cada enlace. Los recorridos entre páginas no necesitan eventos: salen de las visitas (informe
+*Journey* de Umami). Para medir una campaña, sus enlaces llevan `?utm_source=…&utm_campaign=…`, que Umami recoge solo.
+
+La app manda sus propios eventos anónimos (crear un equipo, empezar y finalizar partidos…) con el mismo ID, y se
+pueden desactivar en sus Ajustes. La lista y las reglas están en el [README de la app](public/minibasket-stats/README.md#estadísticas-de-uso-anónimas).
+
+### Embudos y objetivos en Umami
+
+Se crean a mano en *Reports* (Umami no los guarda en el código):
+
+| Informe | Pasos o eventos | Qué responde |
+| --- | --- | --- |
+| Embudo «Portada» | `/` → `ver-seccion` (como-funciona) → `ver-seccion` (final) → `abrir-app` | En qué parte de la portada se pierde la gente |
+| Embudo «Guías» | `/guias/estadisticas-minibasket/` o `/guias/valoracion-baloncesto/` → `abrir-app` | Qué contenido de SEO lleva a la app |
+| Embudo «Plantilla» | `/plantilla-estadisticas-baloncesto/` → `descargar-plantilla` → `abrir-app` | Si quien quiere el papel acaba probando la app |
+| Embudo «Activación» | `abrir-app` → `app-abierta` → `equipo-creado` → `partido-empezado` → `partido-finalizado` | La conversión que importa: de la web a terminar un partido |
+| Embudo «Marcador → jugadores» | `equipo-creado` → `jugadores-anadidos` | Si el «marcador vitaminado» lleva a la estadística por jugador (filtrar por `modo`/`equipo`) |
+| Objetivos | `abrir-app`, `descargar-plantilla`, `compartir-whatsapp`, `partido-finalizado`, `compartir-resultado` | Conversiones por `origen` y por fuente de tráfico |
+| Propiedades de `partido-finalizado` | Reparto de `n` | Cuántos equipos siguen usándola (2-5, 6-10, 11+ partidos) |
+
+Ojo con los embudos que cruzan la web y la app: Umami une los pasos por sesión, y una app instalada (PWA) se abre sin
+pasar por la web, así que el primer paso solo lo dan quienes llegan desde el navegador.
 
 ## Despliegue
 
