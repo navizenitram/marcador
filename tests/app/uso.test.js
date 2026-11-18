@@ -178,3 +178,99 @@ describe('estadísticas de uso: sin conexión y desactivadas', () => {
     expect(text).toContain('Ajustes › Privacidad');
   });
 });
+
+describe('estadísticas de uso: hitos que cuentan una vez y casos límite', () => {
+  it('reabrir un partido y volver a finalizarlo no lo cuenta otra vez', async () => {
+    const { app, net } = await open({ data: makeData({ games: [sampleGame()] }), hash: '#/stats/g1' });
+    await app.act('finish', { id: 'g1' });
+    await app.act('confirm-yes');
+    await app.go('#/partido/g1');
+    await app.act('reopen', { id: 'g1' });
+    expect(app.db.games[0].finished).toBe(false);
+    await app.go('#/stats/g1');
+    await app.act('finish', { id: 'g1' });
+    await app.act('confirm-yes');
+    await app.settle();
+    expect(net.names().filter((n) => n === 'partido-finalizado')).toHaveLength(1);
+  });
+
+  it('al finalizar varios a la vez, cada uno lleva su número (el primero, n=1)', async () => {
+    const data = makeData({ games: [sampleGame(), sampleGame({ id: 'g2', opponent: 'Celtics', date: '2026-10-10' })] });
+    const { app, net } = await open({ data, hash: '#/partidos' });
+    await app.submit('game', { opponent: 'Nuevo', venue: 'away' });
+    await app.act('confirm-yes');
+    await app.settle();
+    const ns = net.sent().filter((b) => b.payload.name === 'partido-finalizado').map((b) => b.payload.data.n);
+    expect(ns).toEqual(['1', '2-5']);
+  });
+
+  it('un hito con clave solo se envía la primera vez', async () => {
+    const { app, net } = await open();
+    app.window.MBAnalytics.track('jugadores-anadidos', { equipo: 'marcador' }, 'jug:t1');
+    app.window.MBAnalytics.track('jugadores-anadidos', { equipo: 'marcador' }, 'jug:t1');
+    await app.settle();
+    expect(net.names().filter((n) => n === 'jugadores-anadidos')).toHaveLength(1);
+  });
+
+  it('las estadísticas compartidas son de un partido, de la temporada o de una fase', async () => {
+    const { app } = await open({ data: makeData({ games: [sampleGame({ finished: true })] }) });
+    const scope = (arg) => app.window.eval(`usoScope(${JSON.stringify(arg)})`);
+    expect([scope('g1'), scope('temporada'), scope('fase-2')]).toEqual(['partido', 'temporada', 'fase']);
+  });
+
+  it('con la cola llena, un evento añadido mientras se envía otro no hace perder ninguno', async () => {
+    const { app, net } = await open({ fail: true });
+    const A = app.window.MBAnalytics;
+    for (let i = 0; i < 40; i++) A.track('x', { i });
+    expect(A.queue()).toHaveLength(30);
+    net.fail = false;
+    const fetch = app.window.fetch;
+    let first = true;
+    app.window.fetch = async (url, init) => {
+      if (first) { first = false; A.track('nuevo'); }   // llega un evento con el primero en camino
+      return fetch(url, init);
+    };
+    app.window.dispatchEvent(new app.window.Event('online'));
+    for (let i = 0; i < 10; i++) await app.settle();
+    // El primero (ya en camino) y los 30 que quedan en la cola, con el nuevo al final
+    expect(net.names().filter((n) => n === 'x')).toHaveLength(30);
+    expect(net.names().at(-1)).toBe('nuevo');
+    expect(A.queue()).toHaveLength(0);
+  });
+
+  it('sin equipos, se puede desactivar desde la pantalla de privacidad', async () => {
+    const { app } = await open({ hash: '#/privacidad' });
+    expect(app.$('[data-action="toggle-uso"]').getAttribute('aria-checked')).toBe('true');
+    await app.act('toggle-uso');
+    expect(app.hash).toBe('#/privacidad');
+    expect(app.$('[data-action="toggle-uso"]').getAttribute('aria-checked')).toBe('false');
+    expect(app.window.localStorage.getItem('mbstats.uso')).toBe('off');
+  });
+});
+
+describe('estadísticas de uso: modo de depuración (?uso=debug)', () => {
+  const debugLogs = (app) => app.logs.filter((l) => l.level === 'info' && String(l.args[0]).startsWith('[uso]'))
+    .map((l) => l.args.map(String).join(' '));
+
+  it('en una vista previa no envía nada, pero escribe en la consola qué enviaría y por qué no', async () => {
+    const { app, net } = await open({ origin: 'https://marcador-git-rama.vercel.app', hash: '?uso=debug' });
+    await app.submit('team-new', { name: 'Prueba', mode: 'board' });
+    expect(net.calls).toHaveLength(0);
+    const logs = debugLogs(app);
+    expect(logs[0]).toMatch(/^\[uso\] app-abierta .*no se envía: no es el dominio publicado \(myownbasketballstats\.com\)/);
+    expect(logs[1]).toMatch(/^\[uso\] equipo-creado/);
+    expect(app.window.localStorage.getItem('mbstats.uso.debug')).toBe('1');
+  });
+
+  it('en el dominio publicado dice que se envía, y ?uso=normal lo quita', async () => {
+    const { app } = await open({ hash: '?uso=debug' });
+    expect(debugLogs(app)[0]).toMatch(/app-abierta .*· se envía$/);
+    const again = await open({ hash: '?uso=normal', storage: { 'mbstats.uso.debug': '1' } });
+    expect(debugLogs(again.app)).toHaveLength(0);
+  });
+
+  it('sin modo de depuración no escribe nada en la consola', async () => {
+    const { app } = await open();
+    expect(debugLogs(app)).toHaveLength(0);
+  });
+});

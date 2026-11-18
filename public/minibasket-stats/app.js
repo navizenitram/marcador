@@ -429,8 +429,8 @@ function demoData() {
 }
 
 /* El equipo de ejemplo se ofrece mientras no esté entre los equipos ni se haya ocultado */
-function demoLoaded() { return !!DEMO && db.teams.some(t => t.id === DEMO.team.id); }
-function isDemoTeam(t) { return !!DEMO && !!t && t.id === DEMO.team.id; }
+function isDemoId(id) { return !!DEMO && id === DEMO.team.id; }
+function demoLoaded() { return db.teams.some(t => isDemoId(t.id)); }
 function demoOffered() { return !!DEMO && !db.demoOff && !demoLoaded(); }
 
 function load() {
@@ -465,15 +465,20 @@ const tr = (key, vars) => MBI18n.t(key, vars);
      equipo-creado       modo ('marcador' | 'jugadores')
      ejemplo-abierto     —
      jugadores-anadidos  equipo ('marcador' si se creó como solo marcador | 'jugadores'): el primer jugador del equipo
+                         (una vez por equipo)
      partido-empezado    tipo ('marcador' | 'jugadores'), periodos (8 | 4), perfil (id del perfil o 'personalizado')
-     partido-finalizado  tipo, periodos, n (partidos finalizados del equipo: '1', '2-5', '6-10', '11+')
-     compartir-resultado canal ('copiar' | 'nativo' | 'email' | 'texto' | 'csv'), que ('partido' | 'temporada' | 'informe')
+     partido-finalizado  tipo, periodos, n (partidos finalizados del equipo: '1', '2-5', '6-10', '11+'); una vez por
+                         partido: reabrirlo y volver a finalizarlo no cuenta
+     compartir-resultado canal ('copiar' | 'nativo' | 'email' | 'texto' | 'csv'),
+                         que ('partido' | 'temporada' | 'fase' | 'informe')
      pwa-instalada       —
-   Nunca rompe la app: si algo falla, no se cuenta. */
-function uso(name, data) {
-  try { if (window.MBAnalytics) window.MBAnalytics.track(name, data); } catch (e) { /* noop */ }
+   once: clave para los hitos que solo cuentan una vez. Nunca rompe la app: si algo falla, no se cuenta. */
+function uso(name, data, once) {
+  try { if (window.MBAnalytics) window.MBAnalytics.track(name, data, once); } catch (e) { /* noop */ }
 }
 const usoBucket = (n, steps) => steps.find(([max]) => n <= max)[1];
+/* De qué son unas estadísticas compartidas: arg es el id de un partido, 'temporada' o 'fase-N' */
+const usoScope = (arg) => getGame(arg) ? 'partido' : /^fase-/.test(arg || '') ? 'fase' : 'temporada';
 
 const $ = (s, r = document) => r.querySelector(s);
 const appEl = $('#app');
@@ -961,14 +966,15 @@ function viewPrivacy() {
       <li>Que empieza o se finaliza un partido: si es de marcador o con jugadores, si es a 8 periodos o a 4 cuartos, el perfil
       de botones y, al finalizar, cuántos lleva el equipo (1, de 2 a 5, de 6 a 10 o más de 10).</li>
       <li>Que se comparten las estadísticas, por qué vía (copiar, compartir, email, archivo de texto o CSV) y si son de un
-      partido, de la temporada o un informe de jugador.</li>
+      partido, de la temporada, de una fase o un informe de jugador.</li>
       <li>Que se instala la app en la pantalla de inicio.</li>
     </ul>
     <p>Nunca se envían nombres de equipos, jugadores o rivales, resultados ni ninguna estadística. Yo solo veo totales,
     como «esta semana se han finalizado 40 partidos». Si no hay conexión, esos avisos esperan en el dispositivo y se envían
     al recuperarla.</p>
-    <p>Puedes desactivarlo en <a href="#/ajustes">Ajustes › Privacidad</a>. Si tu navegador pide no ser rastreado (Global
+    <p>Puedes desactivarlo aquí o en Ajustes › Privacidad. Si tu navegador pide no ser rastreado (Global
     Privacy Control o Do Not Track), la app no envía nada.</p>
+    ${usoSwitch(false)}
 
     <h2>Dónde se guardan tus datos</h2>
     <p>Todo se guarda únicamente en el almacenamiento local del navegador de este dispositivo. Nadie más tiene acceso a ello, ni siquiera yo.
@@ -1386,14 +1392,15 @@ const BOARD_OPT_TEXT = {
   fr: { name: 'Falta del rival', desc: 'Debajo de sus puntos: su bonus' },
 };
 
-/* Interruptor de las estadísticas de uso anónimas (analytics.js) en Ajustes */
-function usoSwitch() {
+/* Interruptor de las estadísticas de uso anónimas (analytics.js), en Ajustes y en la pantalla de Privacidad (a la que
+   se llega sin tener equipo: así se puede desactivar antes de crear el primero). intro: con su explicación (Ajustes) */
+function usoSwitch(intro = true) {
   const A = window.MBAnalytics;
   if (!A) return '';
   const on = A.userOn();
-  return `
+  return `${intro ? `
       <p class="muted small">Con las estadísticas de uso, la app cuenta de forma anónima cosas como cuántos partidos se finalizan,
-      sin nombres ni resultados. Me ayudan a saber qué mejorar.</p>
+      sin nombres ni resultados. Me ayudan a saber qué mejorar.</p>` : ''}
       <button class="opt uso ${on ? 'on' : ''}" data-action="toggle-uso" role="switch" aria-checked="${on}">
         <span class="opt-txt"><b>Estadísticas de uso anónimas</b><small>${on ? 'Activadas' : 'Desactivadas'}</small></span>
         <span class="switch"><i></i></span>
@@ -2395,7 +2402,7 @@ const actions = {
     db.teams = db.teams.filter(x => x.id !== t.id);
     db.games = db.games.filter(g => g.teamId !== t.id);
     if (db.currentTeamId === t.id) db.currentTeamId = db.teams.length ? db.teams[0].id : null;
-    const demo = !!DEMO && t.id === DEMO.team.id;
+    const demo = isDemoId(t.id);
     if (demo) db.demoOff = true;   // el de ejemplo no vuelve a ofrecerse solo: se recupera desde Ajustes
     save(); render();
     toast(demo ? esc(tr('demo.deleted', { name: t.name })) : `Equipo ${esc(t.name)} eliminado`);
@@ -2555,11 +2562,14 @@ const actions = {
   'unit-size'(el) { ui.unitSize = [2, 3, 5].includes(+el.dataset.v) ? +el.dataset.v : 5; render(); },
   'unit-by'(el) { ui.unitBy = ['pm', 'pf', 'pc'].includes(el.dataset.v) ? el.dataset.v : 'pm'; render(); },
   share(el) { shareStats(el.dataset.arg); },
-  csv(el) { downloadCSV(el.dataset.arg); uso('compartir-resultado', { canal: 'csv', que: getGame(el.dataset.arg) ? 'partido' : 'temporada' }); },
+  csv(el) { downloadCSV(el.dataset.arg); uso('compartir-resultado', { canal: 'csv', que: usoScope(el.dataset.arg) }); },
   async 'copy-text'() {
-    const what = ui.modal.what;
-    try { await navigator.clipboard.writeText(ui.modal.text); toast('📋 Copiado'); uso('compartir-resultado', { canal: 'copiar', que: what }); }
-    catch (e) { toast('No se pudo copiar'); }
+    try {
+      const m = ui.modal;
+      await navigator.clipboard.writeText(m.text);
+      toast('📋 Copiado');
+      uso('compartir-resultado', { canal: 'copiar', que: m.what });
+    } catch (e) { toast('No se pudo copiar'); }
   },
   report(el) { shareReport(el.dataset.arg, el.dataset.pid); },
   'download-text'() {
@@ -2652,24 +2662,27 @@ async function offerFinishPending() {
     `${msg}<br><small class="muted">Solo los partidos finalizados cuentan como victoria, derrota o empate. Podrás reabrir${one ? 'lo' : 'los'} desde el menú del partido.</small>`,
     `${icon('flag')} ${one ? 'Finalizarlo' : 'Finalizarlos'}`, false, 'Dejar sin finalizar');
   if (!ok) return;
+  const before = finishedCount(team().id);
   for (const g of pending) g.finished = true;
   save();
-  pending.forEach(usoFinished);
+  pending.forEach((g, i) => usoFinished(g, before + i + 1));
   toast(one ? '🏁 Partido finalizado' : `🏁 ${pending.length} partidos finalizados`);
 }
 
-/* partido-finalizado: los del equipo de ejemplo no cuentan (ya vienen jugados) */
-function usoFinished(g) {
-  if (isDemoTeam({ id: g.teamId })) return;
-  const n = db.games.filter(x => x.teamId === g.teamId && x.finished).length;
+function finishedCount(teamId) { return db.games.filter(x => x.teamId === teamId && x.finished).length; }
+
+/* partido-finalizado, una vez por partido; n: cuántos lleva finalizados el equipo contando este.
+   Los del equipo de ejemplo no cuentan (ya vienen jugados). */
+function usoFinished(g, n) {
+  if (isDemoId(g.teamId)) return;
   uso('partido-finalizado', { tipo: isBoard(g) ? 'marcador' : 'jugadores', periodos: g.periods,
-    n: usoBucket(n, [[1, '1'], [5, '2-5'], [10, '6-10'], [Infinity, '11+']]) });
+    n: usoBucket(n, [[1, '1'], [5, '2-5'], [10, '6-10'], [Infinity, '11+']]) }, `fin:${g.id}`);
 }
 
 function finishGame(g) {
   g.finished = true;
   save();
-  usoFinished(g);
+  usoFinished(g, finishedCount(g.teamId));
   go(`#/stats/${g.id}`);
   toast('🏁 Partido finalizado');
 }
@@ -2710,7 +2723,7 @@ document.addEventListener('submit', async (e) => {
       ui.editId = null;
       toast(`Guardado ${esc(pLabel({ number, name }))}`);
     } else {
-      if (!team().players.length && !isDemoTeam(team())) uso('jugadores-anadidos', { equipo: team().board ? 'marcador' : 'jugadores' });
+      if (!team().players.length && !isDemoId(team().id)) uso('jugadores-anadidos', { equipo: team().board ? 'marcador' : 'jugadores' }, `jug:${team().id}`);
       team().players.push({ id: uid(), number, name });
       toast(`Añadido ${esc(pLabel({ number, name }))}`);
     }
@@ -3066,7 +3079,7 @@ function shareStats(arg) {
   const text = buildText(arg);
   const subject = `Estadísticas · ${statsTitle(arg)}`;
   const mailto = `mailto:${encodeURIComponent(team().email || '')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
-  openModal({ kind: 'share', text, subject, mailto, what: getGame(arg) ? 'partido' : 'temporada' });
+  openModal({ kind: 'share', text, subject, mailto, what: usoScope(arg) });
 }
 
 /* Un enlace mailto: muy largo puede no abrirse en algunos clientes de correo; por encima, se propone copiar */
@@ -3252,5 +3265,5 @@ render();
 renderInstall();
 showVersion();
 keepScreenOn();
-uso('app-abierta', { instalada: isInstalled(), equipos: usoBucket(db.teams.filter(t => !isDemoTeam(t)).length, [[0, '0'], [1, '1'], [Infinity, '2+']]) });
+uso('app-abierta', { instalada: isInstalled(), equipos: usoBucket(db.teams.filter(t => !isDemoId(t.id)).length, [[0, '0'], [1, '1'], [Infinity, '2+']]) });
 if (incoming) receiveTransfer(incoming);

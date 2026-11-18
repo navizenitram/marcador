@@ -130,10 +130,10 @@ web, así que en Umami se ve el recorrido completo: de la portada (`abrir-app`) 
 | `app-abierta` | Cada vez que se carga la app | `instalada` (true/false), `equipos` (`0`, `1`, `2+`; sin el de ejemplo) |
 | `equipo-creado` | Al crear un equipo | `modo`: `marcador` o `jugadores` |
 | `ejemplo-abierto` | Al tocar el equipo de ejemplo por primera vez | — |
-| `jugadores-anadidos` | Al añadir el primer jugador a un equipo | `equipo`: `marcador` (se creó como solo marcador) o `jugadores` |
+| `jugadores-anadidos` | Al añadir el primer jugador a un equipo (una vez por equipo) | `equipo`: `marcador` (se creó como solo marcador) o `jugadores` |
 | `partido-empezado` | Al crear un partido | `tipo` (`marcador`/`jugadores`), `periodos` (8/4), `perfil` (id o `personalizado`) |
-| `partido-finalizado` | Al finalizarlo (también al proponerlo al empezar otro). No cuentan los del ejemplo | `tipo`, `periodos`, `n`: finalizados del equipo (`1`, `2-5`, `6-10`, `11+`) |
-| `compartir-resultado` | Al copiar, compartir, enviar por email o descargar las estadísticas | `canal` (`copiar`, `nativo`, `email`, `texto`, `csv`), `que` (`partido`, `temporada`, `informe`) |
+| `partido-finalizado` | Al finalizarlo (también al proponerlo al empezar otro), una vez por partido: reabrirlo y volver a finalizarlo no cuenta. No cuentan los del ejemplo | `tipo`, `periodos`, `n`: finalizados del equipo contando este (`1`, `2-5`, `6-10`, `11+`) |
+| `compartir-resultado` | Al copiar, compartir, enviar por email o descargar las estadísticas | `canal` (`copiar`, `nativo`, `email`, `texto`, `csv`), `que` (`partido`, `temporada`, `fase`, `informe`) |
 | `pwa-instalada` | Evento `appinstalled` del navegador | — |
 
 Reglas:
@@ -142,8 +142,13 @@ Reglas:
   un número o un booleano, y la URL es siempre `/minibasket-stats/` (las rutas llevan ids de partidos).
 - Solo envía si `scripts/postbuild.mjs` ha puesto el ID (`<meta name="mbs-analytics">`, de `PUBLIC_UMAMI_WEBSITE_ID`) y
   la app está en el dominio de la canonical. En local, en las vistas previas y en la dirección antigua no envía nada.
-- Se desactiva en **Ajustes › Privacidad** (`localStorage['mbstats.uso'] = 'off'`). Tampoco envía si el navegador
-  manda Global Privacy Control o Do Not Track.
+- Se desactiva en **Ajustes › Privacidad** o en la pantalla de **Privacidad**, a la que se llega sin tener equipo
+  (`localStorage['mbstats.uso'] = 'off'`). Tampoco envía si el navegador manda Global Privacy Control o Do Not Track.
+- Los hitos que solo cuentan una vez llevan una clave (`fin:<partido>`, `jug:<equipo>`) que se guarda en
+  `localStorage['mbstats.uso.hitos']` (las 300 últimas).
+- **Modo de depuración:** abrir la app con `?uso=debug` escribe en la consola cada evento con sus propiedades y si se
+  enviaría o por qué no (dominio, ID, GPC/DNT, desactivado, ya contado). Sirve en local y en las vistas previas, donde
+  no se envía nada. `?uso=normal` lo quita.
 - Sin conexión, los eventos esperan en `localStorage['mbstats.uso.cola']` (30 como mucho) y se envían al volver la
   conexión o al abrir la app otra vez. Umami los registra con la hora del envío, no con la del hito.
 - Un evento nuevo tiene que añadirse a la lista de `app.js`, a la de la pantalla de Privacidad y a esta tabla.

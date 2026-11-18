@@ -8,7 +8,8 @@
 // su rama. Si no hay historial de git (una copia sin .git), la de hoy en España, que es la del despliegue.
 //
 // La app de estadísticas manda estadísticas de uso anónimas a Umami (analytics.js) con el mismo ID de sitio que la web:
-// %UMAMI_WEBSITE_ID% se sustituye por PUBLIC_UMAMI_WEBSITE_ID (de las variables de entorno o de .env). Vacío, no envía nada.
+// %UMAMI_WEBSITE_ID% se sustituye por PUBLIC_UMAMI_WEBSITE_ID (de las variables de entorno o de los .env, como Astro).
+// Vacío, no envía nada.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -32,13 +33,18 @@ function appDate() {
   return today();
 }
 
-/* El ID de Umami, como lo ve Astro: primero las variables de entorno, si no el archivo .env */
+/* El ID de Umami, como lo ve Astro al compilar (Vite, modo production): primero las variables de entorno y después
+   los archivos .env por orden de prioridad */
+const ENV_FILES = ['.env.production.local', '.env.local', '.env.production', '.env'];
 function umamiId() {
   if (process.env.PUBLIC_UMAMI_WEBSITE_ID !== undefined) return process.env.PUBLIC_UMAMI_WEBSITE_ID.trim();
-  try {
-    const env = readFileSync('.env', 'utf8').match(/^\s*PUBLIC_UMAMI_WEBSITE_ID\s*=\s*["']?([\w-]*)["']?\s*$/m);
-    return env ? env[1] : '';
-  } catch { return ''; }
+  for (const file of ENV_FILES) {
+    try {
+      const env = readFileSync(file, 'utf8').match(/^\s*PUBLIC_UMAMI_WEBSITE_ID\s*=\s*["']?([\w-]*)["']?\s*$/m);
+      if (env) return env[1];
+    } catch { /* no existe */ }
+  }
+  return '';
 }
 
 const APP_DATE = appDate();

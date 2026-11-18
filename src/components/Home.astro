@@ -209,15 +209,18 @@ const alternates = [
         };
         const once = (key, name, data) => { if (!sent.has(key)) { sent.add(key); track(name, data); } };
         if ('IntersectionObserver' in window) {
-          // Una sección cuenta como vista cuando su parte de arriba pasa la mitad de la pantalla
-          const io = new IntersectionObserver((entries) => {
+          // Una sección cuenta como vista cuando su parte de arriba pasa la mitad de la pantalla o, si es corta (la del
+          // final, que en pantallas altas puede no llegar a la mitad), cuando se ve al menos la mitad
+          const seen = (minRatio) => (entries) => {
             for (const e of entries) {
-              if (!e.isIntersecting) continue;
-              io.unobserve(e.target);
-              once(`s:${e.target.dataset.seccion}`, 'ver-seccion', { seccion: e.target.dataset.seccion });
+              if (e.isIntersecting && e.intersectionRatio >= minRatio) once(`s:${e.target.dataset.seccion}`, 'ver-seccion', { seccion: e.target.dataset.seccion });
             }
-          }, { rootMargin: '0px 0px -50% 0px' });
-          document.querySelectorAll('[data-seccion]').forEach((el) => io.observe(el));
+          };
+          const observers = [
+            new IntersectionObserver(seen(0), { rootMargin: '0px 0px -50% 0px' }),
+            new IntersectionObserver(seen(0.5), { threshold: 0.5 }),
+          ];
+          document.querySelectorAll('[data-seccion]').forEach((el) => observers.forEach((io) => io.observe(el)));
         }
         document.querySelectorAll('details[data-faq]').forEach((d) => d.addEventListener('toggle', () => {
           if (d.open) once(`f:${d.dataset.faq}`, 'abrir-faq', { pregunta: d.dataset.faq });

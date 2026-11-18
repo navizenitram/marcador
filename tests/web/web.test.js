@@ -79,6 +79,10 @@ describe('scripts/postbuild.mjs', () => {
     writeFileSync(join(dir, '.env'), 'SITE_URL=https://ejemplo.com\nPUBLIC_UMAMI_WEBSITE_ID="9f8e7d6c-5b4a"\n');
     build(undefined);
     expect(id()).toBe('9f8e7d6c-5b4a');
+    // Como Vite al compilar: .env.production manda sobre .env
+    writeFileSync(join(dir, '.env.production'), 'PUBLIC_UMAMI_WEBSITE_ID=1234abcd-prod\n');
+    build(undefined);
+    expect(id()).toBe('1234abcd-prod');
     expect(() => build('"><script>')).toThrow();
   }));
 
