@@ -624,6 +624,7 @@ h3.sub { font-size: 12.5px; letter-spacing: .13em; text-transform: uppercase; co
 .switch i { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); box-shadow: 0 1px 3px #0006; transition: transform .15s, background .15s; }
 .opt.on .switch { background: var(--green); border-color: var(--green); }
 .opt.on .switch i { transform: translateX(18px); background: #fff; }
+.opt.uso { width: 100%; margin: 4px 0 10px; }
 .preview-card { margin-bottom: 12px; }
 .preview .prow { height: clamp(52px, 16vh, 72px); }
 .preview .act, .preview .pid { pointer-events: none; }

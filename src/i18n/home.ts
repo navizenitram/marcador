@@ -2,7 +2,8 @@
 import { X_HANDLE, X_URL } from '../consts';
 
 // external: enlace a otra web (se abre en una pestaña nueva); event: nombre del evento de Umami al pulsarlo
-export interface Faq { q: string; a: string; link?: { href: string; text: string; external?: boolean; event?: string } }
+// id: identificador estable de la pregunta (evento abrir-faq de Umami); el mismo en los dos idiomas
+export interface Faq { id: string; q: string; a: string; link?: { href: string; text: string; external?: boolean; event?: string } }
 
 export const home = {
   es: {
@@ -73,9 +74,9 @@ export const home = {
     statsVal: 'Valoración con la fórmula de la ACB.',
     statsValLink: 'Así se calcula',
     statsAlt: 'Estadísticas de un partido en My Own Basketball Stats: victoria 57 a 47, parciales por periodo, evolución del marcador y líderes del partido',
-    privacyTitle: 'Sin registro ni seguimiento',
+    privacyTitle: 'Sin registro ni publicidad',
     privacy: [
-      'La app no tiene cuentas, cookies, publicidad ni analítica. Todo lo que apuntas se guarda solo en tu móvil y únicamente sale de él si tú lo compartes o lo exportas.',
+      'La app no tiene cuentas, cookies ni publicidad. Todo lo que apuntas se guarda solo en tu móvil y únicamente sale de él si tú lo compartes o lo exportas. Para saber qué mejorar, cuenta de forma anónima cosas como cuántos partidos se finalizan, sin nombres ni resultados, y puedes desactivarlo en Ajustes.',
       'Como trabajas con datos de menores, una buena práctica es usar solo el nombre de pila o un apodo de cada jugador.',
     ],
     about: 'My Own Basketball Stats es un proyecto personal, gratuito y sin anuncios. Lo construí para mi propio uso en los partidos y decidí compartirlo con entrenadores, familias y clubes. Si te resulta útil, puedes',
@@ -84,30 +85,30 @@ export const home = {
     paper: '¿Prefieres el papel?',
     paperLink: 'Descarga la plantilla en PDF',
     faqs: [
-      { q: '¿Cuánto cuesta?', a: 'Nada. My Own Basketball Stats es gratis y no tiene anuncios. Es un proyecto personal: si te resulta útil, puedes invitarme a un café en Ko-fi.' },
-      { q: '¿La puedo usar solo como marcador?', a: 'Sí. Al crear el equipo, deja marcado «Solo marcador»: no hace falta dar de alta a ningún jugador. Llevas el resultado como en cualquier app de marcador y, si un día quieres más detalle, activas más botones o añades la plantilla.' },
-      { q: '¿Tengo que instalar algo o crear una cuenta?', a: 'No. Se abre en el navegador del móvil o de la tablet y no pide ningún dato. Si quieres, puedes añadirla a la pantalla de inicio y se abrirá como una app más.' },
-      { q: '¿Funciona sin cobertura en el pabellón?', a: 'Sí. Una vez la has abierto por primera vez, funciona sin conexión.' },
-      { q: '¿Qué pasa con los datos si cambio de móvil?', a: 'Los datos se guardan solo en tu dispositivo. Para pasarlos a otro, exporta una copia de seguridad desde Ajustes e impórtala en el nuevo.' },
-      { q: '¿Sirve para categorías por encima del minibasket?', a: 'Sí. Al crear el partido eliges si se juega a 8 periodos, como en minibasket, o a 4 cuartos.' },
+      { id: 'precio', q: '¿Cuánto cuesta?', a: 'Nada. My Own Basketball Stats es gratis y no tiene anuncios. Es un proyecto personal: si te resulta útil, puedes invitarme a un café en Ko-fi.' },
+      { id: 'solo-marcador', q: '¿La puedo usar solo como marcador?', a: 'Sí. Al crear el equipo, deja marcado «Solo marcador»: no hace falta dar de alta a ningún jugador. Llevas el resultado como en cualquier app de marcador y, si un día quieres más detalle, activas más botones o añades la plantilla.' },
+      { id: 'instalar', q: '¿Tengo que instalar algo o crear una cuenta?', a: 'No. Se abre en el navegador del móvil o de la tablet y no pide ningún dato. Si quieres, puedes añadirla a la pantalla de inicio y se abrirá como una app más.' },
+      { id: 'sin-conexion', q: '¿Funciona sin cobertura en el pabellón?', a: 'Sí. Una vez la has abierto por primera vez, funciona sin conexión.' },
+      { id: 'cambiar-movil', q: '¿Qué pasa con los datos si cambio de móvil?', a: 'Los datos se guardan solo en tu dispositivo. Para pasarlos a otro, exporta una copia de seguridad desde Ajustes e impórtala en el nuevo.' },
+      { id: 'categorias', q: '¿Sirve para categorías por encima del minibasket?', a: 'Sí. Al crear el partido eliges si se juega a 8 periodos, como en minibasket, o a 4 cuartos.' },
       {
-        q: '¿Qué pasa si la temporada tiene dos fases?',
+        id: 'fases', q: '¿Qué pasa si la temporada tiene dos fases?',
         a: 'En minibasket es lo habitual: según la clasificación de la primera fase, en la segunda jugáis contra equipos nuevos en un nivel superior, igual o inferior. En la ficha del equipo indicas en qué fase estás y el nivel de cada una. Los partidos nuevos se apuntan en la fase actual, y puedes ver las estadísticas de cada fase por separado o de toda la temporada.',
       },
-      { q: '¿Tengo que apuntar todas las acciones?', a: 'No. En Ajustes eliges un perfil según la categoría (escuela, pre-mini, mini o completo) y, después, puedes activar o desactivar cada botón. Los equipos de solo marcador empiezan con los botones de canasta y las faltas de los dos equipos (para saber cuándo entra cada uno en bonus), y los equipos con jugadores, en pre-mini: puntos, rebotes, recuperaciones, pérdidas y faltas.' },
-      { q: '¿Por qué hay que usarla con el móvil en horizontal?', a: 'Para que quepan los cinco jugadores en pista con todos sus botones sin tener que hacer scroll durante el partido.' },
+      { id: 'acciones', q: '¿Tengo que apuntar todas las acciones?', a: 'No. En Ajustes eliges un perfil según la categoría (escuela, pre-mini, mini o completo) y, después, puedes activar o desactivar cada botón. Los equipos de solo marcador empiezan con los botones de canasta y las faltas de los dos equipos (para saber cuándo entra cada uno en bonus), y los equipos con jugadores, en pre-mini: puntos, rebotes, recuperaciones, pérdidas y faltas.' },
+      { id: 'horizontal', q: '¿Por qué hay que usarla con el móvil en horizontal?', a: 'Para que quepan los cinco jugadores en pista con todos sus botones sin tener que hacer scroll durante el partido.' },
       {
-        q: '¿Cómo calcula la valoración?',
+        id: 'valoracion', q: '¿Cómo calcula la valoración?',
         a: 'Con la misma fórmula que usan la ACB y la Euroliga: suma puntos, rebotes, asistencias, recuperaciones, tapones y faltas recibidas, y resta tiros fallados, pérdidas, tapones recibidos y faltas cometidas.',
         link: { href: '/guias/valoracion-baloncesto/', text: 'Ver la fórmula con un ejemplo' },
       },
       {
-        q: '¿Puedo apuntar las estadísticas en papel?',
+        id: 'papel', q: '¿Puedo apuntar las estadísticas en papel?',
         a: 'Sí. Tienes una plantilla gratuita para imprimir con las mismas acciones que la app.',
         link: { href: '/plantilla-estadisticas-baloncesto/', text: 'Descargar la plantilla' },
       },
       {
-        q: '¿Dónde pido ayuda o propongo mejoras?',
+        id: 'ayuda', q: '¿Dónde pido ayuda o propongo mejoras?',
         a: `En X, en ${X_HANDLE}. Ahí anuncio las novedades de cada versión y respondo dudas, sugerencias y errores que encuentres.`,
         link: { href: X_URL, text: 'Escríbeme en X', external: true, event: 'x' },
       },
@@ -181,9 +182,9 @@ export const home = {
     statsVal: "Valoració amb la fórmula de l'ACB.",
     statsValLink: 'Així es calcula (en castellà)',
     statsAlt: "Estadístiques d'un partit a My Own Basketball Stats: victòria 57 a 47, parcials per període, evolució del marcador i líders del partit",
-    privacyTitle: 'Sense registre ni seguiment',
+    privacyTitle: 'Sense registre ni publicitat',
     privacy: [
-      "L'app no té comptes, galetes, publicitat ni analítica. Tot el que apuntes es desa només al teu mòbil i només en surt si tu ho comparteixes o ho exportes.",
+      "L'app no té comptes, galetes ni publicitat. Tot el que apuntes es desa només al teu mòbil i només en surt si tu ho comparteixes o ho exportes. Per saber què millorar, compta de manera anònima coses com quants partits s'acaben, sense noms ni resultats, i ho pots desactivar a Ajustes.",
       'Com que treballes amb dades de menors, una bona pràctica és fer servir només el nom de pila o un sobrenom de cada jugador.',
     ],
     about: 'My Own Basketball Stats és un projecte personal, gratuït i sense anuncis. El vaig construir per al meu propi ús als partits i vaig decidir compartir-lo amb entrenadors, famílies i clubs. Si et resulta útil, pots',
@@ -192,26 +193,26 @@ export const home = {
     paper: 'Prefereixes el paper?',
     paperLink: 'Descarrega la plantilla en PDF (en castellà)',
     faqs: [
-      { q: 'Quant costa?', a: 'Res. My Own Basketball Stats és gratuïta i no té anuncis. És un projecte personal: si et resulta útil, pots convidar-me a un cafè a Ko-fi.' },
-      { q: "En quina llengua està l'app?", a: "De moment, l'app està en castellà. Els botons fan servir abreviatures (REC, PÉR, RO, RD…) que s'entenen igual." },
-      { q: 'La puc fer servir només com a marcador?', a: "Sí. En crear l'equip, deixa marcat «Solo marcador» (a l'app, en castellà): no cal donar d'alta cap jugador. Portes el resultat com en qualsevol app de marcador i, si un dia vols més detall, actives més botons o afegeixes la plantilla." },
-      { q: "He d'instal·lar res o crear un compte?", a: "No. S'obre al navegador del mòbil o de la tauleta i no demana cap dada. Si vols, la pots afegir a la pantalla d'inici i s'obrirà com una app més." },
-      { q: 'Funciona sense cobertura al pavelló?', a: "Sí. Un cop l'has oberta per primera vegada, funciona sense connexió." },
-      { q: 'Què passa amb les dades si canvio de mòbil?', a: "Les dades es desen només al teu dispositiu. Per passar-les a un altre, exporta una còpia de seguretat des d'Ajustes i importa-la al nou." },
-      { q: 'Serveix per a categories per sobre del minibàsquet?', a: 'Sí. En crear el partit tries si es juga a 8 períodes, com en minibàsquet, o a 4 quarts.' },
+      { id: 'precio', q: 'Quant costa?', a: 'Res. My Own Basketball Stats és gratuïta i no té anuncis. És un projecte personal: si et resulta útil, pots convidar-me a un cafè a Ko-fi.' },
+      { id: 'idioma', q: "En quina llengua està l'app?", a: "De moment, l'app està en castellà. Els botons fan servir abreviatures (REC, PÉR, RO, RD…) que s'entenen igual." },
+      { id: 'solo-marcador', q: 'La puc fer servir només com a marcador?', a: "Sí. En crear l'equip, deixa marcat «Solo marcador» (a l'app, en castellà): no cal donar d'alta cap jugador. Portes el resultat com en qualsevol app de marcador i, si un dia vols més detall, actives més botons o afegeixes la plantilla." },
+      { id: 'instalar', q: "He d'instal·lar res o crear un compte?", a: "No. S'obre al navegador del mòbil o de la tauleta i no demana cap dada. Si vols, la pots afegir a la pantalla d'inici i s'obrirà com una app més." },
+      { id: 'sin-conexion', q: 'Funciona sense cobertura al pavelló?', a: "Sí. Un cop l'has oberta per primera vegada, funciona sense connexió." },
+      { id: 'cambiar-movil', q: 'Què passa amb les dades si canvio de mòbil?', a: "Les dades es desen només al teu dispositiu. Per passar-les a un altre, exporta una còpia de seguretat des d'Ajustes i importa-la al nou." },
+      { id: 'categorias', q: 'Serveix per a categories per sobre del minibàsquet?', a: 'Sí. En crear el partit tries si es juga a 8 períodes, com en minibàsquet, o a 4 quarts.' },
       {
-        q: 'Què passa si la temporada té dues fases?',
+        id: 'fases', q: 'Què passa si la temporada té dues fases?',
         a: "En minibàsquet és l'habitual: segons la classificació de la primera fase, a la segona jugueu contra equips nous en un nivell superior, igual o inferior. A la fitxa de l'equip indiques en quina fase ets i el nivell de cadascuna. Els partits nous s'apunten a la fase actual, i pots veure les estadístiques de cada fase per separat o de tota la temporada.",
       },
-      { q: "He d'apuntar totes les accions?", a: "No. A Ajustes tries un perfil segons la categoria (a l'app, en castellà: escuela, pre-mini, mini o completo) i, després, pots activar o desactivar cada botó. Els equips de només marcador comencen amb els botons de cistella i les faltes dels dos equips (per saber quan entra cadascun en bonus), i els equips amb jugadors, en pre-mini: punts, rebots, recuperacions, pèrdues i faltes." },
-      { q: 'Per què cal fer-la servir amb el mòbil en horitzontal?', a: 'Perquè hi càpiguen els cinc jugadors de la pista amb tots els botons sense haver de desplaçar la pantalla durant el partit.' },
+      { id: 'acciones', q: "He d'apuntar totes les accions?", a: "No. A Ajustes tries un perfil segons la categoria (a l'app, en castellà: escuela, pre-mini, mini o completo) i, després, pots activar o desactivar cada botó. Els equips de només marcador comencen amb els botons de cistella i les faltes dels dos equips (per saber quan entra cadascun en bonus), i els equips amb jugadors, en pre-mini: punts, rebots, recuperacions, pèrdues i faltes." },
+      { id: 'horizontal', q: 'Per què cal fer-la servir amb el mòbil en horitzontal?', a: 'Perquè hi càpiguen els cinc jugadors de la pista amb tots els botons sense haver de desplaçar la pantalla durant el partit.' },
       {
-        q: 'Com calcula la valoració?',
+        id: 'valoracion', q: 'Com calcula la valoració?',
         a: "Amb la mateixa fórmula que fan servir l'ACB i l'Eurolliga: suma punts, rebots, assistències, recuperacions, taps i faltes rebudes, i resta tirs fallats, pèrdues, taps rebuts i faltes comeses.",
         link: { href: '/guias/valoracion-baloncesto/', text: 'Mira la fórmula amb un exemple (en castellà)' },
       },
       {
-        q: 'On demano ajuda o proposo millores?',
+        id: 'ayuda', q: 'On demano ajuda o proposo millores?',
         a: `A X, a ${X_HANDLE}. Allà anuncio les novetats de cada versió i responc dubtes, suggeriments i errors que trobis.`,
         link: { href: X_URL, text: 'Escriu-me a X', external: true, event: 'x' },
       },

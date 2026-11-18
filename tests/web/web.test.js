@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -64,6 +64,28 @@ describe('scripts/postbuild.mjs', () => {
     expect([before, day()]).toContain(time()[1]);
   }));
 
+  it('pone en la app el ID de Umami de la web: PUBLIC_UMAMI_WEBSITE_ID, si no el de .env y, sin ninguno, vacío', () => withDist((dir) => {
+    const id = () => /<meta name="mbs-analytics" content="([^"]*)">/.exec(readFileSync(join(dir, 'dist/minibasket-stats/index.html'), 'utf8'))?.[1];
+    const build = (umami) => {
+      for (const app of ['minibasket-stats', 'marcador']) cpSync(join(ROOT, 'public', app, 'index.html'), join(dir, 'dist', app, 'index.html'));
+      const env = { ...process.env, APP_DATE: '2026-11-17' };
+      if (umami === undefined) delete env.PUBLIC_UMAMI_WEBSITE_ID; else env.PUBLIC_UMAMI_WEBSITE_ID = umami;
+      return execFileSync(process.execPath, [join(ROOT, 'scripts/postbuild.mjs')], { cwd: dir, env, encoding: 'utf8', stdio: 'pipe' });
+    };
+    expect(build('0a1b2c3d-4e5f')).toContain('estadísticas de uso activas');
+    expect(id()).toBe('0a1b2c3d-4e5f');
+    expect(build(undefined)).toContain('estadísticas de uso desactivadas');
+    expect(id()).toBe('');
+    writeFileSync(join(dir, '.env'), 'SITE_URL=https://ejemplo.com\nPUBLIC_UMAMI_WEBSITE_ID="9f8e7d6c-5b4a"\n');
+    build(undefined);
+    expect(id()).toBe('9f8e7d6c-5b4a');
+    // Como Vite al compilar: .env.production manda sobre .env
+    writeFileSync(join(dir, '.env.production'), 'PUBLIC_UMAMI_WEBSITE_ID=1234abcd-prod\n');
+    build(undefined);
+    expect(id()).toBe('1234abcd-prod');
+    expect(() => build('"><script>')).toThrow();
+  }));
+
   it('falla si falta alguna de las apps en dist/', () => withDist((dir) => {
     cpSync(join(ROOT, 'public/marcador/index.html'), join(dir, 'dist/marcador/index.html'));
     expect(() => run(dir, 'https://ejemplo.com')).toThrow();
@@ -100,6 +122,19 @@ describe('textos de la portada (src/i18n/home.ts)', () => {
     };
     walk(home, 'home');
     expect(empty).toEqual([]);
+  });
+
+  it('cada pregunta frecuente tiene un id único (evento abrir-faq), el mismo en los dos idiomas', () => {
+    for (const faqs of [es.faqs, ca.faqs]) {
+      const ids = faqs.map((f) => f.id);
+      expect(ids.every((id) => /^[a-z]+(-[a-z]+)*$/.test(id)), ids.join()).toBe(true);
+      expect(new Set(ids).size).toBe(ids.length);
+    }
+    // Las preguntas que están en los dos idiomas llevan el mismo id (la del idioma de la app solo está en catalán)
+    const esIds = es.faqs.map((f) => f.id).filter((id) => ca.faqs.some((f) => f.id === id));
+    const caIds = ca.faqs.map((f) => f.id).filter((id) => es.faqs.some((f) => f.id === id));
+    expect(caIds).toEqual(esIds);
+    expect(esIds.length).toBeGreaterThanOrEqual(es.faqs.length - 1);
   });
 
   it('los enlaces de las preguntas frecuentes apuntan a páginas que existen', () => {

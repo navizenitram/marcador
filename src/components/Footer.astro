@@ -19,7 +19,7 @@ const ca = lang === 'ca';
       <h2>{ca ? 'Eines' : 'Herramientas'}</h2>
       <ul>
         <li><a href={APP_URL} data-umami-event="abrir-app" data-umami-event-origen="pie">{ca ? "App d'estadístiques" : 'App de estadísticas'}</a></li>
-        <li><a href={SCOREBOARD_URL}>{ca ? 'Marcador de minibàsquet' : 'Marcador de minibasket'}</a></li>
+        <li><a href={SCOREBOARD_URL} data-umami-event="abrir-marcador" data-umami-event-origen="pie">{ca ? 'Marcador de minibàsquet' : 'Marcador de minibasket'}</a></li>
         <li><a href="/plantilla-estadisticas-baloncesto/">{ca ? 'Plantilla per imprimir (castellà)' : 'Plantilla para imprimir'}</a></li>
       </ul>
     </nav>
@@ -35,7 +35,7 @@ const ca = lang === 'ca';
       <ul>
         <li><a href="/privacidad/">{ca ? 'Privacitat (castellà)' : 'Privacidad'}</a></li>
         <li><a href={X_URL} target="_blank" rel="noopener" data-umami-event="x" data-umami-event-origen="pie-proyecto">{ca ? 'Novetats a X' : 'Novedades en X'}</a></li>
-        <li><a href={KOFI_URL} target="_blank" rel="noopener" data-umami-event="kofi">{ca ? "Convida'm a un cafè" : 'Invítame a un café'}</a></li>
+        <li><a href={KOFI_URL} target="_blank" rel="noopener" data-umami-event="kofi" data-umami-event-origen="pie">{ca ? "Convida'm a un cafè" : 'Invítame a un café'}</a></li>
         <li>{ca ? <a href="/" hreflang="es" lang="es">Castellano</a> : <a href="/ca/" hreflang="ca" lang="ca">Català</a>}</li>
       </ul>
     </nav>
