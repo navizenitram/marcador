@@ -1,0 +1,6 @@
+---
+// Etiqueta de sección de la portada como un periodo del marcador de la app: P1 de 8… P8 de 8 (minibasket).
+interface Props { n: number; of?: number }
+const { n, of = 8 } = Astro.props;
+---
+<span class="period" aria-hidden="true">P{n}<small>de {of}</small></span>

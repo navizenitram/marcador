@@ -16,6 +16,13 @@ export const home = {
     open: 'Abrir la app gratis',
     how: 'Ver cómo funciona',
     facts: ['Sin registro', 'Funciona sin conexión', 'Tus datos se quedan en tu móvil'],
+    // Notas numeradas sobre la captura de la portada (mismo orden que los puntos de Home.astro)
+    heroNotes: [
+      'Tus canastas se suman solas al marcador.',
+      'Un toque por acción: canasta de 2 de Martina.',
+      'Las del rival, con +1, +2 y +3.',
+      'Toca el nombre para hacer un cambio.',
+    ],
     heroAlt:
       'Pantalla de partido en My Own Basketball Stats: marcador 38 a 33 en el periodo 6 con las faltas de equipo de cada uno (0 y 2), la valoración del equipo y el +/- del quinteto en pista, y una fila de botones por cada jugador con sus puntos, faltas, valoración y +/-',
     growTitle: 'También es un marcador vitaminado',
@@ -124,6 +131,12 @@ export const home = {
     open: "Obre l'app gratis",
     how: 'Mira com funciona',
     facts: ['Sense registre', 'Funciona sense connexió', 'Les dades es queden al teu mòbil'],
+    heroNotes: [
+      'Les teves cistelles se sumen soles al marcador.',
+      'Un toc per acció: cistella de 2 de la Martina.',
+      'Les del rival, amb +1, +2 i +3.',
+      'Toca el nom per fer un canvi.',
+    ],
     heroAlt:
       "Pantalla de partit a My Own Basketball Stats: marcador 38 a 33 al període 6 amb les faltes d'equip de cadascun (0 i 2), la valoració de l'equip i el +/- del quintet a la pista, i una fila de botons per a cada jugador amb els seus punts, faltes, valoració i +/-",
     growTitle: 'També és un marcador vitaminat',

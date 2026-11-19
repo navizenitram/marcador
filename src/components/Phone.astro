@@ -1,15 +1,27 @@
 ---
-interface Props { src: string; alt: string; eager?: boolean; class?: string }
-const { src, alt, eager = false, class: cls = '' } = Astro.props;
+// Captura de la app dentro de un móvil en horizontal. pins: puntos numerados sobre la captura, en % de su ancho y alto;
+// el texto de cada punto va en el slot (un pie de figura).
+interface Props { src: string; alt: string; eager?: boolean; class?: string; pins?: { x: number; y: number }[] }
+const { src, alt, eager = false, class: cls = '', pins = [] } = Astro.props;
 ---
-<figure class={`phone ${cls}`}>
-  <img
-    src={src}
-    alt={alt}
-    width="1688"
-    height="780"
-    loading={eager ? 'eager' : 'lazy'}
-    fetchpriority={eager ? 'high' : 'auto'}
-    decoding="async"
-  />
+<figure class={`shot ${cls}`}>
+  <div class="phone">
+    <div class="screen">
+      <img
+        src={src}
+        alt={alt}
+        width="1688"
+        height="780"
+        loading={eager ? 'eager' : 'lazy'}
+        fetchpriority={eager ? 'high' : 'auto'}
+        decoding="async"
+      />
+      {pins.length > 0 && (
+        <ol class="pins" aria-hidden="true">
+          {pins.map((p, i) => <li style={`left:${p.x}%;top:${p.y}%`}>{i + 1}</li>)}
+        </ol>
+      )}
+    </div>
+  </div>
+  <slot />
 </figure>
