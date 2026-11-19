@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
-import Court from './Court.astro';
 import Phone from './Phone.astro';
+import Period from './Period.astro';
 import ActionLegend from './ActionLegend.astro';
 import FinalCta from './FinalCta.astro';
 import { home } from '../i18n/home';
@@ -40,6 +40,15 @@ const jsonLd = {
   ],
 };
 
+// Puntos numerados sobre la captura del partido (en % de la imagen), en el orden de t.heroNotes:
+// marcador propio, canasta de 2 de Martina, +2 del rival y nombre de Carla
+const pins = [
+  { x: 27.4, y: 3 },
+  { x: 36.2, y: 15.5 },
+  { x: 70.8, y: 1 },
+  { x: 14.6, y: 84 },
+];
+
 const alternates = [
   { hreflang: 'es', href: '/' },
   { hreflang: 'ca', href: '/ca/' },
@@ -48,63 +57,62 @@ const alternates = [
 ---
 <Base title={t.title} description={t.description} lang={lang} alternates={alternates} jsonLd={jsonLd}>
   <section class="hero">
-    <div class="wrap hero-grid">
-      <div>
+    <div class="wrap">
+      <div class="hero-head">
         <h1>{t.h1}</h1>
-        <p class="lead">{t.lead}</p>
-        <div class="actions">
-          <a class="btn btn-primary" href={APP_URL} data-umami-event="abrir-app" data-umami-event-origen="portada">{t.open}</a>
-          <a class="btn btn-ghost" href="#como-funciona" data-umami-event="ver-como-funciona" data-umami-event-idioma={lang}>{t.how}</a>
+        <div class="hero-side">
+          <p class="lead">{t.lead}</p>
+          <div class="actions">
+            <a class="btn btn-primary" href={APP_URL} data-umami-event="abrir-app" data-umami-event-origen="portada">{t.open}</a>
+            <a class="btn-text" href="#como-funciona" data-umami-event="ver-como-funciona" data-umami-event-idioma={lang}>{t.how}</a>
+          </div>
+          <ul class="facts">{t.facts.map((f) => <li>{f}</li>)}</ul>
         </div>
-        <ul class="facts">{t.facts.map((f) => <li>{f}</li>)}</ul>
       </div>
-      <div class="hero-visual">
-        <Court />
-        <Phone src="/img/app-partido.webp" alt={t.heroAlt} eager />
-      </div>
+      <Phone class="hero-shot" src="/img/app-partido.webp" alt={t.heroAlt} eager pins={pins}>
+        <figcaption><ol class="notes">{t.heroNotes.map((n) => <li>{n}</li>)}</ol></figcaption>
+      </Phone>
     </div>
   </section>
 
   <section class="section" aria-labelledby="tambien-marcador" data-seccion="marcador">
-    <div class="wrap split reverse">
-      <div>
-        <h2 id="tambien-marcador">{t.growTitle}</h2>
-        <p>{t.growIntro}</p>
-        <ol class="steps grow">
-          {t.grow.map((g) => (
-            <li>
-              <h3>{g.h}</h3>
-              <p>{g.p}</p>
-            </li>
-          ))}
-        </ol>
+    <div class="wrap">
+      <header class="sec-head"><Period n={1} /><h2 id="tambien-marcador">{t.growTitle}</h2></header>
+      <div class="split">
+        <div>
+          <p class="intro">{t.growIntro}</p>
+          <ol class="levels">
+            {t.grow.map((g) => (
+              <li>
+                <h3>{g.h}</h3>
+                <p>{g.p}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <Phone src="/img/app-marcador.webp" alt={t.growAlt} />
       </div>
-      <Phone src="/img/app-marcador.webp" alt={t.growAlt} />
     </div>
   </section>
 
-  <section class="section section-paper" aria-labelledby="para-quien">
+  <section class="section" aria-labelledby="para-quien">
     <div class="wrap">
-      <div class="section-intro">
-        <h2 id="para-quien">{t.audienceTitle}</h2>
-        <p>{t.audienceIntro}</p>
-      </div>
-      <div class="audience">
+      <header class="sec-head"><Period n={2} /><h2 id="para-quien">{t.audienceTitle}</h2></header>
+      <p class="intro">{t.audienceIntro}</p>
+      <dl class="rows">
         {t.audience.map((a) => (
           <div>
-            <h3>{a.h}</h3>
-            <p>{a.p}</p>
+            <dt>{a.h}</dt>
+            <dd>{a.p}</dd>
           </div>
         ))}
-      </div>
+      </dl>
     </div>
   </section>
 
   <section class="section" id="como-funciona" aria-labelledby="como-funciona-titulo" data-seccion="como-funciona">
     <div class="wrap">
-      <div class="section-intro">
-        <h2 id="como-funciona-titulo">{t.stepsTitle}</h2>
-      </div>
+      <header class="sec-head"><Period n={3} /><h2 id="como-funciona-titulo">{t.stepsTitle}</h2></header>
       <ol class="steps">
         {t.steps.map((s) => (
           <li>
@@ -116,12 +124,10 @@ const alternates = [
     </div>
   </section>
 
-  <section class="section section-paper" aria-labelledby="que-apuntar">
+  <section class="section section-sheet" aria-labelledby="que-apuntar">
     <div class="wrap">
-      <div class="section-intro">
-        <h2 id="que-apuntar">{t.actionsTitle}</h2>
-        <p>{t.actionsIntro}</p>
-      </div>
+      <header class="sec-head"><Period n={4} /><h2 id="que-apuntar">{t.actionsTitle}</h2></header>
+      <p class="intro">{t.actionsIntro}</p>
       <div class="profiles">
         <h3>{t.profilesTitle}</h3>
         <p class="profiles-intro">{t.profilesIntro}</p>
@@ -140,43 +146,45 @@ const alternates = [
   </section>
 
   <section class="section" aria-labelledby="desde-la-base">
-    <div class="wrap split">
-      <div>
-        <h2 id="desde-la-base">{t.miniTitle}</h2>
-        <p>{t.miniIntro}</p>
-        <ul class="ticks">{t.mini.map((m) => <li>{m}</li>)}</ul>
+    <div class="wrap">
+      <header class="sec-head"><Period n={5} /><h2 id="desde-la-base">{t.miniTitle}</h2></header>
+      <div class="split">
+        <div>
+          <p class="intro">{t.miniIntro}</p>
+          <ul class="ticks">{t.mini.map((m) => <li>{m}</li>)}</ul>
+        </div>
+        <Phone src="/img/app-ajustes.webp" alt={t.miniAlt} />
       </div>
-      <Phone src="/img/app-ajustes.webp" alt={t.miniAlt} />
     </div>
   </section>
 
-  <section class="section section-paper" aria-labelledby="estadisticas">
-    <div class="wrap split reverse">
-      <div>
-        <h2 id="estadisticas">{t.statsTitle}</h2>
+  <section class="section" aria-labelledby="estadisticas">
+    <div class="wrap">
+      <header class="sec-head"><Period n={6} /><h2 id="estadisticas">{t.statsTitle}</h2></header>
+      <div class="split reverse">
         <ul class="ticks">
           {t.stats.map((s) => <li>{s}</li>)}
           <li>{t.statsVal} <a href="/guias/valoracion-baloncesto/">{t.statsValLink}</a>.</li>
         </ul>
+        <Phone src="/img/app-estadisticas.webp" alt={t.statsAlt} />
       </div>
-      <Phone src="/img/app-estadisticas.webp" alt={t.statsAlt} />
     </div>
   </section>
 
   <section class="section" aria-labelledby="privacidad">
     <div class="wrap">
+      <header class="sec-head"><Period n={7} /><h2 id="privacidad">{t.privacyTitle}</h2></header>
       <div class="privacy">
-        <h2 id="privacidad">{t.privacyTitle}</h2>
         {t.privacy.map((p) => <p>{p}</p>)}
-        <p>{t.about} <a href={KOFI_URL} target="_blank" rel="noopener" data-umami-event="kofi" data-umami-event-origen="portada">{t.kofi}</a>.</p>
+        <p class="note">{t.about} <a href={KOFI_URL} target="_blank" rel="noopener" data-umami-event="kofi" data-umami-event-origen="portada">{t.kofi}</a>.</p>
       </div>
     </div>
   </section>
 
-  <section class="section section-paper" aria-labelledby="preguntas" data-seccion="preguntas">
+  <section class="section" aria-labelledby="preguntas" data-seccion="preguntas">
     <div class="wrap">
+      <header class="sec-head"><Period n={8} /><h2 id="preguntas">{t.faqTitle}</h2></header>
       <div class="faq">
-        <h2 id="preguntas">{t.faqTitle}</h2>
         {t.faqs.map((f) => (
           <details data-faq={f.id}>
             <summary>{f.q}</summary>

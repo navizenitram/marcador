@@ -186,4 +186,5 @@ que menciona a Vercel como servicio de alojamiento) y subir la versión de la ca
 - `public/og/og.png`: imagen para compartir (1200×630). Fuente: `assets-src/og.html`.
 - `public/descargas/plantilla-estadisticas-baloncesto.pdf`: plantilla A4 apaisada. Fuente: `assets-src/plantilla-estadisticas.html`.
 
-Fuentes incluidas: Rajdhani y Barlow, ambas con licencia SIL OFL 1.1 (`public/fonts/OFL-*.txt`).
+Fuentes incluidas, todas con licencia SIL OFL 1.1: en la web, Barlow y Barlow Condensed (`public/fonts/OFL-*.txt`); en
+las apps, Rajdhani y Barlow (en la carpeta `fonts/` de cada una).
