@@ -175,7 +175,8 @@ que menciona a Vercel como servicio de alojamiento) y subir la versión de la ca
   oscuro. Se rehacen con `node scripts/capturas.mjs` (Chromium de Playwright; los datos de ejemplo, con un equipo en
   el perfil mini y otro de solo marcador, se generan en el propio script y salen siempre iguales). Si cambian, revisa
   los textos alternativos (`heroAlt` del partido con jugadores, `growAlt` del marcador, `miniAlt` y `statsAlt` en
-  `src/i18n/home.ts`).
+  `src/i18n/home.ts`) y, en la captura del partido, los puntos numerados (`pins` en `src/components/Home.astro`) y sus
+  notas (`heroNotes`), que señalan jugadores y botones concretos.
 - `public/minibasket-stats/demo.js`: el equipo de ejemplo de la app (Penya Verdinegra). Son las jugadas reales del
   Joventut Badalona en la Liga Endesa 2026-27 con nombres inventados para el equipo, los jugadores y los rivales
   (`FICCION` en `scripts/demo.mjs`). Se rehace con `node scripts/demo.mjs <carpeta>` para añadir las jornadas nuevas:
@@ -186,5 +187,6 @@ que menciona a Vercel como servicio de alojamiento) y subir la versión de la ca
 - `public/og/og.png`: imagen para compartir (1200×630). Fuente: `assets-src/og.html`.
 - `public/descargas/plantilla-estadisticas-baloncesto.pdf`: plantilla A4 apaisada. Fuente: `assets-src/plantilla-estadisticas.html`.
 
-Fuentes incluidas, todas con licencia SIL OFL 1.1: en la web, Barlow y Barlow Condensed (`public/fonts/OFL-*.txt`); en
-las apps, Rajdhani y Barlow (en la carpeta `fonts/` de cada una).
+Fuentes incluidas, todas con licencia SIL OFL 1.1: en la web, Barlow y Barlow Condensed (`public/fonts/OFL-*.txt`), y en
+la app de estadísticas, Rajdhani y Barlow (`public/minibasket-stats/fonts/`), que también usan las fuentes de
+`assets-src/`. El marcador carga Rajdhani y Orbitron de Google Fonts.

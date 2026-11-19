@@ -74,7 +74,7 @@ p, li, dd { text-wrap: pretty; }
   font-family: var(--display); font-weight: 700; font-size: 1.2rem; text-transform: uppercase; letter-spacing: .03em;
   color: var(--ink); text-decoration-thickness: 2px; text-underline-offset: .3em;
 }
-.btn-text::after { content: ' ↓'; }
+.btn-text::after { content: ' ↓'; content: ' ↓' / ''; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.5rem; }
 
 /* ── Cabecera ── */
@@ -98,7 +98,7 @@ p, li, dd { text-wrap: pretty; }
   list-style: none; padding: 0; margin: 1.4rem 0 0; display: flex; flex-wrap: wrap; gap: .2rem .6rem;
   font-family: var(--display); font-weight: 600; font-size: 1.05rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft);
 }
-.facts li:not(:last-child)::after { content: '/'; margin-left: .6rem; color: var(--rule); }
+.facts li:not(:last-child)::after { content: '/'; content: '/' / ''; margin-left: .6rem; color: var(--rule); }
 
 .hero-shot { margin-top: 2.75rem; }
 .notes {
@@ -134,7 +134,7 @@ p, li, dd { text-wrap: pretty; }
 /* ── Secciones: cada una es un periodo (P1 de 8…) ── */
 .section { padding: 4rem 0 4.5rem; }
 .section-sheet { background: var(--sheet); border-block: 1px solid var(--rule); }
-.sec-head { border-top: 3px solid var(--ink); padding-top: 1rem; margin-bottom: 1.75rem; display: grid; gap: .75rem; }
+.sec-head { border-top: 3px solid var(--ink); padding-top: 1rem; margin-bottom: 1.75rem; display: grid; row-gap: .75rem; }
 .sec-head h2 { margin: 0; max-width: 22ch; }
 .period {
   display: inline-flex; align-items: baseline; gap: .35rem;
@@ -202,7 +202,7 @@ p, li, dd { text-wrap: pretty; }
 /* Listas de lo que hace la app: una marca de «anotado», como en los botones */
 .ticks { list-style: none; padding: 0; margin: 1.5rem 0 0; display: grid; gap: .7rem; max-width: var(--measure); }
 .ticks li { position: relative; padding-left: 1.7rem; }
-.ticks li::before { content: '✓'; position: absolute; left: 0; top: 0; font-weight: 600; color: var(--made); }
+.ticks li::before { content: '✓'; content: '✓' / ''; position: absolute; left: 0; top: 0; font-weight: 600; color: var(--made); }
 
 .privacy { max-width: var(--measure); }
 .privacy p { font-size: 1.2rem; }
@@ -329,12 +329,12 @@ p, li, dd { text-wrap: pretty; }
   body { font-size: 1.0625rem; }
   .hide-sm { display: none; }
   .btn { white-space: normal; text-align: center; }
-  .site-header nav { gap: .8rem; }
-  .site-header .btn-sm { white-space: nowrap; padding-inline: .8rem; letter-spacing: .01em; }
-  .nav-link { letter-spacing: .01em; }
+  .site-header nav { gap: .7rem; }
+  .site-header .btn-sm { white-space: nowrap; padding-inline: .7rem; letter-spacing: 0; font-size: 1.05rem; }
+  .nav-link { letter-spacing: 0; }
   .wordmark { font-size: 1.3rem; }
   /* En dos líneas para dejar sitio a la navegación */
-  .site-header .wordmark-text { display: flex; flex-direction: column; font-size: 1.15rem; line-height: .95; }
+  .site-header .wordmark-text { display: flex; flex-direction: column; font-size: 1.05rem; line-height: .95; }
   .hero .lead { font-size: 1.15rem; }
   .hero .actions .btn { flex: 1 1 100%; }
   .hero .actions .btn-text { margin-inline: auto; }
@@ -349,7 +349,7 @@ p, li, dd { text-wrap: pretty; }
   .header-inner { gap: .5rem; }
   .site-header nav { gap: .6rem; }
   .site-header .wordmark { gap: .4rem; }
-  .site-header .wordmark-text { font-size: 1.05rem; }
+  .site-header .wordmark-text { font-size: .95rem; }
   .site-header .btn-sm { padding-left: .8rem; padding-right: .8rem; }
 }
 @media (max-width: 359px) {
