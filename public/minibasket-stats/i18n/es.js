@@ -92,6 +92,9 @@
   'report.share': 'Informe del jugador',
   'report.mailTooLong': 'El informe es demasiado largo para abrirlo directamente en el correo: cópialo y pégalo en un email, o compártelo.',
   'share.download': 'Descargar .txt',
+  'share.image': 'Imagen',
+  'share.imageHint': 'Tarjeta del partido (resultado, parciales y líderes) para compartir por WhatsApp o guardar como imagen',
+  'share.imageSaved': '🖼️ Imagen descargada',
 
   'help.title': 'Ayuda y sugerencias',
   'help.text': '¿Tienes dudas, has encontrado un error o se te ocurre una mejora? Escríbeme en X, donde también anuncio las novedades de cada versión.',

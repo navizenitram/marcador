@@ -95,6 +95,14 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
     email, copiar, compartir (WhatsApp) o descargar en .txt.
   - **Enviar**: email (`mailto:`), copiar o compartir (menú nativo del móvil). También descarga en **CSV** (con las
     avanzadas, el +/- y los rebotes sin distinguir (REB, ya incluidos en RT) en las últimas columnas).
+  - **Imagen del partido**: en **Enviar**, un partido tiene además el botón **Imagen**: una tarjeta PNG de 1080 × 1350 con el
+    resultado (el local a la izquierda), los parciales y los líderes (máximo anotador, mejor valoración, más rebotes y
+    más asistencias; sin líderes en los partidos de marcador), con la dirección de la web en el pie. Se dibuja en un
+    `<canvas>` (`card.js`, sin dependencias y sin conexión) con los mismos datos que el resumen de Estadísticas
+    (`cardModel`, en `app.js`), y sale igual con el tema claro y con el oscuro. Se prepara al abrir **Enviar**, no al tocar
+    el botón, porque `navigator.share` solo funciona justo después de un toque. En los móviles se comparte con el menú
+    nativo (WhatsApp…); si el navegador no comparte archivos, o lo rechaza, se descarga el PNG. La temporada, las fases y
+    el informe del jugador no tienen imagen.
   - Si en un ámbito se mezclan rebotes de ataque y defensivos con los del botón único, la tabla añade la columna
     **REB** para que RO + RD + REB cuadre con RT.
 - **Ajustes**: perfil y botones del partido que se quieren usar (con vista previa), rebotes en dos botones o en uno, copia de seguridad y enlace de apoyo (Ko-fi).
@@ -133,7 +141,7 @@ web, así que en Umami se ve el recorrido completo: de la portada (`abrir-app`) 
 | `jugadores-anadidos` | Al añadir el primer jugador a un equipo (una vez por equipo) | `equipo`: `marcador` (se creó como solo marcador) o `jugadores` |
 | `partido-empezado` | Al crear un partido | `tipo` (`marcador`/`jugadores`), `periodos` (8/4), `perfil` (id o `personalizado`) |
 | `partido-finalizado` | Al finalizarlo (también al proponerlo al empezar otro), una vez por partido: reabrirlo y volver a finalizarlo no cuenta. No cuentan los del ejemplo | `tipo`, `periodos`, `n`: finalizados del equipo contando este (`1`, `2-5`, `6-10`, `11+`) |
-| `compartir-resultado` | Al copiar, compartir, enviar por email o descargar las estadísticas | `canal` (`copiar`, `nativo`, `email`, `texto`, `csv`), `que` (`partido`, `temporada`, `fase`, `informe`) |
+| `compartir-resultado` | Al copiar, compartir, enviar por email o descargar las estadísticas, o al compartir o descargar la imagen de un partido (cerrar el menú de compartir sin elegir no cuenta) | `canal` (`copiar`, `nativo`, `email`, `texto`, `csv`, `imagen`), `que` (`partido`, `temporada`, `fase`, `informe`) |
 | `pwa-instalada` | Evento `appinstalled` del navegador | — |
 
 Reglas:

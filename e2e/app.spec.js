@@ -262,6 +262,23 @@ test('descarga las estadísticas en CSV', async ({ page }) => {
   expect(lines.at(-1)).toBe(';Equipo;4;8;1;2;2;3;1;2;1;1;2;1;0;1;1;1;1;0;6;70;68;15;0,4;;0');
 });
 
+test('descarga la imagen del partido: un PNG de 1080 × 1350 dibujado de verdad', async ({ page, browserName }) => {
+  // Sin conexión a fuentes externas ni a Umami: la tarjeta usa las fuentes que lleva la app
+  await seed(page, makeData({ games: [sampleGame({ finished: true })] }));
+  await page.goto(`${APP}#/stats/g1`);
+  await page.getByRole('button', { name: /Enviar/ }).click();
+  const button = page.getByRole('button', { name: /Imagen/ });
+  await expect(button).toBeEnabled();
+  // En los navegadores que comparten archivos se abre el menú nativo, que Playwright no ve: se prueba la descarga
+  await page.evaluate(() => { navigator.canShare = () => false; });
+  const [download] = await Promise.all([page.waitForEvent('download'), button.click()]);
+  expect(download.suggestedFilename()).toBe('partido-Alevin_A-Rival-03_10_2026.png');
+  const png = Buffer.concat(await (await download.createReadStream()).toArray());
+  expect(png.subarray(1, 4).toString()).toBe('PNG');
+  expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1080, 1350]);
+  expect(png.length, `${browserName}: una tarjeta con texto pesa más que un lienzo vacío`).toBeGreaterThan(20_000);
+});
+
 test('la evolución del marcador comparte columnas con los parciales y se puede recorrer', async ({ page }) => {
   await seed(page, makeData({ games: [sampleGame({ finished: true })] }));
   await page.goto(`${APP}#/stats/g1`);

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import { JSDOM, VirtualConsole } from 'jsdom';
 import { onTestFinished } from 'vitest';
+import { fakeContext } from './canvas.js';
 
 export const APP_DIR = fileURLToPath(new URL('../../public/minibasket-stats/', import.meta.url));
 export const STORE_KEY = 'mbstats.v1';
@@ -53,7 +54,8 @@ export async function openApp({ data, hash = '', storage = {}, origin = 'https:/
   });
   const { window } = dom;
   const downloads = [];
-  stubBrowserApis(window, downloads);
+  const canvasTexts = [];
+  stubBrowserApis(window, downloads, canvasTexts);
   if (compression) Object.assign(window, { CompressionStream, DecompressionStream });
   if (data !== undefined) window.localStorage.setItem(STORE_KEY, typeof data === 'string' ? data : JSON.stringify(data));
   for (const [k, v] of Object.entries(storage)) window.localStorage.setItem(k, v);
@@ -64,7 +66,7 @@ export async function openApp({ data, hash = '', storage = {}, origin = 'https:/
     if (src === 'demo.js' && demo !== true) continue;
     script.runInContext(dom.getInternalVMContext());
   }
-  const app = new App(dom, errors, logs, downloads);
+  const app = new App(dom, errors, logs, downloads, canvasTexts);
   try {
     onTestFinished(() => app.close());
   } catch {
@@ -75,7 +77,7 @@ export async function openApp({ data, hash = '', storage = {}, origin = 'https:/
 }
 
 /* APIs del navegador que jsdom no implementa y la app usa */
-function stubBrowserApis(window, downloads) {
+function stubBrowserApis(window, downloads, canvasTexts) {
   window.matchMedia = (media) => ({ media, matches: false, addEventListener() {}, removeEventListener() {} });
   window.HTMLElement.prototype.scrollIntoView = () => {};
 
@@ -88,6 +90,11 @@ function stubBrowserApis(window, downloads) {
     return url;
   };
   window.URL.revokeObjectURL = (url) => blobs.delete(url);
+
+  // La tarjeta del partido se dibuja en un <canvas>, que jsdom no implementa: un contexto falso apunta los textos
+  // escritos (app.canvasTexts) y toBlob devuelve un PNG de mentira
+  window.HTMLCanvasElement.prototype.getContext = () => fakeContext(canvasTexts);
+  window.HTMLCanvasElement.prototype.toBlob = function (callback, type) { callback(new window.Blob(['png'], { type })); };
   const click = window.HTMLElement.prototype.click;
   window.HTMLAnchorElement.prototype.click = function () {
     if (this.hasAttribute('download')) downloads.push({ name: this.download, blob: blobs.get(this.href) });
@@ -96,7 +103,7 @@ function stubBrowserApis(window, downloads) {
 }
 
 export class App {
-  constructor(dom, errors, logs, downloads) {
+  constructor(dom, errors, logs, downloads, canvasTexts = []) {
     this.dom = dom;
     this.window = dom.window;
     this.ctx = dom.getInternalVMContext();
@@ -105,6 +112,8 @@ export class App {
     this.errors = errors;
     this.logs = logs;
     this.downloads = downloads;
+    /** Textos que se han escrito en un <canvas> (la tarjeta del partido): { text, x, y, font, fillStyle, textAlign } */
+    this.canvasTexts = canvasTexts;
     this.closed = false;
   }
 
