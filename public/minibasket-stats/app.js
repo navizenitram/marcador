@@ -3098,8 +3098,10 @@ function shareStats(arg) {
   const text = buildText(arg);
   const subject = `Estadísticas · ${statsTitle(arg)}`;
   const mailto = `mailto:${encodeURIComponent(team().email || '')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
-  const card = cardModel(arg);   // solo un partido tiene tarjeta
-  const table = tableModel(arg);
+  // Las imágenes son un extra: si calcular su contenido fallara, «Enviar» (email, copiar…) debe abrirse igual
+  const safe = (model) => { try { return model(arg); } catch (e) { return null; } };
+  const card = safe(cardModel);   // solo un partido tiene tarjeta
+  const table = safe(tableModel);
   const m = { kind: 'share', text, subject, mailto, what: usoScope(arg), image: !!card, table: !!table };
   openModal(m);
   if (card) prepareImage(m, card);
@@ -3142,25 +3144,32 @@ function canShareFile(file) {
   catch (e) { return false; }
 }
 
+/* Mientras el menú de compartir está abierto, otro toque no hace nada: el navegador rechazaría el segundo share
+   (InvalidStateError) y, al caer a la descarga, saldrían el menú y el archivo a la vez. */
+let sharingFile = false;
 async function shareFile(m, file, canal) {
-  if (!m || !file) return;
-  let shared = false;
-  if (canShareFile(file)) {
-    try { await navigator.share({ files: [file], title: m.subject }); shared = true; }
-    catch (e) { if (e && e.name === 'AbortError') return; }
-  }
-  if (!shared) {
-    download(file, file.name);
-    toast(tr('share.imageSaved'));
-  }
-  uso('compartir-resultado', { canal, que: m.what });
+  if (!m || !file || sharingFile) return;
+  sharingFile = true;
+  try {
+    let shared = false;
+    if (canShareFile(file)) {
+      try { await navigator.share({ files: [file], title: m.subject }); shared = true; }
+      catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    if (!shared) {
+      download(file, file.name);
+      toast(tr('share.imageSaved'));
+    }
+    uso('compartir-resultado', { canal, que: m.what });
+  } finally { sharingFile = false; }
 }
 
 /* La imagen se prepara al abrir el modal y no al tocar el botón: navigator.share solo funciona justo después de un
    toque (Safari es estricto con la espera) y dibujar es asíncrono (hay que esperar a las fuentes). Hasta que está
    lista, el botón sale desactivado. Si no se puede dibujar, el botón desaparece y el resto sigue como siempre. */
 function prepareImage(m, card) {
-  MBCard.toBlob(card)
+  // Dentro de una promesa: si card.js no se ha cargado, o falla al dibujar, el botón desaparece y «Enviar» sigue igual
+  Promise.resolve().then(() => MBCard.toBlob(card))
     .then((blob) => { m.file = new File([blob], MBCard.fileName(card), { type: 'image/png' }); })
     .catch(() => { m.image = false; })
     .then(() => { if (ui.modal === m) refreshModal(); });
@@ -3221,7 +3230,7 @@ function tableModel(arg) {
 
 /* La imagen de un archivo ya dibujado, a punto para compartir o descargar (ver prepareImage) */
 function prepareTable(m, model) {
-  MBCard.toBlob(model)
+  Promise.resolve().then(() => MBCard.toBlob(model))
     .then((blob) => { m.tableFile = new File([blob], MBCard.tableFileName(model), { type: 'image/png' }); })
     .catch(() => { m.table = false; })
     .then(() => { if (ui.modal === m) refreshModal(); });

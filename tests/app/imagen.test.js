@@ -243,3 +243,50 @@ describe('compartir o descargar la imagen', () => {
     expect(shared[1].files[0].name).toBe(shared[0].files[0].name);
   });
 });
+
+describe('robustez de las imágenes', () => {
+  it('un doble toque en «Imagen» no abre el menú de compartir y además descarga el archivo', async () => {
+    const app = await open();
+    // Un navegador de verdad rechaza el segundo share mientras el primero sigue abierto (InvalidStateError)
+    let open_ = 0;
+    const shared = [];
+    app.window.navigator.canShare = () => true;
+    app.window.navigator.share = (data) => {
+      if (open_) return Promise.reject(Object.assign(new Error('Abrir otro menú'), { name: 'InvalidStateError' }));
+      open_++;
+      shared.push(data);
+      return new Promise(() => {});   // el menú sigue abierto
+    };
+    await openShare(app);
+    const button = imageButton(app);
+    button.click();
+    button.click();
+    await app.settle();
+    expect(shared).toHaveLength(1);
+    expect(app.downloads).toEqual([]);
+    expect(app.toast).toBeNull();
+  });
+
+  it('si calcular lo que lleva una imagen falla, «Enviar» se abre igual', async () => {
+    const app = await open();
+    app.window.cardModel = () => { throw new Error('dato inesperado'); };
+    app.window.tableModel = () => { throw new Error('dato inesperado'); };
+    await openShare(app);
+    expect(app.modal).not.toBeNull();
+    expect(imageButton(app)).toBeNull();
+    expect(tableButton(app)).toBeNull();
+    expect(app.$('.modal a[href^="mailto:"]')).not.toBeNull();
+    expect(app.$('.share-preview').textContent).toContain('Alevín A');
+  });
+
+  it('si card.js no se ha cargado, «Enviar» se abre igual con sus botones de siempre y sin botones de imagen', async () => {
+    const app = await open();
+    delete app.window.MBCard;
+    await openShare(app);
+    expect(app.modal).not.toBeNull();
+    expect(imageButton(app)).toBeNull();
+    expect(tableButton(app)).toBeNull();
+    for (const action of ['copy-text', 'modal-close']) expect(app.$(`.modal [data-action="${action}"]`)).not.toBeNull();
+    expect(app.$('.modal a[href^="mailto:"]')).not.toBeNull();
+  });
+});
