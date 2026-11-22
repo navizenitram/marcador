@@ -112,6 +112,53 @@ describe('estadísticas de uso: los hitos', () => {
     expect(shares).toEqual([{ canal: 'copiar', que: 'partido' }, { canal: 'csv', que: 'partido' }]);
   });
 
+  it('compartir o descargar la imagen del partido cuenta como canal «imagen», sin nada del partido', async () => {
+    const { app, net } = await open({
+      data: makeData({ games: [sampleGame({ finished: true })] }), hash: '#/stats/g1',
+    });
+    app.window.navigator.canShare = () => true;
+    app.window.navigator.share = async () => {};
+    await app.act('share', { arg: 'g1' });
+    await app.settle();
+    await app.act('share-image');
+    delete app.window.navigator.canShare;   // y sin compartir archivos, se descarga y cuenta igual
+    await app.act('share-image');
+    await app.settle();
+    const sent = net.sent().filter((b) => b.payload.name === 'compartir-resultado');
+    expect(sent.map((b) => b.payload.data)).toEqual([{ canal: 'imagen', que: 'partido' }, { canal: 'imagen', que: 'partido' }]);
+    expect(JSON.stringify(sent)).not.toMatch(/Rival|Alevín|8-4|png/);
+  });
+
+  it('compartir o descargar la tabla en imagen cuenta como canal «tabla», de la temporada o del partido', async () => {
+    const { app, net } = await open({
+      data: makeData({ games: [sampleGame({ finished: true })] }), hash: '#/stats/temporada',
+    });
+    await app.act('share', { arg: 'temporada' });
+    await app.settle();
+    await app.act('share-table');
+    await app.go('#/stats/g1');
+    await app.act('share', { arg: 'g1' });
+    await app.settle();
+    await app.act('share-table');
+    await app.settle();
+    const sent = net.sent().filter((b) => b.payload.name === 'compartir-resultado').map((b) => b.payload.data);
+    expect(sent).toEqual([{ canal: 'tabla', que: 'temporada' }, { canal: 'tabla', que: 'partido' }]);
+    expect(JSON.stringify(net.sent())).not.toMatch(/Rival|Alevín|Ana|png/);
+  });
+
+  it('cerrar el menú de compartir sin elegir nada no cuenta', async () => {
+    const { app, net } = await open({
+      data: makeData({ games: [sampleGame({ finished: true })] }), hash: '#/stats/g1',
+    });
+    app.window.navigator.canShare = () => true;
+    app.window.navigator.share = async () => { throw Object.assign(new Error('cancelado'), { name: 'AbortError' }); };
+    await app.act('share', { arg: 'g1' });
+    await app.settle();
+    await app.act('share-image');
+    await app.settle();
+    expect(net.names()).not.toContain('compartir-resultado');
+  });
+
   it('abrir el equipo de ejemplo cuenta, pero sus partidos ya jugados no cuentan como finalizados', async () => {
     const { app, net } = await open({ demo: true });
     await app.act('demo-open');
