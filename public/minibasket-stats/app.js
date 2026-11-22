@@ -5,8 +5,9 @@
    ════════════════════════════════════════════════════════════════ */
 
 const STORE_KEY = 'mbstats.v1';
-/* Versión del formato de los datos (y de la copia de seguridad). v3: registro de quintetos (seq, lineups, lineupFrom) */
-const FORMAT_VERSION = 3;
+/* Versión del formato de los datos (y de la copia de seguridad). v3: registro de quintetos (seq, lineups, lineupFrom).
+   v4: tiempo de juego (shifts: quién está en pista y desde qué segundo del periodo) */
+const FORMAT_VERSION = 4;
 const MAX_ON_COURT = 5;
 const MAX_FOULS = 5;
 const KOFI_URL = 'https://ko-fi.com/navizenitram';
@@ -301,6 +302,7 @@ function normalize(d) {
     }
     g.events = events;
     normalizeLineups(g, fixId);
+    normalizeShifts(g, fixId);
     const t = d.teams.find(t => t.id === g.teamId);
     g.teamName = String(g.teamName || (t ? t.name : 'Mi equipo'));
   }
@@ -363,6 +365,24 @@ function normalizeLineups(g, fixId) {
     if (lineups.length) g.lineupFrom = lineups[0].seq;
     else delete g.lineupFrom;
   }
+}
+
+/* v4: tiempo de juego. g.shifts solo existe en los partidos que lo registran (los anteriores no lo tienen y no dan
+   minutos). Cada entrada: periodo entero, segundo transcurrido del periodo (entero, como mucho la duración del
+   periodo, o una hora si el partido no tiene duración) y como mucho MAX_ON_COURT jugadores distintos. Se conserva el orden. */
+function normalizeShifts(g, fixId) {
+  if (!Array.isArray(g.shifts)) { delete g.shifts; return; }
+  const max = MBCore.periodSecs(g) || 3600;
+  const shifts = [];
+  for (const s of objects(g.shifts)) {
+    if (!Number.isInteger(s.period) || s.period < 1 || s.period > 99) continue;
+    if (!Number.isInteger(s.t) || s.t < 0 || s.t > max) continue;
+    if (!Array.isArray(s.on) || s.on.length > MAX_ON_COURT) continue;
+    const on = s.on.filter(x => x != null && x !== '').map(x => fixId(String(x)));
+    if (on.length !== s.on.length || new Set(on).size !== on.length) continue;
+    shifts.push({ period: s.period, t: s.t, on });
+  }
+  g.shifts = shifts;
 }
 
 /* Equipo seleccionado y sus partidos */
@@ -641,14 +661,33 @@ function playerLines(g) { return MBCore.playerLines(g); }
 function gameRows(g) {
   const lines = playerLines(g);
   const pm = MBCore.plusMinus(g);   // null si el partido no tiene registro de quintetos
+  const sec = MBCore.secondsPlayed(g);   // null si el partido no registra el tiempo de juego
   return sortedPlayers(g.roster).map(p => {
     const per = (g.played[p.id] || []).slice().sort((a, b) => a - b);
     const l = lines[p.id] || finish(blankLine());
     const hasEvents = g.events.some(e => e.pid === p.id);
     const own = pm && pm[p.id];
     return { id: p.id, number: p.number, name: p.name, ...l, nper: per.length, perList: per, gp: (per.length || hasEvents) ? 1 : 0,
-      pm: own ? own.pm : null, pmGames: own ? 1 : 0 };
+      pm: own ? own.pm : null, pmGames: own ? 1 : 0, secs: sec ? sec[p.id] || 0 : null };
   });
+}
+
+/* Segundos jugados por el equipo en los partidos con tiempo registrado, y cuántos son (para el total y el promedio) */
+function teamTime(games) {
+  let secs = 0, n = 0;
+  for (const g of games) {
+    const sec = MBCore.secondsPlayed(g);
+    if (!sec) continue;
+    n++;
+    secs += Object.values(sec).reduce((a, b) => a + b, 0);
+  }
+  return { secs: n ? secs : null, secGames: n };
+}
+
+/* Minutos y segundos de un total de segundos: 6:05 */
+function fmtClock(s) {
+  s = Math.max(0, Math.round(s));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
 /* +/- del equipo en los partidos con registro (lo que pasó en los tramos registrados) y cuántos partidos son */
@@ -667,12 +706,13 @@ function seasonRows(list) {
   const games = [...list].sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0));
   const map = {};
   const ensure = (p) => {
-    if (!map[p.id]) map[p.id] = { id: p.id, number: p.number, name: p.name, line: blankLine(), gp: 0, nper: 0, pm: 0, pmGames: 0 };
+    if (!map[p.id]) map[p.id] = { id: p.id, number: p.number, name: p.name, line: blankLine(), gp: 0, nper: 0, pm: 0, pmGames: 0, secs: 0, secGames: 0 };
     return map[p.id];
   };
   for (const g of games) {
     const lines = playerLines(g);
     const pm = MBCore.plusMinus(g);
+    const sec = MBCore.secondsPlayed(g);
     for (const p of g.roster) {
       const r = ensure(p);
       r.number = p.number; r.name = p.name;
@@ -682,6 +722,7 @@ function seasonRows(list) {
         r.gp++;
         r.nper += nper;
         sumLines(r.line, lines[p.id]);
+        if (sec) { r.secs += sec[p.id] || 0; r.secGames++; }   // solo los partidos con tiempo registrado
       }
       if (pm && pm[p.id]) { r.pm += pm[p.id].pm; r.pmGames++; }
     }
@@ -694,7 +735,7 @@ function seasonRows(list) {
   return Object.values(map)
     .filter(r => r.gp > 0 || team().players.some(p => p.id === r.id))
     .map(r => ({ id: r.id, number: r.number, name: r.name, gp: r.gp, nper: r.nper, ...finish({ ...r.line }),
-      pm: r.pmGames ? r.pm : null, pmGames: r.pmGames }));
+      pm: r.pmGames ? r.pm : null, pmGames: r.pmGames, secs: r.secGames ? r.secs : null, secGames: r.secGames }));
 }
 
 function averageRow(r) {
@@ -703,6 +744,8 @@ function averageRow(r) {
   for (const k of [...Object.keys(blankLine()), 'pts', 'reb', 'miss', 'val', 'nper']) out[k] = round1(r[k] / r.gp);
   // El +/- se promedia entre los partidos con registro de quintetos, no entre todos
   if (r.pm != null && r.pmGames) out.pm = round1(r.pm / r.pmGames);
+  // Igual con el tiempo de juego: entre los partidos que lo registran
+  if (r.secs != null && r.secGames) out.secs = Math.round(r.secs / r.secGames);
   return out;
 }
 
@@ -1511,6 +1554,7 @@ const COLS = [
   { k: 'name', h: 'Jugador', cls: 'c-name', g: 'id' },
   { k: 'gp', h: 'PJ', t: 'Partidos jugados', season: true, g: 'played' },
   { k: 'nper', h: 'PER', t: 'Periodos jugados', g: 'played' },
+  { k: 'min', h: 'MIN', t: 'Tiempo de juego (min:seg)', g: 'played' },
   { k: 'pts', h: 'PTS', t: 'Puntos', cls: 'hl', g: 'shots' },
   { k: 't1', h: 'T1', t: 'Tiros libres (anotados/intentados)', shot: 1, sortKey: 't1m', g: 'shots' },
   { k: 't2', h: 'T2', t: 'Tiros de 2 (anotados/intentados)', shot: 2, sortKey: 't2m', g: 'shots' },
@@ -1550,7 +1594,7 @@ function statsData(arg) {
   const scope = seasonScope(arg);
   if (scope) {
     let rows = seasonRows(scope.games);
-    const total = { ...totalsRow(rows, scope.games.length), ...teamPlusMinus(scope.games) };
+    const total = { ...totalsRow(rows, scope.games.length), ...teamPlusMinus(scope.games), ...teamTime(scope.games) };
     const rec = withAdvanced(rows, total, 'season');   // antes de promediar: los porcentajes salen de los totales
     if (ui.avg) rows = rows.map(averageRow);
     const board = boardScope(scope.games, rows);
@@ -1559,7 +1603,7 @@ function statsData(arg) {
   const g = getGame(arg);
   if (!g) return null;
   const rows = gameRows(g);
-  const total = { ...totalsRow(rows, 1), ...teamPlusMinus([g]) };
+  const total = { ...totalsRow(rows, 1), ...teamPlusMinus([g]), ...teamTime([g]) };
   const rec = withAdvanced(rows, total, 'game');
   const board = boardScope([g], rows);
   return { season: false, game: g, rows: board ? [] : rows, total, games, board, made: !rec.miss };
@@ -1975,6 +2019,7 @@ function cellValue(r, c, made = false) {
   }
   if (c.k === 'name') return esc(r.name);
   if (c.k === 'number') return esc(r.number);
+  if (c.k === 'min') return r.secs == null ? '–' : fmtClock(r.secs);
   if (c.k === 'nper' && r.perList && r.perList.length) return `<span title="Periodos: ${r.perList.join(', ')}">${r.nper}</span>`;
   if (c.k === 'val') return `<span class="val ${r.val > 0 ? 'pos' : r.val < 0 ? 'neg' : ''}">${r.val}</span>`;
   return r[c.k];
@@ -1986,6 +2031,7 @@ function colVisible(k, data) {
   if (ADV_KEYS.has(k)) return !data.total.adv[k].hidden;
   if (k === 'nper' && data.board) return false;   // en el marcador no hay jugadores que sumen periodos
   if (k === 'pm') return data.total.pm != null;   // solo si algún partido del ámbito tiene registro de quintetos
+  if (k === 'min') return !data.board && data.total.secs != null;   // solo si algún partido del ámbito registra el tiempo
   // Rebotes sin distinguir: solo si hay y se ven las columnas RO o RD (si no, RT ya los da todos)
   if (k === 'rb') return data.total.rb > 0 && (colVisible('ro', data) || colVisible('rd', data));
   const opts = COL_OPTS[k];
@@ -2000,6 +2046,7 @@ function isZeroCell(r, c) {
   return c.adv ? r.adv[c.k].value == null
     : c.k === 'fg' ? r.t2a + r.t3a === 0
     : c.k === 'pm' ? r.pm == null
+    : c.k === 'min' ? !r.secs
     : c.shot ? r[`t${c.shot}a`] === 0 : c.k !== 'val' && r[c.k] === 0;
 }
 
@@ -2017,6 +2064,7 @@ function tableLayout(data) {
     // Sin valor (sin tiros), siempre al final
     if (c.adv) return r.adv[c.k].value ?? (dir > 0 ? Infinity : -Infinity);
     if (c.k === 'pm') return r.pm ?? (dir > 0 ? Infinity : -Infinity);
+    if (c.k === 'min') return r.secs ?? (dir > 0 ? Infinity : -Infinity);
     const k = c.sortKey || c.k;
     if (k === 'number') return numVal(r.number);
     if (k === 'fgm') return r.t2m + r.t3m;
@@ -2081,7 +2129,22 @@ function closeModal(silent) {
   if (m.kind === 'confirm' && m.resolve) m.resolve(false);
   if (m.kind === 'lineup') {
     const g = getGame(m.gid);
-    if (g && !g.finished) { markPlayed(g); save(); }
+    if (g && !g.finished) {
+      markPlayed(g);
+      if (m.start) {
+        // Quinteto con el que empieza el periodo (o el partido): desde el segundo 0, sin preguntar
+        if (isPeriodStart(g)) logShift(g, 0);
+      } else if (m.timed && !sameSet(m.before, g.onCourt)) {
+        // Todos los cambios de la ventana, con un único minuto. Si no es válido (se cerró sin «Listo»), se deshacen
+        const r = readClock(g, m);
+        if (r.error) {
+          g.onCourt = [...m.before];
+          logLineup(g);
+          toast(`${r.error} · cambio no guardado`);
+        } else logShift(g, r.t);
+      }
+      save();
+    }
     if (!silent) render();
   }
 }
@@ -2108,6 +2171,58 @@ function chip(g, p, lines, action, extraCls = '') {
   </button>`;
 }
 
+/* ── Tiempo de los cambios ──
+   El reloj del marcador es de cuenta atrás: se teclea lo que marca (3:25 = quedan 3 min 25 s) y se guarda lo
+   transcurrido (g.shifts, ver core.js). Al empezar un periodo (y el quinteto inicial) no se pide nada: cuenta desde 0. */
+
+/* Lo que se teclea al cambiar: el reloj del marcador en el último cambio del periodo, o la duración entera */
+function defaultClock(g) {
+  const len = MBCore.periodSecs(g);
+  const last = g.shifts.filter(s => s.period === g.period).reduce((t, s) => Math.max(t, s.t), 0);
+  const left = len - last;
+  return { mm: String(Math.floor(left / 60)), ss: String(left % 60).padStart(2, '0') };
+}
+
+/* Se registra el tiempo de los cambios si el partido lo lleva desde el principio, tiene duración y se está en el
+   último periodo alcanzado (al volver atrás con ‹ la pista no es la de aquel periodo: no se apunta nada) */
+function timedChange(g) {
+  if (isBoard(g) || g.finished || !MBCore.periodSecs(g) || !Array.isArray(g.shifts) || !g.shifts.length) return false;
+  return g.period >= Math.max(...g.shifts.map(s => s.period));
+}
+
+/* ¿Empieza el periodo (sin cambios aún que apuntar)? Solo en partidos con registro de tiempo */
+const isPeriodStart = (g) => Array.isArray(g.shifts) && !g.shifts.some(s => s.period === g.period);
+
+function lineupModal(g, title, start) {
+  const timed = !start && timedChange(g);
+  return { kind: 'lineup', gid: g.id, title, start, timed, before: [...g.onCourt], ...(timed ? defaultClock(g) : {}) };
+}
+
+/* Segundos transcurridos del periodo a partir de lo tecleado: { t } o { error } */
+function readClock(g, m) {
+  const len = MBCore.periodSecs(g);
+  if (!/^\d{1,2}$/.test(m.mm || '')) return { error: 'Indica el minuto del reloj' };
+  const ss = m.ss === '' || m.ss == null ? 0 : +m.ss;
+  if (!/^\d{0,2}$/.test(m.ss || '') || ss > 59) return { error: 'Los segundos van de 00 a 59' };
+  const left = +m.mm * 60 + ss;
+  if (left > len) return { error: `El periodo dura ${fmtClock(len)}` };
+  const t = len - left;
+  const prev = g.shifts.filter(s => s.period === g.period).reduce((a, s) => Math.max(a, s.t), 0);
+  if (t < prev) return { error: `El reloj no puede ir hacia atrás: el último cambio fue a ${fmtClock(len - prev)}` };
+  return { t };
+}
+
+const sameSet = (a, b) => a.length === b.length && a.every(x => b.includes(x));
+const logShift = (g, t) => g.shifts.push({ period: g.period, t, on: [...g.onCourt] });
+
+function clockField(m) {
+  return m.timed ? `
+  <div class="clock-field">
+    <span>Reloj del marcador en el cambio</span>
+    <span class="clock-inputs"><input data-clock="mm" inputmode="numeric" maxlength="2" aria-label="Minutos" value="${esc(m.mm)}">:<input data-clock="ss" inputmode="numeric" maxlength="2" aria-label="Segundos" value="${esc(m.ss)}"></span>
+  </div>` : '';
+}
+
 function renderLineup(m) {
   const g = getGame(m.gid);
   const lines = playerLines(g);
@@ -2117,6 +2232,7 @@ function renderLineup(m) {
     <h3>${esc(m.title || 'Jugadores en pista')}</h3>
     <span class="count ${n === MAX_ON_COURT ? 'ok' : ''}">${n}/${MAX_ON_COURT} en pista</span>
   </div>
+  ${clockField(m)}
   <div class="chips">${sortedPlayers(g.roster).map(p => chip(g, p, lines, 'toggle-court', g.onCourt.includes(p.id) ? 'on' : '')).join('')}</div>
   <div class="modal-actions">
     ${n ? '<button class="btn" data-action="clear-court">Vaciar pista</button>' : ''}
@@ -2133,6 +2249,7 @@ function renderSwap(m) {
   <div class="modal-head">
     <h3>${out ? `Cambio · sale <span class="hl">${esc(pLabel(out))}</span>` : 'Añadir jugador a pista'}</h3>
   </div>
+  ${clockField(m)}
   ${bench.length ? `<div class="chips">${bench.map(p => chip(g, p, lines, 'swap-in')).join('')}</div>` : '<p class="empty">No hay jugadores en el banquillo.</p>'}
   <div class="modal-actions">
     ${out ? '<button class="btn" data-action="bench-out">Sentar sin cambio</button>' : ''}
@@ -2484,14 +2601,14 @@ const actions = {
     }
     if (d > 0) {
       syncRoster(g);
-      openModal({ kind: 'lineup', gid: g.id, title: `Quinteto · ${perName(g)} ${g.period}` });
+      openModal(lineupModal(g, `Quinteto · ${perName(g)} ${g.period}`, isPeriodStart(g)));
     }
   },
   lineup() {
     const g = currentGame();
     if (!g || isBoard(g)) return;
     syncRoster(g);
-    openModal({ kind: 'lineup', gid: g.id, title: `Jugadores en pista · ${perAbbr(g, g.period)}` });
+    openModal(lineupModal(g, `Jugadores en pista · ${perAbbr(g, g.period)}`, false));
   },
   'toggle-court'(el) {
     const g = getGame(ui.modal.gid);
@@ -2508,30 +2625,53 @@ const actions = {
     logLineup(g);
     save(); refreshModal();
   },
-  'lineup-done'() { closeModal(); },
+  'lineup-done'() {
+    const m = ui.modal;
+    const g = m && getGame(m.gid);
+    // Con cambios, el minuto tiene que ser válido para poder cerrar (si no, la ventana sigue abierta)
+    if (g && m.timed && !sameSet(m.before, g.onCourt)) {
+      const r = readClock(g, m);
+      if (r.error) { toast(r.error); vibrate(40); return; }
+    }
+    closeModal();
+  },
   swap(el) {
     const g = currentGame();
     if (!g || isBoard(g)) return;
     syncRoster(g);
-    openModal({ kind: 'swap', gid: g.id, outId: el.dataset.pid || null });
+    const timed = timedChange(g);
+    openModal({ kind: 'swap', gid: g.id, outId: el.dataset.pid || null, timed, ...(timed ? defaultClock(g) : {}) });
   },
   'swap-in'(el) {
     const m = ui.modal;
     const g = getGame(m.gid);
     const inId = el.dataset.id;
+    const before = [...g.onCourt];
+    let clock = null;
+    if (m.timed) {
+      clock = readClock(g, m);
+      if (clock.error) { toast(clock.error); vibrate(40); return; }
+    }
     if (m.outId) {
       const idx = g.onCourt.indexOf(m.outId);
       if (idx >= 0) g.onCourt[idx] = inId; else if (g.onCourt.length < MAX_ON_COURT) g.onCourt.push(inId);
     } else if (g.onCourt.length < MAX_ON_COURT) g.onCourt.push(inId);
     logLineup(g);
     markPlayed(g);
+    if (clock && !sameSet(before, g.onCourt)) logShift(g, clock.t);
     save(); vibrate(); closeModal(true); render();
   },
   'bench-out'() {
     const m = ui.modal;
     const g = getGame(m.gid);
+    let clock = null;
+    if (m.timed) {
+      clock = readClock(g, m);
+      if (clock.error) { toast(clock.error); vibrate(40); return; }
+    }
     g.onCourt = g.onCourt.filter(x => x !== m.outId);
     logLineup(g);
+    if (clock) logShift(g, clock.t);
     save(); closeModal(true); render();
   },
   menu() {
@@ -2813,15 +2953,23 @@ document.addEventListener('submit', async (e) => {
       venue: asVenue(fd.get('venue')),
       seq: 0,
       lineups: [],
+      ...(board ? {} : { shifts: [] }),   // tiempo de juego (v4); el marcador no tiene jugadores
     };
     if (!board) logLineup(g);   // el registro de quintetos empieza con el partido (sin quintetos en el marcador)
     db.games.push(g);
     save();
     const prof = currentProfile();
     uso('partido-empezado', { tipo: board ? 'marcador' : 'jugadores', periodos: g.periods, perfil: prof ? prof.id : 'personalizado' });
-    if (!board) ui.pendingModal = { kind: 'lineup', gid: g.id, title: `Quinteto inicial · ${perName(g)} 1` };
+    if (!board) ui.pendingModal = lineupModal(g, `Quinteto inicial · ${perName(g)} 1`, isPeriodStart(g));
     go(`#/partido/${g.id}`);
   }
+});
+
+/* El reloj del cambio se guarda en la ventana abierta al teclear: refreshModal() la vuelve a pintar a cada toque */
+document.addEventListener('input', (e) => {
+  const f = e.target.dataset && e.target.dataset.clock;
+  if (!f || !ui.modal) return;
+  ui.modal[f] = e.target.value.replace(/\D/g, '').slice(0, 2);
 });
 
 document.addEventListener('change', (e) => {
@@ -3190,6 +3338,7 @@ function tableCell(r, c, data) {
   if (c.k === 'fg') return { text: `${r.t2m + r.t3m}/${r.t2a + r.t3a}`, tone: tone(0) };
   if (c.k === 'pm') return r.pm == null ? { text: '–', tone: 'zero' } : { text: signedNum(r.pm), tone: tone(r.pm) };
   if (c.k === 'val') return { text: String(r.val), tone: tone(r.val) };
+  if (c.k === 'min') return r.secs == null ? { text: '–', tone: 'zero' } : { text: fmtClock(r.secs), tone: tone(0) };
   if (c.shot && data.made) return { text: String(r[`t${c.shot}m`]), tone: tone(0) };
   if (c.shot) return { text: `${r[`t${c.shot}m`]}/${r[`t${c.shot}a`]}`, sub: pct(r[`t${c.shot}m`], r[`t${c.shot}a`]), tone: tone(0) };
   // Quien ya está eliminado en un partido (5 faltas) sale en rojo, como en la tabla
@@ -3285,12 +3434,12 @@ function downloadCSV(arg) {
   const data = statsData(arg);
   if (!data) return;
   const head = ['Dorsal', 'Jugador', ...(data.season ? ['PJ'] : []), 'Periodos', 'PTS', 'T1A', 'T1I', 'T2A', 'T2I', 'T3A', 'T3I', 'RO', 'RD', 'RT', 'AS', 'TAP', 'TR', 'REC', 'PER', 'FC', 'FR', 'VAL',
-    'eFG%', 'TS%', '%PÉR', 'TL/TC', '+/-', 'REB'];
+    'eFG%', 'TS%', '%PÉR', 'TL/TC', '+/-', 'REB', ...(data.total.secs != null ? ['MIN'] : [])];
   // REB: rebotes sin distinguir (botón único); están incluidos en RT.
   // Avanzadas y REB al final (para no mover las columnas de siempre): % redondeado, tasa con 2 decimales; vacías sin valor
   const adv = (m, pctFmt) => (m.value == null || m.hidden ? '' : pctFmt ? Math.round(m.value * 100) : Math.round(m.value * 100) / 100);
   const line = (r) => [r.number, r.name, ...(data.season ? [r.gp] : []), r.nper, r.pts, r.t1m, r.t1a, r.t2m, r.t2a, r.t3m, r.t3a, r.ro, r.rd, r.reb, r.ast, r.blk, r.blkr, r.rec, r.lost, r.fc, r.fr, r.val,
-    adv(r.adv.efg, true), adv(r.adv.ts, true), adv(r.adv.tov, true), adv(r.adv.ftr, false), r.pm ?? '', r.rb];
+    adv(r.adv.efg, true), adv(r.adv.ts, true), adv(r.adv.tov, true), adv(r.adv.ftr, false), r.pm ?? '', r.rb, ...(data.total.secs != null ? [r.secs == null ? '' : fmtClock(r.secs)] : [])];   // MIN: solo si algún partido registra el tiempo
   const rows = [head, ...sortedPlayers(data.rows).map(line), line(data.total)];
   const csv = rows.map(r => r.map(v => {
     // Coma decimal solo en los números (los promedios); los textos, como los nombres, van tal cual

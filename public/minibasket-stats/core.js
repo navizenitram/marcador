@@ -212,6 +212,39 @@
     return { pf, pc, pm: pf - pc };
   }
 
+  /* ── Tiempo de juego (formato v4) ──
+     g.shifts guarda, en orden, quién está en pista y desde cuándo: [{ period, t, on }], con t en segundos
+     TRANSCURRIDOS del periodo (el reloj del marcador es de cuenta atrás: la app lo convierte al teclearlo). Al empezar
+     cada periodo hay una entrada con t = 0; las demás son los cambios dentro del periodo. Es un registro aparte de
+     g.lineups porque aquel colapsa fotos sin jugadas entre medias y aquí cada cambio con su minuto cuenta.
+     Duración del periodo: 6 min en minibasket (8 periodos), 10 min con 4 cuartos; con otro número, sin tiempo. */
+  const PERIOD_SECS = Object.freeze({ 8: 360, 4: 600 });
+  const periodSecs = (g) => PERIOD_SECS[g.periods] || null;
+
+  /* Segundos jugados por cada jugador { pid: s } (quien no aparece, 0), o null si el partido no registra tiempo
+     (sin g.shifts, sin duración o que no empieza con la entrada t = 0). Los periodos anteriores al último cuentan
+     enteros; el último, hasta su final si el partido está finalizado y, si no, hasta el último cambio apuntado. */
+  function secondsPlayed(g) {
+    const len = periodSecs(g);
+    const shifts = Array.isArray(g.shifts) ? g.shifts : [];
+    if (!len || !shifts.length || shifts[0].t !== 0) return null;
+    const out = {};
+    const add = (on, s) => { if (s > 0) for (const pid of on) out[pid] = (out[pid] || 0) + s; };
+    const lastP = Math.max(...shifts.map(s => s.period), Math.min(g.period || 1, g.periods));
+    let carry = [];
+    for (let p = 1; p <= lastP; p++) {
+      let on = carry, t = 0;
+      for (const s of shifts.filter(x => x.period === p)) {
+        const at = Math.min(Math.max(s.t, t), len);
+        add(on, at - t);
+        on = s.on; t = at;
+      }
+      add(on, (p < lastP || g.finished ? len : t) - t);
+      carry = on;
+    }
+    return out;
+  }
+
   /* Combinaciones de k elementos de una lista (k pequeño: parejas, tríos o el quinteto entero) */
   function choose(list, k, start = 0, acc = [], out = []) {
     if (acc.length === k) { out.push([...acc]); return out; }
@@ -419,6 +452,6 @@
 
   root.MBCore = Object.freeze({
     EV_PTS, ADJ, blankLine, addEvent, sumLines, finish, score, periodScores, playerLines, scoreFlow, lineupAt, lineupRun,
-    ADV_MIN, advanced, recordedOpts, stints, plusMinus, combos, rankCombos, PM_MIN_PERIODS, reportModel, reportText,
+    PERIOD_SECS, periodSecs, secondsPlayed, ADV_MIN, advanced, recordedOpts, stints, plusMinus, combos, rankCombos, PM_MIN_PERIODS, reportModel, reportText,
   });
 })(globalThis);

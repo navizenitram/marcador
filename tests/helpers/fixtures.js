@@ -54,7 +54,7 @@ export function opp(pts, period = 1) {
 }
 
 export function makeData({ teams = [makeTeam()], games = [], currentTeamId } = {}) {
-  return { version: 3, teams, games, currentTeamId: currentTeamId ?? (teams[0] ? teams[0].id : null) };
+  return { version: 4, teams, games, currentTeamId: currentTeamId ?? (teams[0] ? teams[0].id : null) };
 }
 
 /*
