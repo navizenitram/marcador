@@ -13,6 +13,15 @@
      periods: { labels: ['P1', …], home: [...], away: [...] },
      leaders: [{ label, value, who }],                           // puede ir vacía (partidos de marcador)
      host: 'myownbasketballstats.com'
+   }
+
+   Tabla completa de estadísticas (type: 'table'): las mismas columnas, filas y orden que la pantalla. El alto depende de
+   cuántos jugadores haya y el ancho, de cuántas columnas.
+   {
+     type: 'table', title, subtitle, fileBase, host,
+     cols: [{ k, h, gs?: true (empieza un grupo: lleva una raya a la izquierda), hl?: true (destacada) }],
+     rows: [{ dnp?: true (no jugó), cells: [{ text, sub?, tone?: 'pos' | 'neg' | 'zero' }] }],
+     total: { cells: [...] }, legend: ['PTS Puntos', …], note: '' (aviso bajo la tabla)
    } */
 (function (root) {
   const W = 1080, H = 1350;
@@ -170,6 +179,7 @@
   /* Dibuja la tarjeta entera en un contexto 2D de W × H. Los bloques se apilan y se centran en el espacio libre, así que
      sin líderes (partidos de marcador) el resto queda centrado en vez de dejar un hueco abajo. */
   function draw(ctx, m) {
+    if (m.type === 'table') return drawTable(ctx, m);
     const bg = ctx.createLinearGradient(0, 0, 0, H);
     bg.addColorStop(0, C.bg1);
     bg.addColorStop(1, C.bg0);
@@ -191,6 +201,143 @@
     drawFooter(ctx, m);
   }
 
+  /* ── Tabla completa ── */
+  const T_PAD = 56, T_CELL = 22, T_HEAD_H = 66, T_MIN_W = 1200, T_LEGEND_LINE = 40;
+  const T_FOOT_H = 130;
+  const TONE = { pos: C.green, neg: C.red, zero: '#4b5565' };
+  const T_DNP = '#5a6575';
+
+  /* Texto repartido en líneas de como mucho maxW de ancho (con la fuente ya puesta en ctx) */
+  function wrapLines(ctx, str, maxW) {
+    const lines = [];
+    let cur = '';
+    for (const word of String(str).split(/\s+/).filter(Boolean)) {
+      const next = cur ? `${cur} ${word}` : word;
+      if (cur && ctx.measureText(next).width > maxW) { lines.push(cur); cur = word; } else cur = next;
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  }
+
+  /* Medidas de la tabla: ancho de cada columna (lo que ocupa su contenido), alto de fila, líneas de la leyenda y tamaño
+     total de la imagen. Se calcula con el mismo ctx con el que se dibuja, porque depende de las fuentes. */
+  function tableLayout(ctx, m) {
+    const all = [...m.rows, m.total];
+    const hasSub = all.some((r) => r.cells.some((c) => c.sub));
+    const rowH = hasSub ? 80 : 62;
+    const widths = m.cols.map((c, i) => {
+      ctx.font = `600 30px ${FONT_D}`;
+      let w = ctx.measureText(c.h).width;
+      for (const r of all) {
+        const cell = r.cells[i];
+        ctx.font = c.k === 'name' ? `600 34px ${FONT_T}` : `600 36px ${FONT_D}`;
+        w = Math.max(w, ctx.measureText(cell.text).width);
+        if (cell.sub) { ctx.font = `500 24px ${FONT_T}`; w = Math.max(w, ctx.measureText(cell.sub).width); }
+      }
+      const min = c.k === 'name' ? 180 : c.k === 'number' ? 70 : 84;
+      const max = c.k === 'name' ? 420 : Infinity;
+      return Math.min(max, Math.max(min, Math.ceil(w) + T_CELL * 2));
+    });
+    const tableW = widths.reduce((a, b) => a + b, 0);
+    const W = Math.max(T_MIN_W, tableW + T_PAD * 2);
+    ctx.font = `500 26px ${FONT_T}`;
+    const legend = m.legend && m.legend.length ? wrapLines(ctx, m.legend.join('   ·   '), W - T_PAD * 2) : [];
+    const note = m.note ? wrapLines(ctx, m.note, W - T_PAD * 2) : [];
+    const tableTop = 10 + 96 + 50 + 44;
+    const totalH = rowH + 8;
+    const tableH = T_HEAD_H + m.rows.length * rowH + totalH;
+    const textLines = legend.length + note.length;
+    const H = tableTop + tableH + 36 + textLines * T_LEGEND_LINE + (textLines ? 28 : 0) + T_FOOT_H;
+    return { W, H, rowH, totalH, widths, tableW, x0: (W - tableW) / 2, tableTop, tableH, legend, note };
+  }
+
+  function drawTable(ctx, m) {
+    const L = tableLayout(ctx, m);
+    const { W: TW, H: TH, rowH, totalH, widths, tableW, x0, tableTop, tableH } = L;
+    const bg = ctx.createLinearGradient(0, 0, 0, TH);
+    bg.addColorStop(0, C.bg1);
+    bg.addColorStop(1, C.bg0);
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, TW, TH);
+    ctx.fillStyle = C.green;
+    ctx.fillRect(0, 0, TW, 10);
+
+    writeFit(ctx, m.title, T_PAD, 10 + 96, TW - T_PAD * 2, { weight: 700, family: FONT_D, px: 64, minPx: 36, color: C.text });
+    writeFit(ctx, m.subtitle, T_PAD, 10 + 96 + 50, TW - T_PAD * 2, { weight: 500, family: FONT_T, px: 32, minPx: 22, color: C.muted });
+
+    // Cabecera de la tabla
+    rrect(ctx, x0, tableTop, tableW, T_HEAD_H, 16);
+    ctx.fillStyle = C.panel;
+    ctx.fill();
+    const xs = [];
+    let x = x0;
+    for (const w of widths) { xs.push(x); x += w; }
+    m.cols.forEach((c, i) => {
+      const left = c.k === 'name';
+      write(ctx, c.h, left ? xs[i] + T_CELL : xs[i] + widths[i] / 2, tableTop + T_HEAD_H / 2, {
+        font: `600 30px ${FONT_D}`, color: c.hl ? C.amber : C.muted, align: left ? 'left' : 'center', baseline: 'middle',
+      });
+    });
+
+    const drawCells = (row, y, h, dim) => {
+      row.cells.forEach((cell, i) => {
+        const c = m.cols[i];
+        const tone = TONE[cell.tone];
+        const main = dim ? T_DNP : tone || (c.hl ? C.amber : C.text);
+        const sub = dim || cell.tone === 'zero' ? T_DNP : C.muted;
+        if (c.k === 'name') {
+          writeFit(ctx, cell.text, xs[i] + T_CELL, y + h / 2, widths[i] - T_CELL * 2, {
+            weight: 600, family: FONT_T, px: 34, minPx: 22, color: dim ? T_DNP : C.text, baseline: 'middle',
+          });
+          return;
+        }
+        const cx = xs[i] + widths[i] / 2;
+        write(ctx, cell.text, cx, y + (cell.sub ? h * 0.38 : h / 2), { font: `600 36px ${FONT_D}`, color: main, align: 'center', baseline: 'middle' });
+        if (cell.sub) write(ctx, cell.sub, cx, y + h * 0.78, { font: `500 24px ${FONT_T}`, color: sub, align: 'center', baseline: 'middle' });
+      });
+    };
+
+    // Filas de jugadores, con una franja de más claro en las pares para seguir la fila con la vista
+    const bodyTop = tableTop + T_HEAD_H;
+    m.rows.forEach((row, r) => {
+      const y = bodyTop + r * rowH;
+      if (r % 2 === 1) {
+        ctx.fillStyle = 'rgba(255,255,255,0.035)';
+        ctx.fillRect(x0, y, tableW, rowH);
+      }
+      drawCells(row, y, rowH, !!row.dnp);
+    });
+
+    // Fila del equipo: con una raya verde encima
+    const totalTop = bodyTop + m.rows.length * rowH;
+    ctx.fillStyle = C.panel;
+    ctx.fillRect(x0, totalTop, tableW, totalH);
+    ctx.fillStyle = C.green;
+    ctx.fillRect(x0, totalTop, tableW, 3);
+    drawCells(m.total, totalTop + 4, totalH - 4, false);
+
+    // Una raya fina donde empieza cada grupo de columnas (tiros, rebotes, balón…)
+    ctx.fillStyle = C.line;
+    m.cols.forEach((c, i) => { if (c.gs && i) ctx.fillRect(xs[i] - 1, tableTop + 12, 2, tableH - 12 - 4); });
+
+    // Aviso y leyenda de las abreviaturas
+    let y = tableTop + tableH + 36;
+    for (const line of L.note) {
+      write(ctx, line, T_PAD, y + 24, { font: `500 26px ${FONT_T}`, color: C.amber });
+      y += T_LEGEND_LINE;
+    }
+    if (L.note.length) y += 12;
+    for (const line of L.legend) {
+      write(ctx, line, T_PAD, y + 24, { font: `500 26px ${FONT_T}`, color: C.muted });
+      y += T_LEGEND_LINE;
+    }
+
+    ctx.fillStyle = C.line;
+    ctx.fillRect(T_PAD, TH - 124, TW - T_PAD * 2, 2);
+    write(ctx, m.host, TW / 2, TH - 74, { font: `700 36px ${FONT_D}`, color: C.green, align: 'center' });
+    write(ctx, 'Estadísticas de baloncesto formativo', TW / 2, TH - 34, { font: `500 24px ${FONT_T}`, color: C.muted, align: 'center' });
+  }
+
   /* Espera a las fuentes de la app (Rajdhani y Barlow) para que no se dibuje con la de reserva. Si no están, se sigue. */
   async function loadFonts() {
     const fonts = root.document && root.document.fonts;
@@ -208,20 +355,34 @@
     canvas.height = H;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Sin canvas');
+    if (model.type === 'table') {
+      const size = tableLayout(ctx, model);
+      canvas.width = size.W;
+      canvas.height = size.H;
+    }
     draw(ctx, model);
     return new Promise((resolve, reject) => {
       canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Sin imagen'))), 'image/png');
     });
   }
 
-  /* Nombre del archivo: partido-Alevin_A-Rival-03_10_2026.png. Solo ASCII: con una letra acentuada en el atributo
-     download, Chromium descarga el archivo como «download», sin la extensión .png. */
-  function fileName(m) {
-    const slug = ['partido', m.home.name, m.away.name, m.date].join('-')
+  /* Nombre de archivo solo ASCII: con una letra acentuada en el atributo download, Chromium descarga el archivo como
+     «download», sin la extensión .png. */
+  function slug(str) {
+    return String(str)
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[^A-Za-z0-9\-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-    return `${slug}.png`;
   }
 
-  root.MBCard = Object.freeze({ WIDTH: W, HEIGHT: H, draw, toBlob, fileName });
+  /* partido-Alevin_A-Rival-03_10_2026.png */
+  function fileName(m) {
+    return `${slug(['partido', m.home.name, m.away.name, m.date].join('-'))}.png`;
+  }
+
+  /* estadisticas-2026-10-03-vs-Rival.png (la misma base que el CSV) */
+  function tableFileName(m) {
+    return `${slug(m.fileBase)}.png`;
+  }
+
+  root.MBCard = Object.freeze({ WIDTH: W, HEIGHT: H, draw, toBlob, fileName, tableFileName, tableLayout });
 })(globalThis);

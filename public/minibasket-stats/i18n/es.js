@@ -95,6 +95,8 @@
   'share.image': 'Imagen',
   'share.imageHint': 'Tarjeta del partido (resultado, parciales y líderes) para compartir por WhatsApp o guardar como imagen',
   'share.imageSaved': '🖼️ Imagen descargada',
+  'share.table': 'Tabla PNG',
+  'share.tableHint': 'La tabla de estadísticas completa, tal como se ve (totales o por partido, básicas o avanzadas), como imagen',
 
   'help.title': 'Ayuda y sugerencias',
   'help.text': '¿Tienes dudas, has encontrado un error o se te ocurre una mejora? Escríbeme en X, donde también anuncio las novedades de cada versión.',

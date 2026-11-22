@@ -469,7 +469,7 @@ const tr = (key, vars) => MBI18n.t(key, vars);
      partido-empezado    tipo ('marcador' | 'jugadores'), periodos (8 | 4), perfil (id del perfil o 'personalizado')
      partido-finalizado  tipo, periodos, n (partidos finalizados del equipo: '1', '2-5', '6-10', '11+'); una vez por
                          partido: reabrirlo y volver a finalizarlo no cuenta
-     compartir-resultado canal ('copiar' | 'nativo' | 'email' | 'texto' | 'csv' | 'imagen'),
+     compartir-resultado canal ('copiar' | 'nativo' | 'email' | 'texto' | 'csv' | 'imagen' | 'tabla'),
                          que ('partido' | 'temporada' | 'fase' | 'informe')
      pwa-instalada       —
    once: clave para los hitos que solo cuentan una vez. Nunca rompe la app: si algo falla, no se cuenta. */
@@ -966,7 +966,7 @@ function viewPrivacy() {
       <li>Que un equipo añade su primer jugador.</li>
       <li>Que empieza o se finaliza un partido: si es de marcador o con jugadores, si es a 8 periodos o a 4 cuartos, el perfil
       de botones y, al finalizar, cuántos lleva el equipo (1, de 2 a 5, de 6 a 10 o más de 10).</li>
-      <li>Que se comparten las estadísticas, por qué vía (copiar, compartir, email, archivo de texto, imagen o CSV) y si son de un
+      <li>Que se comparten las estadísticas, por qué vía (copiar, compartir, email, archivo de texto, imagen, tabla en imagen o CSV) y si son de un
       partido, de la temporada, de una fase o un informe de jugador.</li>
       <li>Que se instala la app en la pantalla de inicio.</li>
     </ul>
@@ -979,7 +979,7 @@ function viewPrivacy() {
 
     <h2>Dónde se guardan tus datos</h2>
     <p>Todo se guarda únicamente en el almacenamiento local del navegador de este dispositivo. Nadie más tiene acceso a ello, ni siquiera yo.
-    Solo sale de tu móvil si tú decides compartirlo: al enviar las estadísticas por email, compartirlas, compartir o descargar la imagen de un partido, descargar un CSV o exportar una copia de seguridad.</p>
+    Solo sale de tu móvil si tú decides compartirlo: al enviar las estadísticas por email, compartirlas, compartir o descargar la imagen de un partido o de la tabla, descargar un CSV o exportar una copia de seguridad.</p>
     <p>Por eso mismo, si borras los datos del navegador, desinstalas la app o cambias de dispositivo, los datos se pierden.
     Te recomiendo exportar una copia de seguridad de vez en cuando desde <a href="#/ajustes">Ajustes</a>.</p>
     <p>Como la app trabaja con datos de menores, una buena práctica es usar solo el nombre de pila o un apodo de cada jugador.</p>
@@ -1995,7 +1995,17 @@ function colVisible(k, data) {
   return v !== 0;
 }
 
-function statsTable(data) {
+/* Los ceros se atenúan para que destaque lo que sí ha pasado (en los tiros, no haber tirado) */
+function isZeroCell(r, c) {
+  return c.adv ? r.adv[c.k].value == null
+    : c.k === 'fg' ? r.t2a + r.t3a === 0
+    : c.k === 'pm' ? r.pm == null
+    : c.shot ? r[`t${c.shot}a`] === 0 : c.k !== 'val' && r[c.k] === 0;
+}
+
+/* Columnas y filas de la tabla, en el orden que se ve en pantalla (las columnas que tocan según el ámbito, las
+   avanzadas o las básicas y el orden elegido). Las usan la tabla y su imagen. */
+function tableLayout(data) {
   const cols = (showAdv(data) ? ADV_COLS : COLS)
     .filter(c => (!c.season || data.season) && colVisible(c.k, data))
     .map(c => (c.adv || c.k === 'fg' ? { ...c, ...advHead(c, data) } : c.tk ? { ...c, t: tr(c.tk) } : c))
@@ -2017,13 +2027,15 @@ function statsTable(data) {
     if (typeof va === 'string') return dir * va.localeCompare(vb);
     return dir * (va - vb) || byNumber(a, b);
   });
+  return { cols, rows };
+}
+
+function statsTable(data) {
+  const { cols, rows } = tableLayout(data);
+  const { key, dir } = ui.sort;
   // Clases comunes a toda la columna: la suya, el inicio de un grupo de columnas y si es la ordenada
   const colCls = cols.map((c, i) => `${c.cls || ''}${i && cols[i - 1].g !== c.g && c.g !== 'played' ? ' gs' : ''}${key === c.k ? ' sorted' : ''}`);
-  // Los ceros se atenúan para que destaque lo que sí ha pasado (en los tiros, no haber tirado)
-  const isZero = (r, c) => (c.adv ? r.adv[c.k].value == null
-    : c.k === 'fg' ? r.t2a + r.t3a === 0
-    : c.k === 'pm' ? r.pm == null
-    : c.shot ? r[`t${c.shot}a`] === 0 : c.k !== 'val' && r[c.k] === 0);
+  const isZero = isZeroCell;
   // En la temporada o una fase, el nombre de quien ha jugado abre su informe (no en la fila del equipo)
   const scopeArg = data.season ? (data.phase ? `fase-${data.phase}` : 'temporada') : '';
   const value = (r, c) => (c.k === 'name' && scopeArg && r.gp && r.id !== '_team' && !isBoardRow(r)
@@ -2587,23 +2599,10 @@ const actions = {
     try { await navigator.share({ title: m.subject, text: m.text }); uso('compartir-resultado', { canal: 'nativo', que: m.what }); }
     catch (e) { /* cancelado */ }
   },
-  /* La tarjeta del partido: menú de compartir del móvil (WhatsApp…) y, si el navegador no comparte archivos o falla, la
-     descarga del PNG. Cancelar el menú no cuenta ni descarga nada. */
-  async 'share-image'() {
-    const m = ui.modal;
-    const file = m && m.file;
-    if (!file) return;
-    let shared = false;
-    if (canShareFile(file)) {
-      try { await navigator.share({ files: [file], title: m.subject }); shared = true; }
-      catch (e) { if (e && e.name === 'AbortError') return; }
-    }
-    if (!shared) {
-      download(file, file.name);
-      toast(tr('share.imageSaved'));
-    }
-    uso('compartir-resultado', { canal: 'imagen', que: m.what });
-  },
+  /* Las imágenes: menú de compartir del móvil (WhatsApp…) y, si el navegador no comparte archivos o falla, la descarga
+     del PNG. Cancelar el menú no cuenta ni descarga nada. La tarjeta es del partido; la tabla, de lo que se ve. */
+  'share-image'() { return shareFile(ui.modal, ui.modal && ui.modal.file, 'imagen'); },
+  'share-table'() { return shareFile(ui.modal, ui.modal && ui.modal.tableFile, 'tabla'); },
 
   /* General */
   fullscreen() { toggleFullscreen(); },
@@ -3100,9 +3099,11 @@ function shareStats(arg) {
   const subject = `Estadísticas · ${statsTitle(arg)}`;
   const mailto = `mailto:${encodeURIComponent(team().email || '')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
   const card = cardModel(arg);   // solo un partido tiene tarjeta
-  const m = { kind: 'share', text, subject, mailto, what: usoScope(arg), image: !!card };
+  const table = tableModel(arg);
+  const m = { kind: 'share', text, subject, mailto, what: usoScope(arg), image: !!card, table: !!table };
   openModal(m);
   if (card) prepareImage(m, card);
+  if (table) prepareTable(m, table);
 }
 
 /* ── Tarjeta del partido como imagen (card.js) ──
@@ -3141,6 +3142,20 @@ function canShareFile(file) {
   catch (e) { return false; }
 }
 
+async function shareFile(m, file, canal) {
+  if (!m || !file) return;
+  let shared = false;
+  if (canShareFile(file)) {
+    try { await navigator.share({ files: [file], title: m.subject }); shared = true; }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  if (!shared) {
+    download(file, file.name);
+    toast(tr('share.imageSaved'));
+  }
+  uso('compartir-resultado', { canal, que: m.what });
+}
+
 /* La imagen se prepara al abrir el modal y no al tocar el botón: navigator.share solo funciona justo después de un
    toque (Safari es estricto con la espera) y dibujar es asíncrono (hay que esperar a las fuentes). Hasta que está
    lista, el botón sale desactivado. Si no se puede dibujar, el botón desaparece y el resto sigue como siempre. */
@@ -3148,6 +3163,67 @@ function prepareImage(m, card) {
   MBCard.toBlob(card)
     .then((blob) => { m.file = new File([blob], MBCard.fileName(card), { type: 'image/png' }); })
     .catch(() => { m.image = false; })
+    .then(() => { if (ui.modal === m) refreshModal(); });
+}
+
+/* ── Tabla completa como imagen (card.js, type 'table') ──
+   Lo mismo que la tabla de Estadísticas: sus columnas, sus filas y su orden (tableLayout), con lo que se haya elegido
+   arriba (Totales o Por partido, Básicas o Avanzadas). A diferencia de la tarjeta, vale para un partido, la temporada
+   y una fase. Los valores son los de la pantalla, en texto, con el mismo tono (ceros atenuados, verde y rojo). */
+function tableCell(r, c, data) {
+  const tone = (t) => (t > 0 ? 'pos' : t < 0 ? 'neg' : isZeroCell(r, c) ? 'zero' : '');
+  if (c.adv) {
+    const m = r.adv[c.k];
+    if (m.value == null) return { text: '–', tone: 'zero' };
+    const v = c.fmt === 'pct' ? MBI18n.fmtPct(m.value) : MBI18n.fmtNum(m.value, 2);
+    return { text: m.low ? `${v}*` : v };
+  }
+  if (c.k === 'fg') return { text: `${r.t2m + r.t3m}/${r.t2a + r.t3a}`, tone: tone(0) };
+  if (c.k === 'pm') return r.pm == null ? { text: '–', tone: 'zero' } : { text: signedNum(r.pm), tone: tone(r.pm) };
+  if (c.k === 'val') return { text: String(r.val), tone: tone(r.val) };
+  if (c.shot && data.made) return { text: String(r[`t${c.shot}m`]), tone: tone(0) };
+  if (c.shot) return { text: `${r[`t${c.shot}m`]}/${r[`t${c.shot}a`]}`, sub: pct(r[`t${c.shot}m`], r[`t${c.shot}a`]), tone: tone(0) };
+  // Quien ya está eliminado en un partido (5 faltas) sale en rojo, como en la tabla
+  if (c.k === 'fc' && !data.season && r.fc >= MAX_FOULS) return { text: String(r.fc), tone: 'neg' };
+  return { text: String(r[c.k]), tone: c.k === 'name' || c.k === 'number' ? '' : tone(0) };
+}
+
+function tableModel(arg) {
+  const data = statsData(arg);
+  if (!data) return null;
+  const { cols, rows } = tableLayout(data);
+  const adv = showAdv(data);
+  const view = data.made ? '' : ` · ${adv ? tr('stats.advanced') : tr('stats.basic')}`;
+  let title, subtitle, fileBase;
+  if (data.season) {
+    title = statsTitle(arg);
+    subtitle = `${nGames(data.scopeGames.length)} · ${ui.avg ? 'Por partido' : 'Totales'}${view}`;
+    fileBase = `estadisticas-${data.phase ? `fase-${data.phase}` : 'temporada'}-${todayISO()}`;
+  } else {
+    const g = data.game, s = score(g), names = sideNames(g), [home, away] = sidesOf(g), meta = gameMeta(g);
+    title = `${names[home]} ${s[home]} - ${s[away]} ${names[away]}`;
+    subtitle = `${fmtDate(g.date)}${meta ? ` · ${meta}` : ''}${view}`;
+    fileBase = `estadisticas-${g.date}-vs-${g.opponent}`;
+  }
+  const line = (r) => ({ dnp: !r.gp && r.id !== '_team', cells: cols.map(c => tableCell(r, c, data)) });
+  return {
+    type: 'table', title, subtitle, fileBase, host: siteHost(),
+    cols: cols.map((c, i) => ({ k: c.k, h: c.h, hl: /\bhl\b/.test(c.cls || ''), gs: i > 0 && cols[i - 1].g !== c.g && c.g !== 'played' })),
+    rows: rows.map(line),
+    total: line(data.total),
+    // Qué significa cada abreviatura: lo primero de su título (sin «(anotados/intentados)», sin el término técnico de las
+    // avanzadas que va tras « · » y sin la explicación que sigue al primer punto)
+    legend: cols.filter(c => c.t && c.k !== 'number' && c.k !== 'name')
+      .map(c => `${c.h} ${c.t.replace(/\s*\((anotados\/intentados)\)/, '').split(' · ')[0].split('. ')[0]}`),
+    note: adv ? tr('adv.note') : '',
+  };
+}
+
+/* La imagen de un archivo ya dibujado, a punto para compartir o descargar (ver prepareImage) */
+function prepareTable(m, model) {
+  MBCard.toBlob(model)
+    .then((blob) => { m.tableFile = new File([blob], MBCard.tableFileName(model), { type: 'image/png' }); })
+    .catch(() => { m.table = false; })
     .then(() => { if (ui.modal === m) refreshModal(); });
 }
 
@@ -3189,6 +3265,7 @@ function renderShare(m) {
     <button class="btn" data-action="copy-text">${icon('copy')} Copiar</button>
     ${navigator.share ? `<button class="btn" data-action="native-share">${icon('share')} Compartir</button>` : ''}
     ${m.image ? `<button class="btn" data-action="share-image" ${m.file ? '' : 'disabled'} title="${esc(tr('share.imageHint'))}">${icon('image')} ${esc(tr('share.image'))}</button>` : ''}
+    ${m.table ? `<button class="btn" data-action="share-table" ${m.tableFile ? '' : 'disabled'} title="${esc(tr('share.tableHint'))}">${icon('chart')} ${esc(tr('share.table'))}</button>` : ''}
     ${m.filename ? `<button class="btn" data-action="download-text">${icon('download')} ${esc(tr('share.download'))}</button>` : ''}
     ${m.mailto ? `<a class="btn primary" href="${esc(m.mailto)}" data-uso="email">${icon('mail')} Email${team().email ? ` a ${esc(team().email)}` : ''}</a>` : ''}
     <button class="btn" data-action="modal-close">Cerrar</button>

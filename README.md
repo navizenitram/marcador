@@ -42,8 +42,8 @@ o pulsan sus botones. Si la app lanza una excepción durante un test, el test fa
 | Carpeta | Qué cubre |
 | --- | --- |
 | `tests/core/` | Núcleo de cálculo de la app (`core.js`) cargado solo, sin DOM: si tocara el DOM o el estado de la app, fallaría |
-| `tests/app/` | App de estadísticas: cálculos y valoración, datos (migraciones v1→v2→v3, carga, importación), registro de quintetos, exportación (texto, CSV, JSON), la imagen del partido en Enviar y flujos de uso (equipos, plantilla, partido en directo, ajustes, estadísticas, fases de la temporada y local/visitante) |
-| `tests/card/` | Tarjeta del partido como imagen (`card.js`) cargada sola y dibujada en un contexto 2D falso: textos, colores, nombres largos, PNG y nombre de archivo |
+| `tests/app/` | App de estadísticas: cálculos y valoración, datos (migraciones v1→v2→v3, carga, importación), registro de quintetos, exportación (texto, CSV, JSON), las imágenes del partido y de la tabla en Enviar y flujos de uso (equipos, plantilla, partido en directo, ajustes, estadísticas, fases de la temporada y local/visitante) |
+| `tests/card/` | Imágenes para compartir (`card.js`: la tarjeta del partido y la tabla completa) cargadas solas y dibujadas en un contexto 2D falso: textos, colores, medidas, nombres largos, PNG y nombre de archivo |
 | `tests/marcador/` | Marcador: puntos, faltas y periodos, estadísticas y gráficas (Chart.js se sustituye por un doble), reinicio y tema |
 | `tests/web/` | `site.config.mjs`, `scripts/postbuild.mjs`, mismos textos en castellano y catalán, y archivos de la PWA (service worker, manifest, fuentes) |
 

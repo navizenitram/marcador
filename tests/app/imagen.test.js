@@ -16,6 +16,7 @@ async function openShare(app, arg = 'g1') {
   await app.settle();
 }
 const imageButton = (app) => app.$('.modal [data-action="share-image"]');
+const tableButton = (app) => app.$('.modal [data-action="share-table"]');
 
 describe('qué lleva la tarjeta (cardModel)', () => {
   it('el resultado, los parciales y la fecha de un partido', async () => {
@@ -104,18 +105,20 @@ describe('qué lleva la tarjeta (cardModel)', () => {
 
 describe('el botón «Imagen» de Enviar', () => {
   it('sale en un partido y se activa cuando la imagen está lista', async () => {
-    let finish;
+    const pending = [];
     const app = await open('#/stats/g1', [sampleGame()], {
-      setup(w) { w.HTMLCanvasElement.prototype.toBlob = (cb, type) => { finish = () => cb(new w.Blob(['png'], { type })); }; },
+      setup(w) { w.HTMLCanvasElement.prototype.toBlob = (cb, type) => { pending.push(() => cb(new w.Blob(['png'], { type }))); }; },
     });
     await app.act('share', { arg: 'g1' });
     expect(imageButton(app).disabled).toBe(true);
+    expect(tableButton(app).disabled).toBe(true);
     // El resto del modal funciona mientras se dibuja
     expect(app.$('.modal [data-action="copy-text"]')).not.toBeNull();
 
-    finish();
+    pending.forEach((finish) => finish());
     await app.settle();
     expect(imageButton(app).disabled).toBe(false);
+    expect(tableButton(app).disabled).toBe(false);
     expect(app.text('.modal')).toContain('Imagen');
   });
 
@@ -131,7 +134,9 @@ describe('el botón «Imagen» de Enviar', () => {
     await openShare(app, 'temporada');
     expect(app.modal).not.toBeNull();
     expect(imageButton(app)).toBeNull();
-    expect(app.canvasTexts).toEqual([]);
+    // La tarjeta es de un partido: no se dibuja. La tabla, en cambio, vale para la temporada
+    expect(app.canvasTexts.map((t) => t.text)).not.toContain('PARCIALES');
+    expect(tableButton(app)).not.toBeNull();
   });
 
   it('tampoco sale en el informe de un jugador', async () => {
@@ -139,6 +144,7 @@ describe('el botón «Imagen» de Enviar', () => {
     await app.act('report', { pid: 'p4' });
     expect(app.modal).not.toBeNull();
     expect(imageButton(app)).toBeNull();
+    expect(tableButton(app)).toBeNull();
   });
 
   it('si no se puede dibujar, el botón no sale y el resto del modal sigue igual', async () => {
@@ -147,18 +153,19 @@ describe('el botón «Imagen» de Enviar', () => {
     });
     await openShare(app);
     expect(imageButton(app)).toBeNull();
+    expect(tableButton(app)).toBeNull();
     for (const action of ['copy-text', 'modal-close']) expect(app.$(`.modal [data-action="${action}"]`)).not.toBeNull();
     expect(app.$('.modal a[href^="mailto:"]')).not.toBeNull();
   });
 
   it('si se cierra el modal antes de que esté lista, no pasa nada', async () => {
-    let finish;
+    const pending = [];
     const app = await open('#/stats/g1', [sampleGame()], {
-      setup(w) { w.HTMLCanvasElement.prototype.toBlob = (cb, type) => { finish = () => cb(new w.Blob(['png'], { type })); }; },
+      setup(w) { w.HTMLCanvasElement.prototype.toBlob = (cb, type) => { pending.push(() => cb(new w.Blob(['png'], { type }))); }; },
     });
     await app.act('share', { arg: 'g1' });
     await app.act('modal-close');
-    finish();
+    pending.forEach((finish) => finish());
     await app.settle();
     expect(app.modal).toBeNull();
   });

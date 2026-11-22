@@ -191,3 +191,172 @@ describe('nombre del archivo', () => {
     expect(name).toMatch(/^[A-Za-z0-9_.-]+$/);
   });
 });
+
+describe('tabla completa (type: table)', () => {
+  const GRAY_ZERO = '#4b5565', GRAY_DNP = '#5a6575', AMBER = '#ffca28', RED = '#ff5252';
+  const cell = (text, extra = {}) => ({ text, ...extra });
+
+  const tmodel = (over = {}) => ({
+    type: 'table',
+    title: 'Alevín A · Temporada',
+    subtitle: '2 partidos · Totales · Básicas',
+    fileBase: 'estadisticas-temporada-2026-11-21',
+    host: 'myownbasketballstats.com',
+    cols: [{ k: 'number', h: '#' }, { k: 'name', h: 'Jugador' }, { k: 'pts', h: 'PTS', hl: true, gs: true }, { k: 't2', h: 'T2' }, { k: 'val', h: 'VAL', gs: true, hl: true }],
+    rows: [
+      { cells: [cell('4'), cell('Ana'), cell('7'), cell('3/4', { sub: '75%' }), cell('5', { tone: 'pos' })] },
+      { cells: [cell('7'), cell('Bruno'), cell('0', { tone: 'zero' }), cell('0/1', { sub: '0%' }), cell('−2', { tone: 'neg' })] },
+      { dnp: true, cells: [cell('15'), cell('Eva'), cell('0'), cell('0/0', { sub: '–' }), cell('0')] },
+    ],
+    total: { cells: [cell(''), cell('Equipo'), cell('7'), cell('3/5', { sub: '60%' }), cell('3')] },
+    legend: ['PTS Puntos', 'T2 Tiros de 2', 'VAL Valoración'],
+    note: '',
+    ...over,
+  });
+
+  /** Textos de la tabla dibujada y su medida */
+  function drawnTable(m) {
+    const texts = [];
+    const ctx = fakeContext(texts);
+    const card = loadCard();
+    card.draw(ctx, m);
+    return { texts, layout: card.tableLayout(fakeContext(), m) };
+  }
+
+  it('escribe el título, el subtítulo, las cabeceras, cada celda, la leyenda y la web', () => {
+    const { texts } = drawnTable(tmodel());
+    expect(written(texts)).toEqual(expect.arrayContaining([
+      'Alevín A · Temporada', '2 partidos · Totales · Básicas',
+      '#', 'Jugador', 'PTS', 'T2', 'VAL',
+      'Ana', '3/4', '75%', 'Bruno', '−2', 'Eva', 'Equipo', '3/5', '60%',
+      'myownbasketballstats.com',
+    ]));
+    // La leyenda junta las abreviaturas en líneas con un separador
+    expect(texts.some((t) => t.text.includes('PTS Puntos') && t.text.includes('VAL Valoración'))).toBe(true);
+  });
+
+  it('el porcentaje va debajo del valor y más pequeño', () => {
+    const { texts } = drawnTable(tmodel());
+    const main = find(texts, '3/4'), sub = find(texts, '75%');
+    expect(sub.y).toBeGreaterThan(main.y);
+    expect(px(sub)).toBeLessThan(px(main));
+    expect(sub.x).toBe(main.x);
+  });
+
+  it('colorea por tono: verde si suma, rojo si resta, ceros atenuados, a quien no jugó apagado y lo destacado en ámbar', () => {
+    const { texts } = drawnTable(tmodel());
+    expect(find(texts, '5').fillStyle).toBe(GREEN);
+    expect(find(texts, '−2').fillStyle).toBe(RED);
+    expect(find(texts, 'Bruno').fillStyle).toBe('#edf1f5');
+    // El cero de Bruno (tono zero), no el de la fila apagada de Eva
+    const zeros = texts.filter((t) => t.text === '0');
+    expect(zeros.map((t) => t.fillStyle)).toEqual([GRAY_ZERO, GRAY_DNP, GRAY_DNP]);
+    expect(find(texts, 'Eva').fillStyle).toBe(GRAY_DNP);
+    // En orden de dibujo: los puntos de Ana (columna destacada, ámbar), el dorsal 7 de Bruno (no) y los del equipo
+    expect(texts.filter((t) => t.text === '7').map((t) => t.fillStyle)).toEqual([AMBER, '#edf1f5', AMBER]);
+    expect(find(texts, 'PTS').fillStyle).toBe(AMBER);
+    expect(find(texts, 'T2').fillStyle).toBe('#94a2b6');
+  });
+
+  it('el nombre va a la izquierda de su columna y los números, centrados', () => {
+    const { texts } = drawnTable(tmodel());
+    expect(find(texts, 'Ana').textAlign).toBe('left');
+    expect(find(texts, 'Jugador').textAlign).toBe('left');
+    expect(find(texts, '3/4').textAlign).toBe('center');
+    expect(find(texts, 'VAL').textAlign).toBe('center');
+  });
+
+  it('las filas van en orden de arriba abajo y la del equipo, al final', () => {
+    const { texts } = drawnTable(tmodel());
+    const ys = ['Ana', 'Bruno', 'Eva', 'Equipo'].map((n) => find(texts, n).y);
+    expect([...ys].sort((a, b) => a - b)).toEqual(ys);
+  });
+
+  it('el alto crece con cada jugador y el ancho con las columnas', () => {
+    const base = drawnTable(tmodel()).layout;
+    const more = drawnTable(tmodel({ rows: [...tmodel().rows, ...tmodel().rows] })).layout;
+    expect(more.H - base.H).toBe(3 * base.rowH);
+    expect(more.W).toBe(base.W);
+    const wide = tmodel({
+      cols: [...tmodel().cols, ...Array.from({ length: 16 }, (_, i) => ({ k: `c${i}`, h: `C${i}` }))],
+      rows: tmodel().rows.map((r) => ({ ...r, cells: [...r.cells, ...Array.from({ length: 16 }, () => cell('12'))] })),
+      total: { cells: [...tmodel().total.cells, ...Array.from({ length: 16 }, () => cell('12'))] },
+    });
+    const w = drawnTable(wide).layout;
+    expect(w.W).toBeGreaterThan(base.W);
+    expect(w.W).toBe(w.tableW + 2 * 56);
+  });
+
+  it('con pocas columnas la imagen no baja de 1200 de ancho y la tabla queda centrada', () => {
+    const { layout } = drawnTable(tmodel());
+    expect(layout.W).toBe(1200);
+    expect(layout.x0).toBeCloseTo((1200 - layout.tableW) / 2);
+  });
+
+  it('las filas sin porcentaje son más bajas', () => {
+    const plainCells = (r) => ({ ...r, cells: r.cells.map(({ text, tone }) => ({ text, tone })) });
+    const flat = tmodel({ rows: tmodel().rows.map(plainCells), total: plainCells(tmodel().total) });
+    expect(drawnTable(flat).layout.rowH).toBeLessThan(drawnTable(tmodel()).layout.rowH);
+  });
+
+  it('un nombre largo se corta con «…» sin pasar de 420 de ancho de columna', () => {
+    const m = tmodel();
+    m.rows[0].cells[1] = cell('Carla Fernández-Villanueva de la Cruz y Montoya');
+    const { texts, layout } = drawnTable(m);
+    const cut = texts.find((t) => t.text.startsWith('Carla'));
+    expect(cut.text.endsWith('…')).toBe(true);
+    expect(layout.widths[1]).toBe(420);
+  });
+
+  it('una leyenda larga se reparte en varias líneas dentro del ancho y suma alto', () => {
+    const long = Array.from({ length: 18 }, (_, i) => `A${i} Una explicación bastante larga de la abreviatura ${i}`);
+    const base = drawnTable(tmodel()).layout;
+    const m = drawnTable(tmodel({ legend: long })).layout;
+    expect(m.legend.length).toBeGreaterThan(3);
+    expect(m.H).toBeGreaterThan(base.H);
+    for (const line of m.legend) expect(line.length * 26 * 0.5).toBeLessThanOrEqual(m.W - 2 * 56);
+  });
+
+  it('el aviso de las avanzadas va aparte, en ámbar, antes de la leyenda', () => {
+    const note = '* = pocos tiros: tómalo con cautela.';
+    const { texts } = drawnTable(tmodel({ note }));
+    const n = texts.find((t) => t.text.startsWith('* = pocos'));
+    expect(n.fillStyle).toBe(AMBER);
+    expect(n.y).toBeLessThan(texts.find((t) => t.text.includes('PTS Puntos')).y);
+  });
+
+  it('todo cabe dentro de la imagen', () => {
+    const { texts, layout } = drawnTable(tmodel({ note: '* aviso' }));
+    for (const t of texts) {
+      expect(t.x).toBeGreaterThanOrEqual(0);
+      expect(t.x).toBeLessThanOrEqual(layout.W);
+      expect(t.y).toBeGreaterThan(0);
+      expect(t.y).toBeLessThanOrEqual(layout.H);
+    }
+  });
+
+  it('un partido de marcador (sin jugadores) dibuja solo la fila del equipo', () => {
+    const { texts } = drawnTable(tmodel({ rows: [] }));
+    expect(written(texts)).toContain('Equipo');
+    expect(written(texts)).not.toContain('Ana');
+  });
+
+  it('toBlob da un PNG del tamaño que pide la tabla, no el de la tarjeta', async () => {
+    const texts = [];
+    const canvas = { width: 0, height: 0, getContext: () => fakeContext(texts), toBlob: (cb, type) => cb(new Blob(['png'], { type })) };
+    const card = loadCard({ document: { createElement: () => canvas } });
+    const m = tmodel();
+    const blob = await card.toBlob(m);
+    const size = card.tableLayout(fakeContext(), m);
+    expect(blob.type).toBe('image/png');
+    expect([canvas.width, canvas.height]).toEqual([size.W, size.H]);
+    expect([canvas.width, canvas.height]).not.toEqual([1080, 1350]);
+    expect(written(texts)).toContain('Alevín A · Temporada');
+  });
+
+  it('el nombre del archivo sale de la base del CSV, solo en ASCII', () => {
+    const { tableFileName } = loadCard();
+    expect(tableFileName(tmodel())).toBe('estadisticas-temporada-2026-11-21.png');
+    expect(tableFileName(tmodel({ fileBase: 'estadisticas-2026-10-03-vs-Peñíscola "B"' }))).toBe('estadisticas-2026-10-03-vs-Peniscola_B.png');
+  });
+});
