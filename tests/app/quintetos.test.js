@@ -25,7 +25,7 @@ describe('normalize: formato v3', () => {
       teams: [makeTeam()],
       games: [{ id: 'g1', teamId: 't1', events: [{ id: 'a', type: 't2_ok', pid: 'p4' }, { id: 'b', type: 'opp', pts: 2 }, { id: 'c', type: 'rd', pid: 'p7' }] }],
     });
-    expect(d.version).toBe(3);
+    expect(d.version).toBe(4);
     expect(d.games[0].events.map((e) => e.seq)).toEqual([1, 2, 3]);
     expect(d.games[0].seq).toBe(3);
     expect(plain(d.games[0].lineups)).toEqual([]);
@@ -241,7 +241,7 @@ describe('copia de seguridad v3', () => {
     const app = await openApp({ data: makeData({ games: [makeGame()] }), hash: '#/ajustes' });
     await app.act('export-json');
     const exported = JSON.parse(await app.downloads[0].blob.text());
-    expect(exported.version).toBe(3);
+    expect(exported.version).toBe(4);
     expect(exported.exportedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(app.db).not.toHaveProperty('exportedAt');
   });
@@ -253,18 +253,18 @@ describe('copia de seguridad v3', () => {
 
   it('avisa si la copia es de una versión más nueva de la app, pero deja importarla', async () => {
     const app = await openApp({ data: makeData(), hash: '#/ajustes' });
-    const done = app.fn.importJSON(file(app, JSON.stringify({ ...makeData({ teams: [makeTeam({ name: 'Del futuro' })] }), version: 4 })));
+    const done = app.fn.importJSON(file(app, JSON.stringify({ ...makeData({ teams: [makeTeam({ name: 'Del futuro' })] }), version: 5 })));
     await app.settle();
     expect(app.text(app.modal)).toContain('versión más nueva');
     await app.act('confirm-yes');
     await done;
     expect(app.db.teams[0].name).toBe('Del futuro');
-    expect(app.db.version).toBe(3);
+    expect(app.db.version).toBe(4);
   });
 
   it('una copia v2 o v3 no lleva ese aviso', async () => {
     const app = await openApp({ data: makeData(), hash: '#/ajustes' });
-    for (const version of [2, 3]) {
+    for (const version of [2, 3, 4]) {
       const done = app.fn.importJSON(file(app, JSON.stringify({ ...makeData(), version })));
       await app.settle();
       expect(app.text(app.modal)).not.toContain('versión más nueva');

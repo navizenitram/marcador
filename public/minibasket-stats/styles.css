@@ -1059,3 +1059,9 @@ table.stats tfoot td.zero { color: var(--muted); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Reloj del marcador en los cambios (min:seg) */
+.clock-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 10px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--field); color: var(--muted); font-family: var(--font-text); font-size: 14px; }
+.clock-inputs { display: inline-flex; align-items: center; gap: 4px; color: var(--text); font-family: var(--font-digits); font-size: 24px; font-weight: 700; }
+.clock-inputs input { width: 2.3em; min-width: 52px; padding: 2px 0; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; text-align: center; }
+.clock-inputs input:focus { outline: 2px solid var(--green); outline-offset: 1px; }

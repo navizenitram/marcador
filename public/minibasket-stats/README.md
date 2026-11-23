@@ -73,6 +73,14 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
     el aviso dice cuántas lleva el equipo y si entra en bonus. Si el botón (FC o FR) no se usa, esa cuenta no se lleva.
   - ↶ deshacer la última acción y listado de jugadas para borrar cualquier error.
   - Registro automático de los periodos jugados por cada jugador.
+  - **Tiempo de juego** (partidos con jugadores): 6 min por periodo en minibasket (8 periodos) y 10 min por cuarto
+    (4 cuartos). Al empezar un periodo (y con el quinteto inicial) no se apunta nada: cuenta desde 0:00. En los cambios
+    (tocar el nombre de un jugador, «Jugadores en pista» o «Añadir jugador») la ventana pide **el reloj del marcador**,
+    que es de cuenta atrás (3:25 = quedan 3 min 25 s), y lo pide **una sola vez** aunque haya varios cambios a la vez.
+    Tiene que estar dentro del periodo y no puede ir hacia atrás respecto al cambio anterior del mismo periodo. Si se
+    vuelve a un periodo anterior con ‹, los cambios de ahí no apuntan tiempo (la pista es la de ahora). En
+    **Estadísticas** sale la columna **MIN** (min:seg; en «Por partido», el promedio de los partidos con tiempo); los
+    partidos sin registro de tiempo (anteriores a la v4) salen con «–» y no cuentan como 0. Se incluye en el CSV y en la tabla PNG.
 - **Estadísticas**: por partido, de temporada o de cada fase (totales o promedio por partido), parciales por periodo,
   líderes, tabla ordenable y valoración. La temporada y cada fase muestran también el balance de local y de visitante.
   - **Evolución del marcador**: bajo los parciales, y con sus mismas columnas, la diferencia de puntos a lo largo del
@@ -206,9 +214,9 @@ fonts/                Fuentes incluidas (sin Google Fonts): Rajdhani para rótul
 Los datos viven en `localStorage` con la clave `mbstats.v1`. Borrar los datos del navegador los elimina:
 exporta una copia de seguridad de vez en cuando.
 
-### Formato de los datos (versión 3)
+### Formato de los datos (versión 4)
 
-La clave se sigue llamando `mbstats.v1`, pero el formato lleva su propia versión (`version`, hoy 3). Al abrir datos o
+La clave se sigue llamando `mbstats.v1`, pero el formato lleva su propia versión (`version`, hoy 4). Al abrir datos o
 importar una copia de una versión anterior, `normalize()` los pasa al formato actual y los guarda.
 
 - **v2:** varios equipos, fases y local/visitante.
@@ -218,6 +226,13 @@ importar una copia de una versión anterior, `normalize()` los pasa al formato a
   siempre; si desde la anterior no se apuntó ninguna jugada, se corrige esa en vez de añadir otra. `lineupFrom` es
   el `seq` de la primera foto: los partidos anteriores a la v3 no lo tienen, y su +/- y sus quintetos no están
   disponibles. Un partido sin finalizar de antes de la v3 empieza a registrar en su siguiente cambio o periodo.
+
+- **v4:** tiempo de juego. `shifts: [{ period, t, on: [ids] }]`, en el orden en que ocurren: quién está en pista desde
+  el segundo `t` (**transcurrido**, no el del reloj) del periodo. Cada periodo empieza con una entrada `t = 0`; el resto
+  son los cambios. Es un registro aparte de `lineups` porque aquel funde fotos sin jugadas entre medias. Solo lo llevan
+  los partidos creados con la v4 (sin `shifts` no hay minutos). `MBCore.secondsPlayed(g)` suma los tramos: los
+  periodos anteriores al último cuentan enteros y el último, hasta su final si el partido está finalizado y, si no,
+  hasta el último cambio. Duración: `MBCore.periodSecs(g)` (360 con 8 periodos, 600 con 4; con otro número, sin tiempo).
 
 La copia de seguridad es el mismo JSON con `exportedAt` (fecha de la exportación). Si una copia es de un formato más
 nuevo que el de la app, se avisa antes de importarla.
