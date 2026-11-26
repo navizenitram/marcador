@@ -1065,3 +1065,9 @@ table.stats tfoot td.zero { color: var(--muted); }
 .clock-inputs { display: inline-flex; align-items: center; gap: 4px; color: var(--text); font-family: var(--font-digits); font-size: 24px; font-weight: 700; }
 .clock-inputs input { width: 2.3em; min-width: 52px; padding: 2px 0; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; text-align: center; }
 .clock-inputs input:focus { outline: 2px solid var(--green); outline-offset: 1px; }
+
+/* Dictado por voz: se mantiene pulsado mientras se habla */
+.icon-btn.voice { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.icon-btn.voice.listening { background: var(--red); border-color: transparent; color: #fff; animation: voice-pulse 1s ease-in-out infinite; }
+@keyframes voice-pulse { 50% { transform: scale(1.12); } }
+@media (prefers-reduced-motion: reduce) { .icon-btn.voice.listening { animation: none; } }
