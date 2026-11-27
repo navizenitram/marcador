@@ -193,9 +193,10 @@ test('en el móvil más estrecho, el marcador con todos los botones cabe sin rec
   expect(layout.clipped).toBe(0);
 });
 
-test('en el móvil más estrecho, el marcador cabe junto a la valoración, el +/- del quinteto y las faltas de equipo', async ({ page }) => {
+/** Móvil más estrecho, con registro de quintetos (sale también el +/- del quinteto) y 88-88, el marcador más ancho habitual:
+ * el marcador y las faltas de equipo caben en su caja, sin recortar cifras y sin scroll horizontal */
+async function expectBoardFits(page) {
   await page.setViewportSize({ width: 568, height: 320 });
-  // Con registro de quintetos, para que salga también el +/- del quinteto; 88-88 es el marcador más ancho habitual
   const events = [...Array(44)].map((_, i) => ({ id: `e${i}`, seq: i + 2, period: 1, type: 't2_ok', pid: 'p4' }));
   const opps = [...Array(44)].map((_, i) => ({ id: `o${i}`, seq: i + 46, period: 1, type: 'opp', pts: 2 }));
   await seed(page, makeData({ games: [makeGame({ onCourt: [...FIVE], lineupFrom: 1, lineups: [{ seq: 1, period: 1, on: [...FIVE] }], events: [...events, ...opps] })] }));
@@ -218,6 +219,20 @@ test('en el móvil más estrecho, el marcador cabe junto a la valoración, el +/
   expect(layout.scroll).toBeLessThanOrEqual(0);
   expect(layout.inside).toBe(true);
   expect(layout.clipped).toBe(0);
+}
+
+test('en el móvil más estrecho, el marcador cabe junto a la valoración, el +/- del quinteto y las faltas de equipo', async ({ page }) => {
+  await expectBoardFits(page);
+});
+
+test('con el dictado por voz activado (un botón más en la cabecera), el marcador sigue cabiendo', async ({ page }) => {
+  // El reconocimiento de voz se simula: así el botón sale igual en Chrome y en Safari, sin pedir el micrófono
+  await page.addInitScript(() => {
+    window.SpeechRecognition = class {};
+    localStorage.setItem('mb_voz', '1');
+  });
+  await expectBoardFits(page);
+  await expect(page.locator('.live-top [data-voice]')).toBeVisible();
 });
 
 test('el service worker toma el control y guarda lo necesario para usarla sin conexión', async ({ page }) => {

@@ -1071,3 +1071,6 @@ table.stats tfoot td.zero { color: var(--muted); }
 .icon-btn.voice.listening { background: var(--red); border-color: transparent; color: #fff; animation: voice-pulse 1s ease-in-out infinite; }
 @keyframes voice-pulse { 50% { transform: scale(1.12); } }
 @media (prefers-reduced-motion: reduce) { .icon-btn.voice.listening { animation: none; } }
+/* Con el dictado activado la cabecera lleva un botón más: los de icono se estrechan para que el marcador no pierda sitio */
+.live-top:has(> .icon-btn.voice) > .icon-btn { min-width: 32px; }
+@media (max-width: 700px) { .live-top:has(> .icon-btn.voice) > .icon-btn { min-width: 28px; } }

@@ -23,6 +23,7 @@ const live = (opts = {}, game = {}) => openApp({
   data: makeData({ teams: [makeTeam()], games: [makeGame({ onCourt: [...FIVE], ...game })] }),
   hash: '#/partido/g1',
   setup: fakeSpeech,
+  storage: { mb_voz: '1' },   // dictado ya activado: el botón solo sale tras activarlo en Ajustes
   ...opts,
 });
 
@@ -35,7 +36,6 @@ async function speak(app, ...alternatives) {
   btn.dispatchEvent(new app.window.Event('pointerup', { bubbles: true }));
   await app.settle();
 }
-const accept = (app) => app.window.localStorage.setItem('mb_voz', '1');
 const types = (app) => app.db.games[0].events.map((e) => `${e.type}:${e.pid || e.pts}`);
 
 describe('dictado por voz', () => {
@@ -45,26 +45,20 @@ describe('dictado por voz', () => {
     expect(app.text()).not.toContain('Dictado por voz');
   });
 
-  it('la primera vez pide permiso y avisa de que el audio sale del dispositivo', async () => {
-    const app = await live();
-    app.window.__said = ['siete triple'];
-    app.$('[data-voice]').dispatchEvent(new app.window.Event('pointerdown', { bubbles: true, cancelable: true }));
-    await app.settle();
-    expect(app.modal).not.toBeNull();
-    expect(app.text(app.modal)).toContain('Google o Apple');
-    expect(types(app)).toEqual([]);
+  it('sin activar el dictado en Ajustes no hay botón: la cabecera queda como siempre', async () => {
+    const app = await live({ storage: {} });
+    expect(app.$('[data-voice]')).toBeNull();
+    expect(app.$$('.live-top .icon-btn').length).toBe(4);
   });
 
-  it('aceptado el permiso, una frase apunta la jugada del jugador en pista', async () => {
+  it('con el dictado activado, una frase apunta la jugada del jugador en pista', async () => {
     const app = await live();
-    accept(app);
     await speak(app, 'siete triple');
     expect(types(app)).toEqual(['t3_ok:p7']);
   });
 
   it('puntos del rival y tiro fallado', async () => {
     const app = await live();
-    accept(app);
     await speak(app, 'rival dos');
     await speak(app, 'diez falla canasta');
     expect(types(app)).toEqual(['opp:2', 't2_ko:p10']);
@@ -72,14 +66,12 @@ describe('dictado por voz', () => {
 
   it('elige la primera alternativa que se entiende', async () => {
     const app = await live();
-    accept(app);
     await speak(app, 'cinco triple', 'siete triple');   // el 5 no está en pista
     expect(types(app)).toEqual(['t3_ok:p7']);
   });
 
   it('un dorsal que no está en pista no apunta nada y lo dice', async () => {
     const app = await live();
-    accept(app);
     await speak(app, 'veintiuno triple');   // Fran (21) está en el banquillo
     expect(types(app)).toEqual([]);
     expect(app.toast).toContain('no está en pista');
@@ -88,9 +80,8 @@ describe('dictado por voz', () => {
   it('no apunta acciones que el equipo tiene desactivadas', async () => {
     const app = await openApp({
       data: makeData({ teams: [makeTeam({ hidden: ['ast'] })], games: [makeGame({ onCourt: [...FIVE] })] }),
-      hash: '#/partido/g1', setup: fakeSpeech,
+      hash: '#/partido/g1', setup: fakeSpeech, storage: { mb_voz: '1' },
     });
-    accept(app);
     await speak(app, 'siete asistencia');
     expect(types(app)).toEqual([]);
     expect(app.toast).toContain('desactivado');
@@ -98,7 +89,6 @@ describe('dictado por voz', () => {
 
   it('sin conexión o sin permiso de micrófono lo explica', async () => {
     const app = await live();
-    accept(app);
     app.window.__error = 'network';
     await speak(app, 'siete triple');
     expect(app.toast).toContain('Sin conexión');
@@ -110,7 +100,6 @@ describe('dictado por voz', () => {
 
   it('se deshace con ↶ como cualquier jugada', async () => {
     const app = await live();
-    accept(app);
     await speak(app, 'siete triple');
     await app.act('undo');
     expect(types(app)).toEqual([]);
@@ -121,12 +110,19 @@ describe('dictado por voz', () => {
     expect(app.$('[data-voice]').disabled).toBe(true);
   });
 
-  it('el interruptor de Ajustes activa (con el aviso) y desactiva el dictado', async () => {
-    const app = await live({ hash: '#/ajustes' });
+  it('el interruptor de Ajustes pide permiso con el aviso, activa el botón en el partido y se puede desactivar', async () => {
+    const app = await live({ hash: '#/ajustes', storage: {} });
     await app.act('toggle-voz');
     expect(app.modal).not.toBeNull();
+    expect(app.text(app.modal)).toContain('Google o Apple');
+    expect(app.window.localStorage.getItem('mb_voz')).toBeNull();   // sin aceptar no se activa
     await app.click('#modal [data-ok], #modal .primary');
     expect(app.window.localStorage.getItem('mb_voz')).toBe('1');
+    app.window.location.hash = '#/partido/g1';
+    await app.settle();
+    expect(app.$('[data-voice]')).not.toBeNull();
+    app.window.location.hash = '#/ajustes';
+    await app.settle();
     await app.act('toggle-voz');
     expect(app.window.localStorage.getItem('mb_voz')).toBeNull();
   });

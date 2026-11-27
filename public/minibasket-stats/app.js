@@ -3022,7 +3022,7 @@ document.addEventListener('fullscreenchange', () => {
 /* ─────────────────── Dictado por voz ───────────────────
    Un botón 🎤 en el partido en directo: se mantiene pulsado mientras se habla y, al soltarlo, la frase se convierte en una
    jugada (voz.js, MBVoice). Usa el reconocimiento de voz del navegador (Web Speech API), que en la mayoría de móviles manda
-   el audio a los servidores de Google o Apple y necesita conexión: por eso es opcional y pide permiso la primera vez.
+   el audio a los servidores de Google o Apple y necesita conexión: por eso es opcional y se activa en Ajustes, con aviso.
    La app no guarda ni envía el audio; el texto reconocido solo se usa para apuntar la jugada. */
 
 const VOICE_KEY = 'mb_voz';
@@ -3043,8 +3043,10 @@ async function voiceConsent() {
   return true;
 }
 
+/* El botón solo sale una vez activado el dictado (Ajustes): la cabecera del partido va justa de ancho y quien no lo usa
+   la ve como siempre. La primera vez se activa desde Ajustes, con el aviso de privacidad. */
 function voiceButton(ro) {
-  if (!voiceSupported()) return '';
+  if (!voiceSupported() || !voiceOn()) return '';
   return `<button class="icon-btn voice" data-voice title="Mantén pulsado para dictar una jugada" aria-label="Dictar una jugada (mantén pulsado)"${ro}>${icon('mic')}</button>`;
 }
 
@@ -3126,7 +3128,7 @@ document.addEventListener('pointerdown', async (e) => {
   const btn = e.target.closest && e.target.closest('[data-voice]');
   if (!btn || btn.disabled) return;
   e.preventDefault();
-  if (!voiceOn()) { if (await voiceConsent()) toast('Dictado activado: mantén pulsado 🎤 y habla'); return; }
+  if (!voiceOn()) return;
   try { btn.setPointerCapture(e.pointerId); } catch (err) { /* noop */ }
   voiceStart(btn);
 });
