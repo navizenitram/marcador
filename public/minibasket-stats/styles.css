@@ -1068,7 +1068,8 @@ table.stats tfoot td.zero { color: var(--muted); }
 
 /* Dictado por voz: se mantiene pulsado mientras se habla */
 .icon-btn.voice { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-.icon-btn.voice.listening { background: var(--red); border-color: transparent; color: #fff; animation: voice-pulse 1s ease-in-out infinite; }
+.icon-btn.voice.listening { background: var(--surface3); border-color: var(--red); color: var(--red); animation: voice-pulse 1s ease-in-out infinite; }
+.icon-btn.voice.listening.ready { background: var(--red); border-color: transparent; color: #fff; animation: voice-pulse 1s ease-in-out infinite; }
 @keyframes voice-pulse { 50% { transform: scale(1.12); } }
 @media (prefers-reduced-motion: reduce) { .icon-btn.voice.listening { animation: none; } }
 /* Con el dictado activado la cabecera lleva un botón más: los de icono se estrechan para que el marcador no pierda sitio */

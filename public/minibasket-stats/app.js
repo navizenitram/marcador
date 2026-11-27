@@ -3020,7 +3020,7 @@ document.addEventListener('fullscreenchange', () => {
 });
 
 /* ─────────────────── Dictado por voz ───────────────────
-   Un botón 🎤 en el partido en directo: se mantiene pulsado mientras se habla y, al soltarlo, la frase se convierte en una
+   Un botón 🎤 en el partido en directo: se toca (o se mantiene pulsado), se habla y la frase se convierte en una
    jugada (voz.js, MBVoice). Usa el reconocimiento de voz del navegador (Web Speech API), que en la mayoría de móviles manda
    el audio a los servidores de Google o Apple y necesita conexión: por eso es opcional y se activa en Ajustes, con aviso.
    La app no guarda ni envía el audio; el texto reconocido solo se usa para apuntar la jugada. */
@@ -3031,7 +3031,7 @@ const voiceSupported = () => !!SpeechRec && typeof MBVoice === 'object';
 function voiceOn() { try { return localStorage.getItem(VOICE_KEY) === '1'; } catch (e) { return false; } }
 function voiceSet(on) { try { if (on) localStorage.setItem(VOICE_KEY, '1'); else localStorage.removeItem(VOICE_KEY); } catch (e) { /* noop */ } }
 
-const VOICE_NOTICE = `<b>Dictado por voz</b><br><small class="muted">Mantén pulsado 🎤, di la jugada («siete triple», «diez rebote defensivo», «rival dos») y suéltalo.<br><br>
+const VOICE_NOTICE = `<b>Dictado por voz</b><br><small class="muted">Toca 🎤, espera al «Habla ahora» y di la jugada («siete triple», «diez rebote defensivo», «rival dos»). También vale mantenerlo pulsado y soltar al acabar.<br><br>
   Usa el reconocimiento de voz de tu navegador. En la mayoría de móviles <b>el audio se envía a Google o Apple</b> para transcribirlo y no funciona sin conexión.
   La app no guarda ni envía el audio. Puedes desactivarlo en Ajustes.</small>`;
 
@@ -3047,7 +3047,7 @@ async function voiceConsent() {
    la ve como siempre. La primera vez se activa desde Ajustes, con el aviso de privacidad. */
 function voiceButton(ro) {
   if (!voiceSupported() || !voiceOn()) return '';
-  return `<button class="icon-btn voice" data-voice title="Mantén pulsado para dictar una jugada" aria-label="Dictar una jugada (mantén pulsado)"${ro}>${icon('mic')}</button>`;
+  return `<button class="icon-btn voice" data-voice title="Toca y di la jugada (o mantén pulsado)" aria-label="Dictar una jugada: toca y habla, o mantén pulsado"${ro}>${icon('mic')}</button>`;
 }
 
 function voiceSwitch() {
@@ -3089,7 +3089,12 @@ function voiceApply(g, r) {
 }
 
 let voiceRec = null;   // reconocimiento en curso
+const VOICE_TAP_MS = 350;      // un toque más corto deja el micrófono abierto; más largo es «mantener pulsado»
+const VOICE_MAX_MS = 8000;     // tope por si el ruido del pabellón impide que el reconocimiento cierre solo
 
+/* Un toque abre el micrófono y el propio reconocimiento lo cierra al acabar de hablar (o a los 8 s); otro toque lo cierra
+   ya. Mantener pulsado también vale: se cierra al soltar. Así no hay que acertar con el gesto mientras el navegador
+   arranca el micrófono (el aviso de permiso o los primeros ~½ s cortaban el dictado y salía «no he oído nada»). */
 function voiceStart(btn) {
   const g = currentGame();
   if (!g || g.finished || voiceRec) return;
@@ -3099,40 +3104,57 @@ function voiceStart(btn) {
   rec.continuous = false;
   rec.interimResults = false;
   rec.maxAlternatives = 3;
-  const state = { rec, gid: g.id, btn, heard: [], error: '' };
+  const state = { rec, gid: g.id, btn, heard: [], error: '', audio: false, t0: Date.now(), downAt: Date.now(), held: true, timer: 0 };
   voiceRec = state;
   btn.classList.add('listening');
+  // El micrófono tarda un momento en abrirse: «Habla ahora» (y una vibración) avisa de cuándo
+  rec.onaudiostart = () => { state.audio = true; btn.classList.add('ready'); vibrate(25); toast('🎤 Habla ahora'); };
   rec.onresult = (ev) => {
     const res = ev.results[ev.results.length - 1];
     state.heard = Array.from(res).map(a => a.transcript);
   };
   rec.onerror = (ev) => { state.error = ev.error || 'error'; };
   rec.onend = () => {
-    btn.classList.remove('listening');
+    clearTimeout(state.timer);
+    btn.classList.remove('listening', 'ready');
     if (voiceRec === state) voiceRec = null;
     const game = getGame(state.gid);
     if (!game || game.finished) return;
     if (state.error === 'not-allowed' || state.error === 'service-not-allowed') { toast('🎤 Permite el micrófono en el navegador'); return; }
     if (state.error === 'network') { toast('🎤 Sin conexión: el dictado la necesita'); return; }
-    if (!state.heard.length) { toast('🎤 No he oído nada'); return; }
+    if (!state.heard.length) {
+      const code = state.error && state.error !== 'no-speech' ? ` (${esc(state.error)})` : '';
+      toast(state.audio
+        ? '🎤 No he oído nada: habla justo después de «Habla ahora»'
+        : `🎤 El micrófono no se ha llegado a abrir${code}. Vuelve a pulsar`);
+      return;
+    }
     voiceApply(game, voiceInterpret(game, state.heard));
   };
-  try { rec.start(); vibrate(); } catch (e) { btn.classList.remove('listening'); voiceRec = null; }
+  state.timer = setTimeout(voiceStop, VOICE_MAX_MS);
+  try { rec.start(); vibrate(); } catch (e) { clearTimeout(state.timer); btn.classList.remove('listening'); voiceRec = null; }
 }
 
 function voiceStop() {
   if (voiceRec) { try { voiceRec.rec.stop(); } catch (e) { /* noop */ } }
 }
 
-document.addEventListener('pointerdown', async (e) => {
+document.addEventListener('pointerdown', (e) => {
   const btn = e.target.closest && e.target.closest('[data-voice]');
   if (!btn || btn.disabled) return;
   e.preventDefault();
   if (!voiceOn()) return;
+  if (voiceRec) { voiceStop(); return; }   // otro toque mientras escucha: cerrar y apuntar lo oído
   try { btn.setPointerCapture(e.pointerId); } catch (err) { /* noop */ }
   voiceStart(btn);
 });
-for (const type of ['pointerup', 'pointercancel']) document.addEventListener(type, (e) => { if (e.target.closest && e.target.closest('[data-voice]')) voiceStop(); });
+/* Al soltar: si se ha mantenido pulsado, se cierra el micrófono; con un toque corto sigue abierto. Un pointercancel (el
+   navegador se queda con el gesto, p. ej. al pedir permiso) nunca lo cierra: lo cierra el propio reconocimiento. */
+document.addEventListener('pointerup', (e) => {
+  if (!(e.target.closest && e.target.closest('[data-voice]')) || !voiceRec || !voiceRec.held) return;
+  voiceRec.held = false;
+  if (Date.now() - voiceRec.downAt >= VOICE_TAP_MS) voiceStop();
+});
 /* En el móvil, una pulsación larga abre el menú contextual: aquí no */
 document.addEventListener('contextmenu', (e) => { if (e.target.closest && e.target.closest('[data-voice]')) e.preventDefault(); });
 

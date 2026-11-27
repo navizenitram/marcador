@@ -121,13 +121,15 @@ Sin dependencias ni proceso de build: HTML + CSS + JS. Los datos se guardan en e
     (`estadisticas-2026-10-03-vs-Rival.png`, la misma base que el CSV, solo ASCII).
   - Si en un ámbito se mezclan rebotes de ataque y defensivos con los del botón único, la tabla añade la columna
     **REB** para que RO + RD + REB cuadre con RT.
-- **Dictado por voz (experimental, opcional)**: en el partido con jugadores, el botón 🎤 de la cabecera se **mantiene pulsado** mientras se
-  habla y, al soltarlo, la frase se apunta como una jugada («siete triple», «siete falla canasta», «diez rebote defensivo», «cuatro asistencia»,
-  «rival dos»). El dorsal solo se busca entre los jugadores **en pista** y las acciones van con palabras (nunca «siete dos») para que un número
-  no se confunda con el dorsal. Si la frase no se entiende no se apunta nada y se dice por qué; lo apuntado se deshace con ↶ como cualquier jugada.
-  Respeta los botones activados en Ajustes. Usa el reconocimiento de voz del navegador (Web Speech API): en la mayoría de móviles **el audio se envía a
-  Google o Apple** y necesita conexión, por eso está desactivado hasta que se acepta el aviso y se puede quitar en **Ajustes**. La app no guarda ni
-  envía el audio. El parser es una función pura (`voz.js`, `MBVoice`) con sus tests; la integración, en el apartado «Dictado por voz» de `app.js`.
+- **Dictado por voz (experimental, opcional)**: se activa en **Ajustes › Dictado por voz** (hasta entonces no hay botón y la cabecera queda como siempre).
+  En el partido con jugadores, el botón 🎤 de la cabecera se **toca** y, cuando avisa «Habla ahora», se dice la jugada y se apunta («siete triple»,
+  «siete falla canasta», «diez rebote defensivo», «cuatro asistencia», «rival dos»). El reconocimiento cierra solo al acabar de hablar (o a los 8 s);
+  otro toque lo cierra ya, y también vale mantener pulsado y soltar al acabar. El dorsal solo se busca entre los jugadores **en pista** y las acciones
+  van con palabras (nunca «siete dos») para que un número no se confunda con el dorsal. Si la frase no se entiende no se apunta nada y se dice por qué;
+  si el micrófono no llega a abrirse o no se oye nada, lo dice distinto y, cuando el navegador da un error, con su código. Lo apuntado se deshace con ↶
+  como cualquier jugada y respeta los botones activados en Ajustes. Usa el reconocimiento de voz del navegador (Web Speech API): en la mayoría de móviles
+  **el audio se envía a Google o Apple** y necesita conexión, por eso se activa con un aviso. La app no guarda ni envía el audio. El parser es una función
+  pura (`voz.js`, `MBVoice`) con sus tests; la integración, en el apartado «Dictado por voz» de `app.js`.
 - **Ajustes**: perfil y botones del partido que se quieren usar (con vista previa), rebotes en dos botones o en uno, copia de seguridad y enlace de apoyo (Ko-fi).
 - **Copia de seguridad**: exportar / importar todos los datos en JSON (útil para cambiar de dispositivo).
 - **Modo claro / oscuro** (botón 🌙/☀️ en la barra superior o en el menú ☰ del partido). Se comparte con el marcador.

@@ -5,14 +5,25 @@ import { makeData, makeGame, makeTeam } from '../helpers/fixtures.js';
 
 const FIVE = ['p4', 'p7', 'p10', 'p12', 'p15'];
 
-/** Reconocimiento de voz falso: al soltar el botón entrega lo que se haya programado en window.__said */
+/** Reconocimiento de voz falso. Como el real: tras start() se abre el micrófono (onaudiostart) y se cierra solo con lo que
+ * se haya programado en window.__said / __error / __noAudio; stop() lo cierra ya. Anota en window.__calls lo que se le pide. */
 function fakeSpeech(window) {
   window.__said = [];
+  window.__calls = [];
   window.SpeechRecognition = class {
-    start() { this.started = true; }
-    stop() {
-      if (this.__failed) this.onerror && this.onerror({ error: this.__failed });
-      else if (window.__said.length) this.onresult({ results: [window.__said.map((transcript) => ({ transcript }))] });
+    start() {
+      window.__calls.push('start');
+      if (!window.__noAudio) this.ta = setTimeout(() => this.audio(), 10);
+      this.t = setTimeout(() => this.finish(), window.__autoMs ?? 60);
+    }
+    audio() { if (!this.opened) { this.opened = true; this.onaudiostart && this.onaudiostart(); } }
+    stop() { window.__calls.push('stop'); clearTimeout(this.t); this.finish(); }
+    finish() {
+      if (this.done) return;
+      this.done = true;
+      clearTimeout(this.ta);
+      if (!window.__noAudio) this.audio();
+      if (window.__said.length) this.onresult({ results: [window.__said.map((transcript) => ({ transcript }))] });
       if (window.__error) this.onerror({ error: window.__error });
       this.onend();
     }
@@ -27,13 +38,25 @@ const live = (opts = {}, game = {}) => openApp({
   ...opts,
 });
 
-/** Mantiene pulsado el micro, "dice" la frase y lo suelta */
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+const press = (app, type) => app.$('[data-voice]').dispatchEvent(new app.window.Event(type, { bubbles: true, cancelable: true }));
+
+/** Un toque corto en el micro: el reconocimiento se cierra solo y la jugada se apunta */
 async function speak(app, ...alternatives) {
   app.window.__said = alternatives;
-  const btn = app.$('[data-voice]');
-  btn.dispatchEvent(new app.window.Event('pointerdown', { bubbles: true, cancelable: true }));
+  press(app, 'pointerdown');
+  press(app, 'pointerup');
+  await pause(150);
   await app.settle();
-  btn.dispatchEvent(new app.window.Event('pointerup', { bubbles: true }));
+}
+
+/** Mantiene pulsado el micro un rato y lo suelta */
+async function hold(app, ms, ...alternatives) {
+  app.window.__said = alternatives;
+  press(app, 'pointerdown');
+  await pause(ms);
+  press(app, 'pointerup');
+  await pause(30);
   await app.settle();
 }
 const types = (app) => app.db.games[0].events.map((e) => `${e.type}:${e.pid || e.pts}`);
@@ -108,6 +131,69 @@ describe('dictado por voz', () => {
   it('en un partido finalizado el botón está desactivado', async () => {
     const app = await live({}, { finished: true });
     expect(app.$('[data-voice]').disabled).toBe(true);
+  });
+
+  it('un toque corto deja el micrófono abierto hasta que el reconocimiento cierra solo', async () => {
+    const app = await live();
+    app.window.__said = ['siete triple'];
+    press(app, 'pointerdown');
+    press(app, 'pointerup');
+    await app.settle();
+    expect(app.window.__calls).toEqual(['start']);   // soltar enseguida no lo cierra
+    expect(app.$('[data-voice]').classList.contains('listening')).toBe(true);
+    await pause(150);
+    expect(types(app)).toEqual(['t3_ok:p7']);
+    expect(app.$('[data-voice]').classList.contains('listening')).toBe(false);
+  });
+
+  it('al abrirse el micrófono avisa con «Habla ahora» y marca el botón', async () => {
+    const app = await live();
+    app.window.__autoMs = 5000;   // sigue abierto: aún no ha acabado de hablar
+    press(app, 'pointerdown');
+    press(app, 'pointerup');
+    expect(app.toast).toBeNull();   // el micrófono aún se está abriendo: nada que avisar
+    await pause(40);
+    expect(app.toast).toContain('Habla ahora');
+    expect(app.$('[data-voice]').classList.contains('ready')).toBe(true);
+    press(app, 'pointerdown');   // segundo toque: cierra (sin nada dicho)
+    await pause(20);
+    expect(app.$('[data-voice]').classList.contains('ready')).toBe(false);
+  });
+
+  it('mantener pulsado cierra el micrófono al soltar', async () => {
+    const app = await live();
+    app.window.__autoMs = 5000;   // mientras se habla, el reconocimiento no cierra solo
+    await hold(app, 400, 'diez rebote defensivo');
+    expect(app.window.__calls).toEqual(['start', 'stop']);
+    expect(types(app)).toEqual(['rd:p10']);
+  });
+
+  it('otro toque mientras escucha lo cierra y apunta lo oído', async () => {
+    const app = await live();
+    app.window.__said = ['rival dos'];
+    press(app, 'pointerdown');
+    press(app, 'pointerup');
+    press(app, 'pointerdown');   // segundo toque, antes de que cierre solo
+    await pause(30);
+    expect(app.window.__calls).toEqual(['start', 'stop']);
+    expect(types(app)).toEqual(['opp:2']);
+  });
+
+  it('si el micrófono no llega a abrirse lo dice (y con qué error)', async () => {
+    const app = await live();
+    app.window.__noAudio = true;
+    app.window.__error = 'audio-capture';
+    await speak(app);
+    expect(app.toast).toContain('no se ha llegado a abrir');
+    expect(app.toast).toContain('audio-capture');
+    expect(types(app)).toEqual([]);
+  });
+
+  it('si el micrófono se abre pero no se oye nada, lo dice distinto', async () => {
+    const app = await live();
+    await speak(app);
+    expect(app.toast).toContain('No he oído nada');
+    expect(app.toast).not.toContain('no se ha llegado a abrir');
   });
 
   it('el interruptor de Ajustes pide permiso con el aviso, activa el botón en el partido y se puede desactivar', async () => {
