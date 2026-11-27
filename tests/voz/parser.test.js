@@ -4,7 +4,7 @@ import { plain } from '../helpers/core.js';
 
 const V = loadVoice();
 const players = [
-  { id: 'p4', number: '4' }, { id: 'p7', number: '7' }, { id: 'p10', number: '10' },
+  { id: 'p4', number: '4' }, { id: 'p7', number: '7' }, { id: 'p9', number: '9' }, { id: 'p10', number: '10' },
   { id: 'p13', number: '13' }, { id: 'p23', number: '23' },
 ];
 const say = (text, ctx = {}) => plain(V.parse(text, { players, ...ctx }));
@@ -68,7 +68,7 @@ describe('puntos del rival', () => {
 
 describe('lo que no debe apuntar', () => {
   it('un dorsal que no está en pista', () => {
-    expect(say('nueve triple')).toMatchObject({ ok: false, reason: 'El 9 no está en pista' });
+    expect(say('quince triple')).toMatchObject({ ok: false, reason: 'El 15 no está en pista' });
   });
   it('dorsal parecido: 13 no se confunde con 3, ni 23 con 2', () => {
     expect(say('tres triple')).toMatchObject({ ok: false });
@@ -96,5 +96,40 @@ describe('ajustes del equipo', () => {
     expect(say('diez rebote', { enabled: ['reb'] })).toEqual(ev('reb', 'p10', '10'));
     expect(say('diez rebote', { enabled: ['ro', 'rd'] })).toMatchObject({ ok: false, reason: '¿Rebote de ataque o defensivo?' });
     expect(say('diez rebote', { enabled: ['rd'] })).toEqual(ev('rd', 'p10', '10'));
+  });
+});
+
+describe('diccionario: formas de decir cada tiro', () => {
+  it.each([
+    ['nueve canasta', 't2_ok'], ['9 canastas', 't2_ok'], ['nueve can asta', 't2_ok'], ['9 dobles', 't2_ok'],
+    ['nueve de dos', 't2_ok'], ['nueve de dos puntos', 't2_ok'], ['9 dos puntos', 't2_ok'], ['nueve bandeja', 't2_ok'],
+    ['nueve cesta', 't2_ok'], ['nueve encesta', 't2_ok'],
+    ['nueve libre', 't1_ok'], ['9 libres', 't1_ok'], ['nueve tiro libre', 't1_ok'], ['nueve tiros libres', 't1_ok'],
+    ['nueve de uno', 't1_ok'], ['nueve de un punto', 't1_ok'],
+    ['siete triples', 't3_ok'], ['siete de tres', 't3_ok'], ['siete de tres puntos', 't3_ok'],
+  ])('«%s» → %s', (text, type) => {
+    expect(say(text)).toMatchObject({ ok: true, kind: 'ev', type });
+  });
+  it('tiros fallados con las mismas formas', () => {
+    expect(say('nueve canasta fallada')).toMatchObject({ ok: true, type: 't2_ko' });
+    expect(say('nueve falla de dos')).toMatchObject({ ok: true, type: 't2_ko' });
+    expect(say('nueve no entra de dos')).toMatchObject({ ok: true, type: 't2_ko' });
+    expect(say('nueve libre fallado')).toMatchObject({ ok: true, type: 't1_ko' });
+    expect(say('nueve falla libres')).toMatchObject({ ok: true, type: 't1_ko' });
+  });
+  it('plurales de las demás acciones', () => {
+    expect(say('diez rebotes')).toMatchObject({ type: 'reb' });
+    expect(say('diez tapones')).toMatchObject({ type: 'blk' });
+    expect(say('nueve perdidas')).toMatchObject({ type: 'lost' });
+    expect(say('nueve asistencias')).toMatchObject({ type: 'ast' });
+  });
+  it('rival con «punto(s)» y «de tres»', () => {
+    expect(say('rival un punto')).toEqual({ ok: true, kind: 'opp', pts: 1 });
+    expect(say('rival dos puntos')).toEqual({ ok: true, kind: 'opp', pts: 2 });
+    expect(say('rival de tres')).toEqual({ ok: true, kind: 'opp', pts: 3 });
+  });
+  it('«tiro libre» gana a «libre» sin dejar «tiro» suelto, y «de dos» no se toma por dorsal', () => {
+    expect(say('nueve tiro libre')).toMatchObject({ ok: true, number: '9', type: 't1_ok' });
+    expect(say('diez de dos')).toMatchObject({ ok: true, number: '10', type: 't2_ok' });
   });
 });

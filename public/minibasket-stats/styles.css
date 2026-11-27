@@ -1075,3 +1075,10 @@ table.stats tfoot td.zero { color: var(--muted); }
 /* Con el dictado activado la cabecera lleva un botón más: los de icono se estrechan para que el marcador no pierda sitio */
 .live-top:has(> .icon-btn.voice) > .icon-btn { min-width: 32px; }
 @media (max-width: 700px) { .live-top:has(> .icon-btn.voice) > .icon-btn { min-width: 28px; } }
+/* Dictado por voz: lo que ha oído (Ajustes) */
+.voice-log { margin: 6px 0 2px; }
+.voice-log summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.voice-log ul { list-style: none; margin: 6px 0; padding: 0; font-size: 13px; display: grid; gap: 3px; }
+.voice-log li.ok { color: var(--green); }
+.voice-log li.ko { color: var(--red); }
+.voice-log li .muted { color: var(--muted); }

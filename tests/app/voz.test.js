@@ -196,6 +196,59 @@ describe('dictado por voz', () => {
     expect(app.toast).not.toContain('no se ha llegado a abrir');
   });
 
+  it('el micro se cierra a los 4 s de abrirse, aunque el reconocimiento siga', { timeout: 10000 }, async () => {
+    const app = await live();
+    app.window.__autoMs = 20000;   // el reconocimiento no cierra solo (ruido en el pabellón)
+    app.window.__said = ['siete triple'];
+    press(app, 'pointerdown');
+    press(app, 'pointerup');
+    await pause(3500);
+    expect(app.window.__calls).toEqual(['start']);   // a los 3,5 s todavía escucha
+    await pause(900);
+    expect(app.window.__calls).toEqual(['start', 'stop']);   // a los ~4 s desde que se abrió, se cierra
+    expect(types(app)).toEqual(['t3_ok:p7']);
+  });
+
+  it('si el micrófono no llega a abrirse, se deja de esperar a los 6 s', { timeout: 10000 }, async () => {
+    const app = await live();
+    app.window.__noAudio = true;
+    app.window.__autoMs = 20000;
+    press(app, 'pointerdown');
+    press(app, 'pointerup');
+    await pause(5500);
+    expect(app.window.__calls).toEqual(['start']);
+    await pause(900);
+    expect(app.window.__calls).toEqual(['start', 'stop']);
+    expect(app.toast).toContain('no se ha llegado a abrir');
+  });
+
+  it('guarda lo que ha oído y se ve en Ajustes; se puede borrar', async () => {
+    const app = await live();
+    await speak(app, 'nueve canastas', 'nueve canasta');   // el 9 no está en pista: no apunta, pero queda en el registro
+    await speak(app, 'siete triple');
+    const log = JSON.parse(app.window.localStorage.getItem('mb_voz_log'));
+    expect(log.map((e) => [e.ok, e.heard[0]])).toEqual([[true, 'siete triple'], [false, 'nueve canastas']]);
+    app.window.location.hash = '#/ajustes';
+    await app.settle();
+    const text = app.text('.voice-log');
+    expect(text).toContain('«siete triple»');
+    expect(text).toContain('«nueve canastas»');
+    expect(text).toContain('no está en pista');
+    await app.act('voz-log-clear');
+    expect(app.$('.voice-log')).toBeNull();
+    expect(app.window.localStorage.getItem('mb_voz_log')).toBeNull();
+  });
+
+  it('el registro tiene como máximo 15 frases y desactivar el dictado lo borra', async () => {
+    const app = await live();
+    for (let i = 0; i < 17; i++) await speak(app, 'siete triple');
+    expect(JSON.parse(app.window.localStorage.getItem('mb_voz_log')).length).toBe(15);
+    app.window.location.hash = '#/ajustes';
+    await app.settle();
+    await app.act('toggle-voz');
+    expect(app.window.localStorage.getItem('mb_voz_log')).toBeNull();
+  });
+
   it('el interruptor de Ajustes pide permiso con el aviso, activa el botón en el partido y se puede desactivar', async () => {
     const app = await live({ hash: '#/ajustes', storage: {} });
     await app.act('toggle-voz');

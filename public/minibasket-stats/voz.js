@@ -7,7 +7,7 @@
    Se carga antes que app.js y queda en el global MBVoice. Los tests lo cargan solo, sin DOM (tests/helpers/voz.js).
 
    Frases que entiende (una jugada por frase; los números, dichos en palabras o en cifras):
-     «siete canasta»  «siete doble»  «siete triple»  «siete libre»      tiros anotados (1, 2 y 3 puntos)
+     «siete canasta»  «siete doble»  «siete triple»  «siete libre»      tiros anotados (1, 2 y 3 puntos); más formas en VOCAB
      «siete falla triple»  «siete triple fallado»                       tiros fallados
      «diez rebote»  «diez rebote de ataque»  «diez rebote defensivo»
      «tres asistencia»  «cuatro robo»  «cinco pérdida»  «ocho tapón»  «ocho tapón recibido»
@@ -55,25 +55,38 @@
     return out;
   }
 
-  /* Acciones por palabras, de la más específica a la más general: cada una que se reconoce se quita del texto para que
-     la siguiente no la vuelva a encontrar («falta recibida» no debe contar también como «falta»). */
-  const PATTERNS = [
-    ['blkr', /\b(tapon (recibido|recibe)|recibe (un )?tapon|le ponen (un )?tapon)\b/],
-    ['blk', /\btapon(es)?\b/],
-    ['fr', /\b(falta (recibida|recibe)|recibe (una )?falta)\b/],
-    ['fc', /\bfaltas?\b/],
-    ['ro', /\brebote (de ataque|ofensivo)\b/],
-    ['rd', /\brebote (defensivo|de defensa)\b/],
-    ['reb', /\brebotes?\b/],
-    ['ast', /\b(asistencia|asiste|asistio)\b/],
-    ['rec', /\b(robo|roba|robado|recupera|recuperacion|recuperado)\b/],
-    ['lost', /\b(perdida|pierde|perdio|balon perdido)\b/],
-    ['t3', /\b(triple|de tres puntos)\b/],
-    ['t2', /\b(doble|canasta|de dos puntos)\b/],
-    ['t1', /\b(tiro libre|libre)\b/],
+  /* ── Diccionario ──
+     Cada acción con las palabras que la nombran. Todo en minúsculas y SIN acentos (el texto se normaliza antes).
+     Para añadir una palabra que el reconocimiento oye mal, basta con ponerla en su lista. El plural («canastas», «libres»,
+     «tapones») se entiende solo. Orden: de la acción más específica a la más general, porque lo que se reconoce se quita del
+     texto y la siguiente ya no lo ve («falta recibida» no cuenta también como «falta»). */
+  const VOCAB = [
+    ['blkr', ['tapon recibido', 'tapon recibe', 'recibe tapon', 'recibe un tapon', 'le ponen tapon', 'le ponen un tapon', 'tapon en contra']],
+    ['blk', ['tapon', 'tapona', 'taponazo']],
+    ['fr', ['falta recibida', 'falta recibe', 'recibe falta', 'recibe una falta', 'falta a favor']],
+    ['fc', ['falta', 'falta cometida', 'comete falta', 'comete una falta']],
+    ['ro', ['rebote de ataque', 'rebote ofensivo', 'rebote en ataque', 'rebote atacante']],
+    ['rd', ['rebote defensivo', 'rebote de defensa', 'rebote en defensa']],
+    ['reb', ['rebote']],
+    ['ast', ['asistencia', 'asiste', 'asistio', 'pase de gol']],
+    ['rec', ['robo', 'roba', 'robado', 'recupera', 'recuperacion', 'recuperado', 'balon robado', 'recupero']],
+    ['lost', ['perdida', 'pierde', 'perdio', 'balon perdido', 'pierde balon', 'perdio balon', 'pierde el balon']],
+    // Tiros: «de tres» y «de dos» valen aunque no se diga «puntos»; «canasta» a secas es de 2 (las de 1 y 3 se nombran)
+    ['t3', ['triple', 'de tres puntos', 'tres puntos', 'de tres']],
+    ['t2', ['doble', 'canasta', 'can asta', 'cesta', 'encesta', 'bandeja', 'de dos puntos', 'dos puntos', 'de dos']],
+    ['t1', ['tiro libre', 'libre', 'de un punto', 'un punto', 'de uno']],
   ];
-  const MISS = /\b(falla|fallo|fallado|fallada|falle|fallan)\b/;
-  const RIVAL = /\b(rival|ellos|contrario)\b/;
+  // «falla triple», «triple fallado»…
+  const MISS_WORDS = ['falla', 'fallo', 'fallado', 'fallada', 'falle', 'fallan', 'erra', 'erro', 'errado', 'errada', 'no entra', 'no entro'];
+  const RIVAL_WORDS = ['rival', 'ellos', 'contrario'];
+
+  /* Palabras → expresión regular: cada palabra admite plural («s» o «es») y las frases se buscan enteras, de la más larga a
+     la más corta para que «tiro libre» gane a «libre» */
+  const wordRe = (w) => (w.length >= 4 && !w.endsWith('s') ? `${w}(?:es|s)?` : w);
+  const listRe = (words) => new RegExp(`\\b(?:${[...words].sort((x, y) => y.length - x.length).map((p) => p.split(' ').map(wordRe).join('\\s+')).join('|')})\\b`);
+  const PATTERNS = VOCAB.map(([key, words]) => [key, listRe(words)]);
+  const MISS = listRe(MISS_WORDS);
+  const RIVAL = listRe(RIVAL_WORDS);
   const SHOT_PTS = { t1: 1, t2: 2, t3: 3 };
 
   const fail = (reason, heard) => ({ ok: false, reason, heard });
