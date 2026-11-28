@@ -19,7 +19,7 @@
 
 (function (root) {
   const UNITS = {
-    cero: 0, un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9,
+    cero: 0, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9,
     diez: 10, once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, dieciseis: 16, diecisiete: 17, dieciocho: 18,
     diecinueve: 19, veinte: 20, veintiun: 21, veintiuno: 21, veintidos: 22, veintitres: 23, veinticuatro: 24,
     veinticinco: 25, veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29,
@@ -37,23 +37,36 @@
       .trim();
   }
 
-  /* Palabras → números: «treinta y cuatro» → 34, «veintitrés» → 23, «7» → 7. Devuelve la lista de números en el orden en
-     que se dicen (un número compuesto cuenta como uno solo). */
-  function numbers(text) {
+  const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+
+  /* Palabras de relleno que se pueden oír sin cambiar la jugada («siete ha metido un triple», «el siete del triple»).
+     Cualquier otra palabra que sobre hace que NO se apunte nada: «no ha entrado», «sin», «anulada», «a siete»
+     (recibido, no cometido)… cambian el sentido y es peor apuntar al revés que no apuntar. */
+  const FILLER = new Set(['el', 'la', 'los', 'las', 'del', 'de', 'ha', 'han', 'y', 'un', 'una', 'metido', 'mete', 'metio', 'anota',
+    'anoto', 'anotado', 'anotada', 'hace', 'hizo', 'numero', 'dorsal', 'jugador', 'jugadora', 'otro', 'otra']);
+
+  /* Recorre el texto que queda tras quitar las acciones: devuelve los números (en cifras o palabras; «treinta y cuatro» y
+     «veinte y tres» cuentan como uno) y las palabras que no son número ni relleno */
+  function scan(text) {
     const tokens = text.split(' ').filter(Boolean);
-    const out = [];
+    const nums = [];
+    const unknown = [];
     for (let i = 0; i < tokens.length; i++) {
       const t = tokens[i];
-      if (/^\d{1,2}$/.test(t)) { out.push(parseInt(t, 10)); continue; }
-      if (t in TENS) {
-        const unit = tokens[i + 1] === 'y' ? UNITS[tokens[i + 2]] : undefined;
-        if (unit !== undefined && unit >= 1 && unit <= 9) { out.push(TENS[t] + unit); i += 2; } else out.push(TENS[t]);
+      if (/^\d{1,2}$/.test(t)) { nums.push(parseInt(t, 10)); continue; }
+      if (own(TENS, t) || t === 'veinte') {
+        const base = t === 'veinte' ? 20 : TENS[t];
+        const unit = tokens[i + 1] === 'y' && own(UNITS, tokens[i + 2]) ? UNITS[tokens[i + 2]] : undefined;
+        if (unit !== undefined && unit >= 1 && unit <= 9) { nums.push(base + unit); i += 2; } else nums.push(base);
         continue;
       }
-      if (t in UNITS) out.push(UNITS[t]);
+      if (own(UNITS, t)) { nums.push(UNITS[t]); continue; }
+      if (FILLER.has(t)) continue;
+      unknown.push(t);
     }
-    return out;
+    return { nums, unknown };
   }
+  const numbers = (text) => scan(text).nums;
 
   /* ── Diccionario ──
      Cada acción con las palabras que la nombran. Todo en minúsculas y SIN acentos (el texto se normaliza antes).
@@ -65,8 +78,8 @@
     ['blk', ['tapon', 'tapona', 'taponazo']],
     ['fr', ['falta recibida', 'falta recibe', 'recibe falta', 'recibe una falta', 'falta a favor']],
     ['fc', ['falta', 'falta cometida', 'comete falta', 'comete una falta']],
-    ['ro', ['rebote de ataque', 'rebote ofensivo', 'rebote en ataque', 'rebote atacante']],
-    ['rd', ['rebote defensivo', 'rebote de defensa', 'rebote en defensa']],
+    ['ro', ['rebote de ataque', 'rebote ataque', 'rebote ofensivo', 'rebote en ataque', 'rebote atacante']],
+    ['rd', ['rebote defensivo', 'rebote defensa', 'rebote de defensa', 'rebote en defensa']],
     ['reb', ['rebote']],
     ['ast', ['asistencia', 'asiste', 'asistio', 'pase de gol']],
     ['rec', ['robo', 'roba', 'robado', 'recupera', 'recuperacion', 'recuperado', 'balon robado', 'recupero']],
@@ -91,7 +104,8 @@
 
   const fail = (reason, heard) => ({ ok: false, reason, heard });
   const NAMES = {
-    t1: 'tiro libre', t2: 'canasta de 2', t3: 'triple', rec: 'recuperación', lost: 'pérdida', ro: 'rebote de ataque',
+    t1_ok: 'tiro libre', t1_ko: 'tiro libre fallado', t2_ok: 'canasta de 2', t2_ko: 'tiro de 2 fallado', t3_ok: 'triple',
+    t3_ko: 'triple fallado', rec: 'recuperación', lost: 'pérdida', ro: 'rebote de ataque',
     rd: 'rebote defensivo', reb: 'rebote', fc: 'falta cometida', fr: 'falta recibida', ast: 'asistencia', blk: 'tapón',
     blkr: 'tapón recibido',
   };
@@ -132,11 +146,13 @@
     if (rival) {
       if (found.length && !(found[0] in SHOT_PTS)) return fail('Del rival solo se apuntan puntos', heard);
       if (miss) return fail('Del rival solo se apuntan puntos', heard);
+      const sc = scan(rest.replace(/\bmenos\b/g, ' '));
+      if (sc.unknown.length) return fail(`No he entendido «${sc.unknown[0]}»`, heard);
       let pts = found.length ? SHOT_PTS[found[0]] : null;
+      if (found.length && sc.nums.length) return fail('Del rival solo se apuntan puntos', heard);
       if (pts === null) {
-        const nums = numbers(rest.replace(/\bmenos\b/g, ' '));
-        if (nums.length !== 1 || nums[0] < 1 || nums[0] > 3) return fail('Rival: di 1, 2 o 3 puntos', heard);
-        pts = /\bmenos\b/.test(rest) ? -nums[0] : nums[0];
+        if (sc.nums.length !== 1 || sc.nums[0] < 1 || sc.nums[0] > 3) return fail('Rival: di 1, 2 o 3 puntos', heard);
+        pts = /\bmenos\b/.test(rest) ? -sc.nums[0] : sc.nums[0];
       }
       return { ok: true, kind: 'opp', pts };
     }
@@ -154,17 +170,14 @@
     }
     if (!on(type)) return fail(`«${NAMES[type] || type}» está desactivado en Ajustes`, heard);
 
-    // 4. El dorsal: solo entre quienes están en pista
-    const nums = numbers(rest);
-    if (!nums.length) return fail('No he entendido el dorsal', heard);
-    const hits = [];
-    for (const n of nums) {
-      const p = players.find((x) => parseInt(x.number, 10) === n);
-      if (p && !hits.includes(p)) hits.push(p);
-    }
-    if (hits.length > 1) return fail('He entendido dos dorsales: di solo uno', heard);
-    if (!hits.length) return fail(`El ${nums[0]} no está en pista`, heard);
-    return { ok: true, kind: 'ev', type, pid: hits[0].id, number: String(hits[0].number) };
+    // 4. El dorsal: un solo número, y solo entre quienes están en pista. Si sobra cualquier otra palabra, no se apunta nada
+    const sc = scan(rest);
+    if (sc.unknown.length) return fail(`No he entendido «${sc.unknown[0]}»`, heard);
+    if (!sc.nums.length) return fail('No he entendido el dorsal', heard);
+    if (sc.nums.length > 1) return fail('He entendido dos números: di solo el dorsal', heard);
+    const p = players.find((x) => parseInt(x.number, 10) === sc.nums[0]);
+    if (!p) return fail(`El ${sc.nums[0]} no está en pista`, heard);
+    return { ok: true, kind: 'ev', type, pid: p.id, number: String(p.number) };
   }
 
   root.MBVoice = Object.freeze({ parse, normalize, numbers });

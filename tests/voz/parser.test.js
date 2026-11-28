@@ -133,3 +133,61 @@ describe('diccionario: formas de decir cada tiro', () => {
     expect(say('diez de dos')).toMatchObject({ ok: true, number: '10', type: 't2_ok' });
   });
 });
+
+describe('palabras que cambian el sentido: no se apunta nada', () => {
+  const rejected = (text, ctx) => expect(say(text, ctx)).toMatchObject({ ok: false });
+  it.each([
+    'siete no ha entrado un triple', 'siete triple no ha entrado', 'siete sin canasta', 'siete canasta anulada',
+    'no siete triple', 'siete no es canasta', 'siete eh triple',
+  ])('negación o palabra desconocida: «%s»', (text) => {
+    rejected(text);
+    expect(say(text).reason).toContain('No he entendido');
+  });
+  it('«a siete» (la acción la recibe, no la comete) no se apunta como de siete', () => {
+    rejected('tapon a siete');
+    rejected('falta a siete');
+    rejected('asistencia a siete');
+  });
+  it('«recibida» suelta no se ignora', () => {
+    rejected('siete doble recibida');
+  });
+  it('del rival tampoco', () => {
+    rejected('rival no triple');
+    rejected('rival dos y siete');
+  });
+});
+
+describe('lenguaje natural que sí se entiende', () => {
+  const one = [{ id: 'p1', number: '1' }, { id: 'p7', number: '7' }, { id: 'p3', number: '3' }, { id: 'p20', number: '20' }, { id: 'p23', number: '23' }];
+  it('relleno habitual no cambia la jugada', () => {
+    expect(say('siete ha metido un triple', { players: one })).toMatchObject({ ok: true, number: '7', type: 't3_ok' });
+    expect(say('siete anota una canasta', { players: one })).toMatchObject({ ok: true, number: '7', type: 't2_ok' });
+    expect(say('un triple del siete', { players: one })).toMatchObject({ ok: true, number: '7', type: 't3_ok' });
+  });
+  it('«un» y «una» no son el dorsal 1', () => {
+    expect(say('un triple', { players: one })).toMatchObject({ ok: false });
+    expect(say('uno triple', { players: one })).toMatchObject({ ok: true, number: '1' });
+  });
+  it('«veinte y tres» es el 23, no el 20 y el 3', () => {
+    expect(say('veinte y tres triple', { players: one })).toMatchObject({ ok: true, number: '23' });
+    expect(say('veintitres triple', { players: one })).toMatchObject({ ok: true, number: '23' });
+    expect(say('veinte triple', { players: one })).toMatchObject({ ok: true, number: '20' });
+  });
+  it('«de dos» / «de tres» frente a un dorsal 2 o 3 en pista', () => {
+    const two = [{ id: 'p2', number: '2' }, { id: 'p3', number: '3' }];
+    expect(say('dos de tres', { players: two })).toMatchObject({ ok: true, number: '2', type: 't3_ok' });
+    expect(say('tres de dos', { players: two })).toMatchObject({ ok: true, number: '3', type: 't2_ok' });
+  });
+  it('un solo dorsal: dos números en la frase no se resuelven en silencio', () => {
+    expect(say('cinco siete triple')).toMatchObject({ ok: false });
+  });
+  it('«rebote ataque» y «rebote defensa» sin «de»', () => {
+    expect(say('siete rebote ataque')).toMatchObject({ ok: true, type: 'ro' });
+    expect(say('siete rebote defensa')).toMatchObject({ ok: true, type: 'rd' });
+  });
+  it('el aviso de acción desactivada usa el nombre, no el código', () => {
+    const r = say('siete triple', { enabled: ['t2_ok'] });
+    expect(r.reason).toContain('triple');
+    expect(r.reason).not.toContain('t3_ok');
+  });
+});
