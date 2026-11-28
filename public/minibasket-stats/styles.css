@@ -1065,3 +1065,20 @@ table.stats tfoot td.zero { color: var(--muted); }
 .clock-inputs { display: inline-flex; align-items: center; gap: 4px; color: var(--text); font-family: var(--font-digits); font-size: 24px; font-weight: 700; }
 .clock-inputs input { width: 2.3em; min-width: 52px; padding: 2px 0; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; text-align: center; }
 .clock-inputs input:focus { outline: 2px solid var(--green); outline-offset: 1px; }
+
+/* Dictado por voz: se mantiene pulsado mientras se habla */
+.icon-btn.voice { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.icon-btn.voice.listening { background: var(--surface3); border-color: var(--red); color: var(--red); animation: voice-pulse 1s ease-in-out infinite; }
+.icon-btn.voice.listening.ready { background: var(--red); border-color: transparent; color: #fff; animation: voice-pulse 1s ease-in-out infinite; }
+@keyframes voice-pulse { 50% { transform: scale(1.12); } }
+@media (prefers-reduced-motion: reduce) { .icon-btn.voice.listening { animation: none; } }
+/* Con el dictado activado la cabecera lleva un botón más: los de icono se estrechan para que el marcador no pierda sitio */
+.live-top:has(> .icon-btn.voice) > .icon-btn { min-width: 32px; }
+@media (max-width: 700px) { .live-top:has(> .icon-btn.voice) > .icon-btn { min-width: 28px; } }
+/* Dictado por voz: lo que ha oído (Ajustes) */
+.voice-log { margin: 6px 0 2px; }
+.voice-log summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.voice-log ul { list-style: none; margin: 6px 0; padding: 0; font-size: 13px; display: grid; gap: 3px; }
+.voice-log li.ok { color: var(--green); }
+.voice-log li.ko { color: var(--red); }
+.voice-log li .muted { color: var(--muted); }

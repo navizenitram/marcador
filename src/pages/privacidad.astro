@@ -11,7 +11,7 @@ import { APP_URL, UMAMI_WEBSITE_ID } from '../consts';
       <header class="article-head">
         <h1>Privacidad</h1>
         <p class="lead">{UMAMI_WEBSITE_ID
-          ? 'Lo que apuntas en la app nunca sale de tu móvil. La web y la app solo cuentan visitas y usos de forma anónima.'
+          ? 'Lo que apuntas en la app no sale de tu móvil (salvo el dictado por voz, si lo activas). La web y la app solo cuentan visitas y usos de forma anónima.'
           : 'La app no recoge ningún dato y esta web tampoco.'}</p>
       </header>
       <div class="prose">
@@ -20,6 +20,12 @@ import { APP_URL, UMAMI_WEBSITE_ID } from '../consts';
           La <a href={APP_URL}>app de My Own Basketball Stats</a> no tiene cuentas, cookies ni publicidad. Los equipos,
           jugadores, partidos y estadísticas que apuntas se guardan únicamente en el almacenamiento local del navegador de tu
           dispositivo y solo salen de él si tú los compartes o los exportas.{!UMAMI_WEBSITE_ID && ' Tienes el texto completo dentro de la propia app, en Ajustes.'}
+        </p>
+        <p>
+          <strong>Dictado por voz (opcional).</strong> La app puede dejarte dictar jugadas con el micrófono. Está desactivado hasta que
+          lo activas en Ajustes. Si lo activas, el reconocimiento de voz lo hace tu navegador y, en la mayoría de móviles, el audio se
+          envía a los servidores de Google o de Apple para transcribirlo. La app no guarda ni envía ese audio. Solo usa el texto
+          reconocido para apuntar la jugada y guarda en tu navegador las últimas 15 frases (solo texto), que puedes borrar desde Ajustes.
         </p>
         {UMAMI_WEBSITE_ID && <p>
           Para saber si la app sirve de verdad y qué mejorar, cuenta de forma anónima algunos momentos de su uso con Umami (la

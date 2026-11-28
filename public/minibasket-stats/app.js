@@ -601,6 +601,7 @@ const ICONS = {
   back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
   updown: '<path d="M8 9l4-4 4 4M8 15l4 4 4-4"/>',
   undo: '<path d="M8 4L3 9l5 5"/><path d="M3 9h11a5.5 5.5 0 0 1 0 11h-4"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
   swap: '<path d="M4 8h14M14 4l4 4-4 4"/><path d="M20 16H6M10 12l-4 4 4 4"/>',
   chart: '<path d="M4 20h16"/><path d="M7 16v-5M12 16V5M17 16v-8"/>',
   trash: '<path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M10 11v6M14 11v6"/>',
@@ -978,7 +979,7 @@ function viewTeams() {
       </form>
       <p class="muted small">Cada equipo tiene su propia plantilla, partidos, estadísticas y botones del partido.
       Con <b>Solo marcador</b> empiezas a apuntar sin dar de alta a nadie; cuando quieras la estadística de cada jugador, añádelos en Equipo y los partidos nuevos ya serán por jugador.</p>
-      <p class="privacy-note">${icon('lock')}<span>Sin registro ni publicidad: todo se guarda solo en este dispositivo. <a href="#/privacidad">Privacidad</a></span></p>
+      <p class="privacy-note">${icon('lock')}<span>Sin registro ni publicidad: todo se guarda solo en este dispositivo (salvo el dictado por voz, si lo activas). <a href="#/privacidad">Privacidad</a></span></p>
       ${DEMO && db.demoOff && !demoLoaded() ? `<button class="btn demo-back" data-action="demo-open">${icon('plus')} ${esc(tr('demo.load'))}</button>` : ''}
     </section>
   </div>`);
@@ -990,13 +991,13 @@ function viewPrivacy() {
   <section class="card privacy">
     <button class="btn" data-action="back">${icon('back')} Volver</button>
     <h1>${icon('lock')} Tu privacidad</h1>
-    <p class="lead">Lo que apuntas es tuyo y se queda en tu dispositivo. La app solo cuenta, de forma anónima, cuánto se usa, y puedes desactivarlo.</p>
+    <p class="lead">Lo que apuntas es tuyo y se queda en tu dispositivo (salvo el audio del dictado por voz, si lo activas: ver más abajo). La app solo cuenta, de forma anónima, cuánto se usa, y puedes desactivarlo.</p>
 
     <h2>Qué no hace la app</h2>
     <ul>
       <li>No tiene cuentas ni registro: no te pide email, contraseña ni ningún dato personal.</li>
       <li>No usa cookies ni publicidad, y no te identifica ni te sigue de una web a otra.</li>
-      <li>No envía a ningún servidor los equipos, jugadores, partidos ni estadísticas que introduces.</li>
+      <li>No envía a ningún servidor los equipos, jugadores, partidos ni estadísticas que introduces. La única excepción es el dictado por voz, opcional y desactivado por defecto: si lo activas, el audio lo procesa tu navegador (normalmente en servidores de Google o Apple).</li>
       <li>No carga recursos de terceros: las fuentes y los iconos van incluidos en la propia app.</li>
     </ul>
 
@@ -1026,6 +1027,12 @@ function viewPrivacy() {
     <p>Por eso mismo, si borras los datos del navegador, desinstalas la app o cambias de dispositivo, los datos se pierden.
     Te recomiendo exportar una copia de seguridad de vez en cuando desde <a href="#/ajustes">Ajustes</a>.</p>
     <p>Como la app trabaja con datos de menores, una buena práctica es usar solo el nombre de pila o un apodo de cada jugador.</p>
+
+    <h2>Dictado por voz (opcional)</h2>
+    <p>Si lo activas, puedes dictar jugadas con el micrófono. El reconocimiento de voz lo hace tu navegador y, en la mayoría de móviles,
+    el audio se envía a los servidores de Google o de Apple para transcribirlo. La app no guarda ni envía el audio. Está desactivado
+    hasta que lo aceptas y puedes desactivarlo en Ajustes. Para que veas qué transcribe tu móvil, la app guarda en este navegador las últimas
+    15 frases reconocidas (solo el texto, nunca el audio); se borran desde Ajustes o al desactivar el dictado.</p>
 
     <h2>Lo que queda fuera de la app</h2>
     <p>Como cualquier página web, el servicio que la aloja (Vercel) puede registrar datos técnicos de las visitas, como la dirección IP,
@@ -1263,6 +1270,7 @@ function viewLive(g) {
         <button data-action="opp" data-pts="-1" class="minus"${ro}>−1</button>
       </div>
       <button class="icon-btn" data-action="undo" title="Deshacer última acción" aria-label="Deshacer última acción"${ro}>${icon('undo')}</button>
+      ${voiceButton(ro)}
       <button class="icon-btn" data-action="lineup" title="Quinteto en pista" aria-label="Quinteto en pista"${ro}>${icon('swap')}</button>
       <a class="icon-btn" href="#/stats/${g.id}" title="Estadísticas" aria-label="Estadísticas">${icon('chart')}</a>
     </header>
@@ -1532,8 +1540,9 @@ function viewSettings() {
       <button class="btn" data-action="demo-open">${icon('plus')} ${esc(tr('demo.load'))}</button>` : ''}
 
       <h2>Privacidad</h2>
-      <p class="muted small">My Own Basketball Stats no envía tus datos: no hay registro ni publicidad, y todo lo que apuntas se guarda solo en este dispositivo.</p>
+      <p class="muted small">My Own Basketball Stats no envía tus datos: no hay registro ni publicidad, y todo lo que apuntas se guarda solo en este dispositivo. Solo el dictado por voz, si lo activas, manda el audio a tu navegador (Google o Apple) para transcribirlo.</p>
       ${usoSwitch()}
+      ${voiceSwitch()}
       <a class="btn" href="#/privacidad">${icon('lock')} Leer la política de privacidad</a>
 
       <h2>${esc(tr('help.title'))}</h2>
@@ -2334,7 +2343,7 @@ function renderLog(m) {
 /* ─────────────────────────── Toast ─────────────────────────── */
 
 let toastTimer = null;
-function toast(msg, undoId) {
+function toast(msg, undoId, ms) {
   // En el partido el aviso es solo informativo (deshacer está en la cabecera, ↶)
   // y deja pasar los toques para no bloquear los botones de debajo.
   const live = parseRoute().view === 'partido' && !ui.modal;
@@ -2346,7 +2355,7 @@ function toast(msg, undoId) {
   void toastEl.offsetWidth;
   toastEl.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { toastEl.hidden = true; }, live ? 1600 : withUndo ? 3000 : 2200);
+  toastTimer = setTimeout(() => { toastEl.hidden = true; }, ms || (live ? 1600 : withUndo ? 3000 : 2200));
 }
 
 /* ─────────────────────────── Partido ─────────────────────────── */
@@ -2747,6 +2756,14 @@ const actions = {
   /* General */
   fullscreen() { toggleFullscreen(); },
   back() { if (history.length > 1) history.back(); else go(team() ? '#/ajustes' : '#/equipos'); },
+  'voz-log-clear'() {
+    try { localStorage.removeItem(VOICE_LOG_KEY); } catch (e) { /* noop */ }
+    render();
+  },
+  async 'toggle-voz'() {
+    if (voiceOn()) { voiceAbort(); voiceSet(false); try { localStorage.removeItem(VOICE_LOG_KEY); } catch (e) { /* noop */ } toast('Dictado por voz desactivado'); render(); return; }
+    if (await voiceConsent()) { toast('Dictado por voz activado'); render(); }
+  },
   'toggle-uso'() {
     const on = !window.MBAnalytics.userOn();
     window.MBAnalytics.setEnabled(on);
@@ -3006,6 +3023,225 @@ document.addEventListener('fullscreenchange', () => {
   // Actualiza el icono del botón de pantalla completa
   if (!ui.modal) render();
 });
+
+/* ─────────────────── Dictado por voz ───────────────────
+   Un botón 🎤 en el partido en directo: se toca (o se mantiene pulsado), se habla y la frase se convierte en una
+   jugada (voz.js, MBVoice). Usa el reconocimiento de voz del navegador (Web Speech API), que en la mayoría de móviles manda
+   el audio a los servidores de Google o Apple y necesita conexión: por eso es opcional y se activa en Ajustes, con aviso.
+   La app no guarda ni envía el audio; el texto reconocido solo se usa para apuntar la jugada. */
+
+const VOICE_KEY = 'mb_voz';
+const SpeechRec = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
+const voiceSupported = () => !!SpeechRec && typeof MBVoice === 'object';
+function voiceOn() { try { return localStorage.getItem(VOICE_KEY) === '1'; } catch (e) { return false; } }
+function voiceSet(on) { try { if (on) localStorage.setItem(VOICE_KEY, '1'); else localStorage.removeItem(VOICE_KEY); } catch (e) { /* noop */ } }
+
+const VOICE_NOTICE = `<b>Dictado por voz</b><br><small class="muted">Toca 🎤, espera al «Habla ahora» y di la jugada («siete triple», «diez rebote defensivo», «rival dos»). También vale mantenerlo pulsado y soltar al acabar.<br><br>
+  Usa el reconocimiento de voz de tu navegador. En la mayoría de móviles <b>el audio se envía a Google o Apple</b> para transcribirlo y no funciona sin conexión.
+  La app no guarda ni envía el audio. Puedes desactivarlo en Ajustes.</small>`;
+
+/* Pide permiso (una vez) y lo recuerda. Devuelve true si el dictado queda activado */
+async function voiceConsent() {
+  if (voiceOn()) return true;
+  if (!await confirmBox(VOICE_NOTICE, 'Activar')) return false;
+  voiceSet(true);
+  return true;
+}
+
+/* El botón solo sale una vez activado el dictado (Ajustes): la cabecera del partido va justa de ancho y quien no lo usa
+   la ve como siempre. La primera vez se activa desde Ajustes, con el aviso de privacidad. */
+function voiceButton(ro) {
+  if (!voiceSupported() || !voiceOn()) return '';
+  return `<button class="icon-btn voice${voiceRec ? ' listening' + (voiceRec.audio ? ' ready' : '') : ''}" data-voice title="Toca y di la jugada (o mantén pulsado)" aria-label="Dictar una jugada: toca y habla, o mantén pulsado"${ro}>${icon('mic')}</button>`;
+}
+
+function voiceSwitch() {
+  if (!voiceSupported()) return '';
+  const on = voiceOn();
+  const log = on ? voiceLog() : [];
+  const rows = log.map(e => `<li class="${e.ok ? 'ok' : 'ko'}">${e.ok ? '✓' : '✗'} ${e.heard.length ? `«${esc(e.heard.join('» / «'))}»` : '<i>(nada)</i>'} <span class="muted">→ ${esc(e.what)}</span></li>`).join('');
+  return `<button class="opt uso ${on ? 'on' : ''}" data-action="toggle-voz" role="switch" aria-checked="${on}">
+        <span class="opt-txt"><b>Dictado por voz</b><small>${on ? 'Activado' : 'Desactivado'} · el audio lo procesa tu navegador (Google o Apple)</small></span>
+        <span class="switch"><i></i></span>
+      </button>
+      ${log.length ? `<details class="voice-log"><summary>Lo que ha oído (últimas ${log.length})</summary>
+        <ul>${rows}</ul>
+        <p class="muted small">Se guarda solo en este navegador, para ver qué transcribe tu móvil.</p>
+        <button class="btn" data-action="voz-log-clear">Borrar</button>
+      </details>` : ''}`;
+}
+
+/* Acciones que el equipo tiene activadas, para no apuntar un botón que no usa */
+function voiceEnabled(g) {
+  return [...SHOT_ACTIONS, ...OTHER_ACTIONS].filter(actEnabled).concat(gameRebs(g));
+}
+
+/* De lo que se ha oído (hasta 3 alternativas, de más a menos probable) a una jugada: la primera que se entiende.
+   Devuelve { ok, ... } o el fallo de la mejor alternativa para decir qué ha pasado */
+function voiceInterpret(g, heard) {
+  const players = g.onCourt.map(id => g.roster.find(p => p.id === id)).filter(Boolean).map(p => ({ id: p.id, number: p.number }));
+  const ctx = { players, enabled: voiceEnabled(g) };
+  let first = null;
+  for (const text of heard) {
+    const r = MBVoice.parse(text, ctx);
+    if (r.ok) return r;
+    first = first || r;
+  }
+  return first || { ok: false, reason: 'No he oído nada', heard: '' };
+}
+
+/* Lo último que ha oído el reconocimiento y qué se ha hecho con ello (solo en este navegador, para ver en Ajustes qué
+   transcribe tu móvil y ampliar el diccionario de voz.js). Máximo 15 frases; se borran desde Ajustes. */
+const VOICE_LOG_KEY = 'mb_voz_log';
+const VOICE_LOG_MAX = 15;
+function voiceLog() {
+  try {
+    const l = JSON.parse(localStorage.getItem(VOICE_LOG_KEY) || '[]');
+    if (!Array.isArray(l)) return [];
+    // Lo guardado puede haberlo tocado alguien: solo pasan entradas con la forma esperada
+    return l.filter(e => e && Array.isArray(e.heard) && typeof e.what === 'string')
+      .map(e => ({ heard: e.heard.map(String).slice(0, 3), ok: !!e.ok, what: e.what.slice(0, 80) })).slice(0, VOICE_LOG_MAX);
+  } catch (e) { return []; }
+}
+function voiceLogAdd(heard, ok, what) {
+  try {
+    const l = voiceLog();
+    l.unshift({ heard: heard.map(String).slice(0, 3), ok: !!ok, what: String(what).slice(0, 80) });
+    localStorage.setItem(VOICE_LOG_KEY, JSON.stringify(l.slice(0, VOICE_LOG_MAX)));
+  } catch (e) { /* noop */ }
+}
+const voiceWhat = (r) => (!r.ok ? r.reason : r.kind === 'opp' ? `Rival ${r.pts > 0 ? '+' + r.pts : r.pts}` : `#${r.number} ${EV[r.type] ? EV[r.type].text : r.type}`);
+
+function voiceApply(g, r, heard = []) {
+  voiceLogAdd(heard, r.ok, voiceWhat(r));
+  if (!r.ok) {
+    vibrate(40);
+    toast(`🎤 ${esc(r.reason)}${r.heard ? ` · <small>«${esc(r.heard)}»</small>` : ''}`, undefined, 4000);
+    return;
+  }
+  if (r.kind === 'opp') recordPoints(g, 'them', r.pts);
+  else record(g, r.type, r.pid);
+}
+
+let voiceRec = null;   // reconocimiento en curso
+const VOICE_TAP_MS = 350;      // mantener pulsado al menos esto, con el micrófono ya abierto, y soltar lo cierra
+const VOICE_MAX_MS = 4000;     // tope de escucha desde que el micrófono se abre, por si el ruido impide que cierre solo
+const VOICE_OPEN_MS = 15000;   // si el micrófono ni llega a abrirse (p. ej. aviso de permiso sin contestar); un toque lo cierra antes
+const VOICE_STUCK_MS = 1500;   // si tras pedir parar el navegador no avisa del final, se da por terminado
+
+const voiceBtn = () => document.querySelector('[data-voice]');
+/* El estado se pinta en el botón que haya en pantalla en cada momento: un repintado de la cabecera lo cambia por otro */
+function voiceMark(state) {
+  const b = voiceBtn();
+  if (b) { b.classList.toggle('listening', !!state); b.classList.toggle('ready', !!(state && state.audio)); }
+}
+
+/* Deja el dictado como nuevo: sin temporizadores, sin el botón marcado y listo para otro toque */
+function voiceClear(state) {
+  clearTimeout(state.timer); clearTimeout(state.stuck);
+  if (voiceRec === state) { voiceRec = null; voiceMark(null); }
+}
+
+/* Cancela lo que se esté oyendo sin apuntar nada: cambio de pantalla o de partido, app en segundo plano, dictado desactivado */
+function voiceAbort() {
+  const state = voiceRec;
+  if (!state) return;
+  state.cancelled = true;
+  voiceClear(state);
+  try { state.rec.abort(); } catch (e) { /* noop */ }
+}
+
+/* Un toque abre el micrófono y el propio reconocimiento lo cierra al acabar de hablar (o a los 4 s); otro toque lo cierra
+   ya. Mantener pulsado también vale: se cierra al soltar. Así no hay que acertar con el gesto mientras el navegador
+   arranca el micrófono (el aviso de permiso o los primeros ~½ s cortaban el dictado y salía «no he oído nada»). */
+function voiceStart() {
+  const g = currentGame();
+  if (!g || g.finished || voiceRec) return;
+  let rec;
+  try { rec = new SpeechRec(); } catch (e) { toast('🎤 No se puede usar el micrófono'); return; }
+  rec.lang = 'es-ES';
+  rec.continuous = false;
+  rec.interimResults = false;
+  rec.maxAlternatives = 3;
+  const state = { rec, gid: g.id, heard: [], error: '', audio: false, downAt: Date.now(), held: true, timer: 0, stuck: 0, stopping: false, cancelled: false };
+  voiceRec = state;
+  voiceMark(state);
+  // El micrófono tarda un momento en abrirse: «Habla ahora» (y una vibración) avisa de cuándo
+  rec.onaudiostart = () => {
+    if (voiceRec !== state) return;
+    state.audio = true;
+    voiceMark(state); vibrate(25); toast('🎤 Habla ahora');
+    clearTimeout(state.timer);
+    state.timer = setTimeout(voiceStop, VOICE_MAX_MS);   // los 4 s cuentan desde que se puede hablar
+  };
+  rec.onresult = (ev) => {
+    const res = ev.results[ev.results.length - 1];
+    state.heard = Array.from(res).map(a => a.transcript);
+  };
+  rec.onerror = (ev) => { state.error = ev.error || 'error'; };
+  rec.onend = () => {
+    const cancelled = state.cancelled;
+    voiceClear(state);
+    if (cancelled) return;
+    // Solo se apunta si el usuario sigue en ese partido y con el dictado activado: el final puede llegar tarde
+    const game = getGame(state.gid);
+    const here = currentGame();
+    if (!voiceOn() || !game || game.finished || !here || here.id !== game.id) return;
+    if (state.error === 'not-allowed') { toast('🎤 Permite el micrófono en el navegador', undefined, 4000); return; }
+    if (state.error === 'service-not-allowed') { toast('🎤 El navegador no permite el dictado aquí (¿dictado del sistema desactivado?)', undefined, 4000); return; }
+    if (state.error === 'network') { toast('🎤 Sin conexión con el servicio de voz del navegador', undefined, 4000); return; }
+    if (!state.heard.length) {
+      const code = state.error && state.error !== 'no-speech' ? ` (${esc(state.error)})` : '';
+      voiceLogAdd([], false, state.audio ? 'No he oído nada' : `Micrófono sin abrir${state.error ? ' (' + state.error + ')' : ''}`);
+      toast(state.audio
+        ? '🎤 No he oído nada: habla justo después de «Habla ahora»'
+        : `🎤 El micrófono no se ha llegado a abrir${code}. Vuelve a pulsar`, undefined, 4000);
+      return;
+    }
+    voiceApply(game, voiceInterpret(game, state.heard), state.heard);
+  };
+  state.timer = setTimeout(voiceStop, VOICE_OPEN_MS);
+  try { rec.start(); vibrate(); } catch (e) { voiceClear(state); toast('🎤 No se ha podido abrir el micrófono', undefined, 4000); }
+}
+
+function voiceStop() {
+  const state = voiceRec;
+  if (!state || state.stopping) return;
+  state.stopping = true;
+  try { state.rec.stop(); } catch (e) { /* noop */ }
+  // Si el navegador no avisa del final (aviso de permiso pendiente, iOS), no se queda atascado
+  clearTimeout(state.stuck);
+  state.stuck = setTimeout(voiceAbort, VOICE_STUCK_MS);
+}
+
+document.addEventListener('pointerdown', (e) => {
+  const btn = e.target.closest && e.target.closest('[data-voice]');
+  if (!btn || btn.disabled) return;
+  e.preventDefault();
+  if (!voiceOn()) return;
+  if (voiceRec) { voiceStop(); return; }   // otro toque mientras escucha: cerrar y apuntar lo oído
+  try { btn.setPointerCapture(e.pointerId); } catch (err) { /* noop */ }
+  voiceStart();
+});
+/* Al soltar: si se ha mantenido pulsado con el micrófono ya abierto, se cierra; con un toque corto, o si aún se estaba
+   abriendo, sigue abierto. Un pointercancel (el navegador se queda con el gesto, p. ej. al pedir permiso) nunca lo cierra:
+   lo cierra el propio reconocimiento. */
+document.addEventListener('pointerup', (e) => {
+  if (!(e.target.closest && e.target.closest('[data-voice]')) || !voiceRec || !voiceRec.held) return;
+  voiceRec.held = false;
+  if (voiceRec.audio && Date.now() - voiceRec.downAt >= VOICE_TAP_MS) voiceStop();
+});
+/* Con teclado o lector de pantalla (Enter, Espacio) llega un clic sin puntero (detail 0): hace de toque */
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest && e.target.closest('[data-voice]');
+  if (!btn || btn.disabled || e.detail !== 0 || !voiceOn()) return;
+  if (voiceRec) voiceStop(); else voiceStart();
+});
+/* Cambiar de pantalla o de partido, o pasar la app a segundo plano, cancela lo que se esté oyendo */
+window.addEventListener('hashchange', voiceAbort);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') voiceAbort(); });
+/* En el móvil, una pulsación larga abre el menú contextual: aquí no */
+document.addEventListener('contextmenu', (e) => { if (e.target.closest && e.target.closest('[data-voice]')) e.preventDefault(); });
 
 /* ─────────────────── Exportar / compartir ─────────────────── */
 
